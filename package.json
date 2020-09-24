@@ -1,0 +1,22 @@
+{
+  "name": "sita-health-issuer-controller",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@commitlint/cli": "^8.3.5",
+    "@commitlint/config-conventional": "^8.3.4",
+    "husky": "^4.2.5",
+    "prettier": "2.0.5"
+  },
+  "scripts": {
+    "style-watch": "onchange '**/*.js' -- prettier --write {{changed}}",
+    "style-check": "prettier --check '**/*.js'",
+    "style-format": "prettier --write '**/*.js'"
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  }
+}
