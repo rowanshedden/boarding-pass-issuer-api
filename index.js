@@ -14,31 +14,16 @@ dotenv.config();
 let app = express();
 let server = http.createServer(app);
 
+module.exports.server = server;
+let Websocket = require('./websockets.js')
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
-server.listen(process.env.CONTROLLERPORT, () => console.log(`Server listening at http://localhost:${process.env.CONTROLLERPORT}`));
+server.listen(process.env.CONTROLLERPORT || 3100, () => console.log(`Server listening at http://localhost:${process.env.CONTROLLERPORT || 3100}`));
 
 //Send all Cloud Agent Webhooks posting to the agent webhook router
 app.use('/controller-webhook', agentWebhookRouter);
-
-
-app.use('/create-invitation', async (req, res) => {
-	try{
-		console.log("Front End Request", req.url);
-		console.log(req.body);
-
-		const invitationURL = await Invitations.createInvitation();
-		console.log(`Invitation URL: ${invitationURL}`);
-
-		res.status(200).send(invitationURL);
-	}	catch (error) {
-		console.error("Error Creating Invitation")
-		console.error(error);
-		res.status(500).send("ERROR");
-	}
-})
-
 
 
 app.use('/controller-webhook/topic/connections', (req, res) => {
@@ -199,11 +184,6 @@ app.use('/controller-webhook/topic/connections', (req, res) => {
 	else{
 		res.status(200).send()
 	}
-})
-app.use('/controller-webhook', (req, res) => {
-	console.log("ACAPy Webhook Message");
-	console.log(req.body);
-	res.status(200).send()
 })
 
 app.use('/second-controller', (req, res) => {
