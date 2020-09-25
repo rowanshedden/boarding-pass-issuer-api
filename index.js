@@ -4,37 +4,39 @@ const bodyParser = require('body-parser');
 
 const axios = require('axios');
 
+const agentWebhookRouter = require('./agentWebhook');
+const Invitations = require('./agentLogic/invitations');
+
+//NOTE(JamesKEbert): Env Variables potentially to be removed upon containerization setup. May also consider other libraries/methods as well.
+const dotenv = require('dotenv');
+dotenv.config();
+
 let app = express();
 let server = http.createServer(app);
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
-server.listen(3100, () => console.log(`Server listening at http://localhost:3100`));
+server.listen(process.env.CONTROLLERPORT, () => console.log(`Server listening at http://localhost:${process.env.CONTROLLERPORT}`));
 
-app.use('/create-invitation', (req, res) => {
-	console.log("Front End Request", req.url);
-	console.log(req.body);
+//Send all Cloud Agent Webhooks posting to the agent webhook router
+app.use('/controller-webhook', agentWebhookRouter);
 
-	axios({
-    method: 'post',
-    url:`http://192.168.0.104:8150/connections/create-invitation`,
-    params:{
-    	alias: "Enterprise Invite",
-    }
-  })
-  .then(async (response) => {
-    console.log(response.data);
-    res.status(200).send(response.data.invitation_url)
-  })
-  .catch((error) => {
-    console.error(error);
-    res.status(500).send("Server Error")
-  })
-  .finally(() => {
-  	console.log("Finished Admin Call");
-  })
 
+app.use('/create-invitation', async (req, res) => {
+	try{
+		console.log("Front End Request", req.url);
+		console.log(req.body);
+
+		const invitationURL = await Invitations.createInvitation();
+		console.log(`Invitation URL: ${invitationURL}`);
+
+		res.status(200).send(invitationURL);
+	}	catch (error) {
+		console.error("Error Creating Invitation")
+		console.error(error);
+		res.status(500).send("ERROR");
+	}
 })
 
 

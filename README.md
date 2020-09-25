@@ -32,6 +32,22 @@ _TODO_
 
 ## Installation
 
+Create a .env File with the following variables specific to your setup:
+```
+CONTROLLERPORT=3100
+AGENTADDRESS='http://192.168.0.104:8150'
+```
+
+Add the following line to your ACA-Py Agent startup.sh file:
+```
+--webhook-url "$WEBHOOKADDRESS" \
+```
+
+Add in your agent YML file for each agent the following line:
+```
+WEBHOOKADDRESS: http://192.168.0.107:3100/controller-webhook
+```
+
 _TODO_
 
 * Installing this app and dependencies (including cloud agent, network, etc.)
