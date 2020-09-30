@@ -1,5 +1,7 @@
-const Connections = require('../adminAPI/connections');
+const Connections = require('./connections');
+const Credentials = require('./credentials');
 
 module.exports = {
-	Connections
+	Connections,
+	Credentials
 }

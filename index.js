@@ -5,7 +5,6 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 
 const agentWebhookRouter = require('./agentWebhook');
-const Invitations = require('./agentLogic/invitations');
 
 //NOTE(JamesKEbert): Env Variables potentially to be removed upon containerization setup. May also consider other libraries/methods as well.
 const dotenv = require('dotenv');
@@ -23,7 +22,7 @@ app.use(bodyParser.json())
 server.listen(process.env.CONTROLLERPORT || 3100, () => console.log(`Server listening at http://localhost:${process.env.CONTROLLERPORT || 3100}`));
 
 //Send all Cloud Agent Webhooks posting to the agent webhook router
-app.use('/controller-webhook', agentWebhookRouter);
+app.use('/api/controller-webhook', agentWebhookRouter);
 
 
 app.use('/controller-webhook/topic/connections', (req, res) => {

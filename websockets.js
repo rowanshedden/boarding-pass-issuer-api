@@ -1,9 +1,12 @@
 const WebSocket = require('ws');
 const server = require('./index.js').server;
 
-const Invitations = require('./agentLogic/invitations');
+const ControllerError = require('./errors.js');
 
-wss = new WebSocket.Server({server: server, path: '/ws'});
+const Invitations = require('./agentLogic/invitations');
+const Credentials = require('./agentLogic/credentials');
+
+wss = new WebSocket.Server({server: server, path: '/api/ws'});
 console.log("Websockets Setup");
 
 wss.on('connection', (ws) => {
@@ -56,14 +59,26 @@ const messageHandler = async (ws, messageType, messageData = {}) => {
 				sendMessage(ws, "NEW_INVITATION", {invitationURL});
 
 				break;
+			case 'AUTO_ISSUE_CREDENTIAL':
+				console.log("Auto Issuing Credential");
+
+				const response = await Credentials.autoIssueCredential("e18360d1-2be9-404c-92f7-f42f5de610be");
+				sendMessage(ws, "CREDENTIAL_ISSUED", {});
+				break;
 			default:
 				console.error(`Unrecognized Message Type: ${messageType}`)
-				sendErrorMessage(ws, 001, "Unrecognized Message Type");
+				sendErrorMessage(ws, 1, "Unrecognized Message Type");
 				break;
 		}
 	} catch (error){
-		console.error("Error In Websocket Message Handling");
-		sendErrorMessage(ws, 000, "Internal Error");
+		if(error instanceof ControllerError){
+			console.error("Controller Error in Message Handling", error);
+			sendErrorMessage(ws, error.code, error.reason);
+		}
+		else{
+			console.error("Error In Websocket Message Handling", error);
+			sendErrorMessage(ws, 0, "Internal Error");
+		}
 	}
 }
 
