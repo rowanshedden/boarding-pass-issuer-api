@@ -4,9 +4,6 @@ This software project includes the following third-party or open-source tools, c
 
 ## List of Third Party Software
 
-
-## Complete Text of Relevant Licenses
-
 ### MIT License
 
 See also: https://mit-license.org/
@@ -32,6 +29,7 @@ See also: https://creativecommons.org/licenses/by-sa/3.0/deed.en_GB
 
 ## Complete Text of Relevant Licenses
 
+
 ## MIT License
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -52,6 +50,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+<<<<<<< HEAD
 ## BSD 2-Clause "Simplified" License
 
 Redistribution and use in source and binary forms, with or without
@@ -184,3 +183,5 @@ made available upon request from time to time. For the avoidance of doubt,
 this trademark restriction does not form part of the License.
 
 Creative Commons may be contacted at https://creativecommons.org/.
+=======
+>>>>>>> 1e4535a... fix: updates to license; style check
