@@ -10,15 +10,15 @@ const Schemas = require('./schemas.js');
 
 //Auto Credential Issuance
 const autoIssueCredential = async (
-		connectionID, //verify
-		issuerDID, //fetch/verify
-		credDefID, //verify
-		schemaID, //verify via cred def
-		schemaVersion, //^
-		schemaName, //^
-		schemaIssuerDID, //^
+		connectionID, 
+		issuerDID,
+		credDefID, 
+		schemaID,
+		schemaVersion,
+		schemaName,
+		schemaIssuerDID, 
 		comment = '', 
-		attributes = []//verify attrs <- later
+		attributes = []
 	) => {
 	try{
 		//Perform Validations
@@ -110,7 +110,7 @@ const autoIssueCredential = async (
 			false,
 			false
 		);
-		
+
 	} catch (error) {
 		console.error("Error Issuing Credential");
 		throw error;
