@@ -1,25 +1,12 @@
 const ControllerError = require('../errors.js');
 
 const AdminAPI = require('../adminAPI');
+const CredDefs = require('./credDefs.js');
 const Contacts = require('./contacts.js');
 const DIDs = require('./dids.js');
+const Schemas = require('./schemas.js');
 
 //Perform Agent Business Logic
-
-
-const fetchCreatedCredDefs = async (schemaID, credDefID) => {
-	try{
-		const credDefs = await AdminAPI.Credentials.createdCredDefs();
-		console.log(credDefs);
-
-
-		return credDefs;
-
-	} catch (error){
-		console.error("Error Fetching Created Credential Definitions");
-		throw error;
-	}
-}
 
 //Auto Credential Issuance
 const autoIssueCredential = async (
@@ -37,7 +24,6 @@ const autoIssueCredential = async (
 		//Perform Validations
 
 		//Validate Connection
-		//(JamesKEbert)TODO:Change Connection Validation to validating against Controller DB versus Admin API Call
 		const connection = await Contacts.fetchConnection(connectionID);
 
 		if(!connection){
@@ -50,59 +36,87 @@ const autoIssueCredential = async (
 		}
 
 		//Validate Public DID
-		//(JamesKEbert):Should this validate a cached copy in the DB, or use the Admin API everytime?
-		//const publicDID = await DIDs.fetchPublicDID();
+		const publicDID = await DIDs.fetchPublicDID();
+
+		if(!publicDID){
+			console.error("Public DID Not Set");
+			throw new ControllerError(4, "Public DID Not Set");
+		}
+
+
 
 
 		//Validate Credential Definition
-		//Validate Schema from Credential Definition
-		//Validate the Attributes
+		const credDefIDs = await CredDefs.createdCredDefIDs(
+			credDefID, 
+			issuerDID, 
+			schemaID, 
+			schemaIssuerDID, 
+			schemaName, 
+			schemaVersion
+		);
 
-		/*await fetchCreatedCredDefs();
+		//Fetch Credential Definition to check the schema utilized
+		const credDef = await CredDefs.fetchCredDef(credDefID);
+
+		if(credDefIDs.length <= 0){
+			console.error("Credential Definition ID Invalid");
+			throw new ControllerError(5, "Credential Definition ID Invalid");
+		}
+
+
+		//Validate Schema
+		const schema = await Schemas.fetchSchema(schemaID);
+
+		if(!schema){
+			console.error("Schema ID Invalid");
+			throw new ControllerError(6, "Schema ID Invalid");
+		}
+		//Check to see if the schema used in the cred def is the specified schema
+		else if(schema.seqNo != credDef.schemaId){
+			console.error("Credential Definition's Schema Doesn't Match The Supplied Schema");
+			throw new ControllerError(7, "Credential Definition's Schema Doesn't Match The Supplied Schema");
+		}
+
+
+		//Validate the Attributes
+		//Ensure all attributes based on the schema have been assigned a value 
+		for(var i = 0; i < schema.attrNames.length; i++){
+			const accounted = attributes.some((attribute) => {
+				if(attribute.name === schema.attrNames[i]){
+					return true;
+				}
+				else{
+					return false;
+				}
+			})
+
+			if(!accounted){
+				console.error("Attribute(s) Not Assigned Values");
+				throw new ControllerError(8, "Attribute(s) Not Assigned Values");
+			}
+		}
 
 		const response = await AdminAPI.Credentials.autoIssueCred(
 			connectionID, 
 			issuerDID, 
 			credDefID, 
 			schemaID, 
-			schemaVersion,
-			schemaName,
-			schemaIssuerDID,
-			comment = '', 
-			attributes = []
+			schemaVersion, 
+			schemaName, 
+			schemaIssuerDID, 
+			comment, 
+			attributes,
+			false,
+			false
 		);
-		console.log("Response:", response);*/
-
-
-		return null;
-
+		
 	} catch (error) {
 		console.error("Error Issuing Credential");
 		throw error;
 	}
 }
-/*"credential_proposal": {
-		    "@type": "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/credential-preview",
-		    "attributes": [
-		      {
-		        "name": "issuer",
-		        "value": "Bronx RHIO"
-		      },
-		      {
-		        "name": "date",
-		        "value": "2020-09-28"
-		      }
-		    ]
-		  },
-		  "connection_id": "e18360d1-2be9-404c-92f7-f42f5de610be",
-		  "cred_def_id": "ME9VikYwUtb9mRhxW5W68Z:3:CL:146204:High-Five_1.0",
-		  "issuer_did": "ME9VikYwUtb9mRhxW5W68Z",
-		  "schema_issuer_did": "ME9VikYwUtb9mRhxW5W68Z",
-		  "comment": "",
-		  "schema_name": "High-Five",
-		  "schema_id": "ME9VikYwUtb9mRhxW5W68Z:2:High-Five:1.0",
-		  "schema_version": "1.0"*/
+
 module.exports = {
-	fetchCreatedCredDefs,
 	autoIssueCredential
 }

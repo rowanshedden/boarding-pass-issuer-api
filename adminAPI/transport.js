@@ -10,7 +10,7 @@ const sendAdminMessage = async (method, path, params = {}, data = {}) => {
 	    params: params,
 	    data: data
 	  })
-
+	  
 	  return response.data;
   } catch(error) {
     console.error('Admin API Request Error');

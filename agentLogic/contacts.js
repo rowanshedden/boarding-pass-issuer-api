@@ -5,6 +5,7 @@ const AdminAPI = require('../adminAPI');
 
 const fetchConnection = async (connectionID) => {
 	try{
+		//(JamesKEbert)TODO:Change to use Controller DB versus Admin API Call
 		const connection = await AdminAPI.Connections.fetchConnection(connectionID);
 		console.log(connection);
 

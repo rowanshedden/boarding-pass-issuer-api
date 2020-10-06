@@ -7,7 +7,7 @@ const createInvitation = async () => {
 	try{
 		console.log("Generating Invitation");
 
-		const invitationMessage = await sendAdminMessage('post', '/connections/create-invitation', {alias:"Enterprise Invite"}, {})
+		const invitationMessage = await sendAdminMessage('post', `/connections/create-invitation`, {alias:"Enterprise Invite"}, {})
 
 		return invitationMessage;
 		

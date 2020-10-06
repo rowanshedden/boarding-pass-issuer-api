@@ -5,11 +5,11 @@ const AdminAPI = require('../adminAPI');
 
 const fetchPublicDID = async () => {
 	try{
-		/*const publicDID = await AdminAPI.DIDs.fetchPublicDID();
+		const publicDID = await AdminAPI.DIDs.fetchPublicDID();
 		console.log(publicDID);
 
 
-		return publicDID;*/
+		return publicDID;
 
 	} catch (error){
 		console.error("Error Fetching Public DID");
