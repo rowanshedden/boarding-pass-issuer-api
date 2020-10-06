@@ -15,14 +15,19 @@ exports.setup = function (options, seedLink) {
 }
 
 exports.up = function (db) {
-  return db.createTable('settings', {
-    key: {type: 'text', primaryKey: true, unique: true},
-    value: 'json',
+  return db.createTable('schemas', {
+    schema_id: {type: 'text', primaryKey: true, unique: true},
+    name: 'text',
+    version: 'text',
+    protocol: 'text',
+    sequence_number: 'int',
+    origination: 'text',
+    attribute_names: 'json',
   })
 }
 
 exports.down = function (db) {
-  return db.dropTable('settings')
+  return db.dropTable('schemas')
 }
 
 exports._meta = {

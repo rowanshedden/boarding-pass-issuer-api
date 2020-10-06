@@ -15,14 +15,18 @@ exports.setup = function (options, seedLink) {
 }
 
 exports.up = function (db) {
-  return db.createTable('settings', {
-    key: {type: 'text', primaryKey: true, unique: true},
+  return db.createTable('credential_definitions', {
+    credential_definition_id: {type: 'text', primaryKey: true, unique: true},
+    tag: 'text',
+    schema_id: 'text',
+    type: 'text',
+    protocol: 'text',
     value: 'json',
   })
 }
 
 exports.down = function (db) {
-  return db.dropTable('settings')
+  return db.dropTable('credential_definitions')
 }
 
 exports._meta = {

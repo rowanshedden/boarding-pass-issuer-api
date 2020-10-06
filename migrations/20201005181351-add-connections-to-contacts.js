@@ -15,14 +15,14 @@ exports.setup = function (options, seedLink) {
 }
 
 exports.up = function (db) {
-  return db.createTable('settings', {
-    key: {type: 'text', primaryKey: true, unique: true},
-    value: 'json',
+  return db.createTable('connections_to_contacts', {
+    connection_id: 'text',
+    contact_id: 'int',
   })
 }
 
 exports.down = function (db) {
-  return db.dropTable('settings')
+  return db.dropTable('connections_to_contacts')
 }
 
 exports._meta = {
