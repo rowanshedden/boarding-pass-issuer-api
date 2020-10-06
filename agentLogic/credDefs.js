@@ -46,8 +46,23 @@ const fetchCredDef = async (credDefID) => {
 	}
 }
 
+const createCredDef = async (tag = 'default', schema_id) => {
+	try{
+		const credDefID = await AdminAPI.CredDefs.createCredDef(tag, schema_id, 0, false);
+
+		console.log(credDefID);
+
+		return credDefID;
+
+	} catch (error){
+		console.error("Error Creating Credential Definition");
+		throw error;
+	}
+}
+
 
 module.exports = {
+	createCredDef,
 	createdCredDefIDs,
 	fetchCredDef
 }

@@ -7,8 +7,6 @@ const axios = require('axios');
 const agentWebhookRouter = require('./agentWebhook');
 
 //NOTE(JamesKEbert): Env Variables potentially to be removed upon containerization setup. May also consider other libraries/methods as well.
-const dotenv = require('dotenv');
-dotenv.config();
 
 let app = express();
 let server = http.createServer(app);
@@ -19,7 +17,7 @@ let Websocket = require('./websockets.js')
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
-server.listen(process.env.CONTROLLERPORT || 3100, () => console.log(`Server listening at http://localhost:${process.env.CONTROLLERPORT || 3100}`));
+server.listen(process.env.CONTROLLERPORT || 3100, () => console.log(`Server listening at http://localhost:${process.env.CONTROLLERPORT || 3100}`, `\n Agent Address: ${process.env.AGENTADDRESS}`));
 
 //Send all Cloud Agent Webhooks posting to the agent webhook router
 app.use('/api/controller-webhook', agentWebhookRouter);

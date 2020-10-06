@@ -26,7 +26,8 @@
     "style-watch": "onchange '**/*.js' -- prettier --write {{changed}}",
     "style-check": "prettier --check '**/*.js'",
     "style-format": "prettier --write '**/*.js'",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "immeoid-setup": "node ./scripts/immeoIDSetup.js"
   },
   "husky": {
     "hooks": {

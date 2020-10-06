@@ -45,7 +45,23 @@ const fetchCredDef = async (cred_def_id) => {
 	}
 }
 
+const createCredDef = async (tag, schema_id, revocation_registry_size = 0, support_revocation = false) => {
+	try{
+		console.log("Creating Credential Definition");
+
+		const credDefID = await sendAdminMessage('post', `/credential-definitions`, {}, {tag, schema_id, revocation_registry_size, support_revocation});
+
+
+		return credDefID.credential_definition_id;
+		
+	} catch (error) {
+		console.error("Creating Credential Definitions Error")
+		throw error;
+	}
+}
+
 module.exports = {
+	createCredDef,
 	createdCredDefIDs,
 	fetchCredDef
 }
