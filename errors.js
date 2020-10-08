@@ -14,4 +14,4 @@ class ControllerError extends Error {
   }
 }
 
-module.exports = ControllerError;
+module.exports = ControllerError

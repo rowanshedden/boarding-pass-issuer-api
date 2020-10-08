@@ -1,24 +1,23 @@
-const AdminAPI = require('../adminAPI');
+const AdminAPI = require('../adminAPI')
 
 //Perform Agent Business Logic
 
-
+//Create an invitation
 const createInvitation = async () => {
-	try{
-		const invitationMessage = await AdminAPI.Connections.createInvitation();
-		console.log(invitationMessage);
-		
-		const invitationURL = invitationMessage.invitation_url;
-		console.log(`Invitation URL: ${invitationURL}`);
+  try {
+    const invitationMessage = await AdminAPI.Connections.createInvitation()
+    console.log(invitationMessage)
 
-		return invitationURL;
+    const invitationURL = invitationMessage.invitation_url
+    console.log(`Invitation URL: ${invitationURL}`)
 
-	} catch (error){
-		console.error("Error Creating Invitation");
-		throw error;
-	}
+    return invitationURL
+  } catch (error) {
+    console.error('Error Creating Invitation')
+    throw error
+  }
 }
 
 module.exports = {
-	createInvitation
+  createInvitation,
 }

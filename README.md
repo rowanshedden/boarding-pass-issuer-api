@@ -32,20 +32,31 @@ _TODO_
 
 ## Installation
 
-Create a .env File with the following variables specific to your setup:
+### Separate Module Installation (non-containerized)
+If you're running as separate modules not in a containerized context, create a .env File with the following variables specific to your setup (default agent address is localhost):
 ```
 CONTROLLERPORT=3100
-AGENTADDRESS='http://192.168.0.104:8150'
+AGENTADDRESS='http://AGENT_IP_ADDRESS:8150'
 ```
 
 Add the following line to your ACA-Py Agent startup.sh file:
 ```
---webhook-url "$WEBHOOKADDRESS" \
+--webhook-url "$WEBHOOK_ADDRESS" \
 ```
 
-Add in your agent YML file for each agent the following line:
+Add the controller ip-address (default localhost) and port (default port 3100) in your agent YML file for each agent the following line:
 ```
-WEBHOOKADDRESS: http://192.168.0.107:3100/controller-webhook
+WEBHOOK_ADDRESS: http://CONTROLLER_IP_ADDRESS:CONTROLLER_PORT/api/controller-webhook
+```
+
+Run the following command to install the needed dependencies
+```
+npm install
+```
+
+Once the controller, agent, and database are all running, you will need to run a one-time startup script, which will also need to be ran everytime the agent and database are reset. This script will set up a public DID for you, provide the TAA for acceptance, and create a credential definition.
+```
+/bin/bash ./scripts/startupScript.sh
 ```
 
 _TODO_
@@ -56,7 +67,13 @@ _TODO_
 
 ## Quickstart
 
-_TODO_
+### Separate Module Quickstart (non-containerized) 
+Upon installation, run
+```
+npm run dev
+
+/bin/bash ./scripts/startupScript.sh
+```
 
 ## Deployment
 

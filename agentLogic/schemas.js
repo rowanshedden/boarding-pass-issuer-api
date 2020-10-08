@@ -1,23 +1,21 @@
-const AdminAPI = require('../adminAPI');
+const AdminAPI = require('../adminAPI')
 
 //Perform Agent Business Logic
 
-
+//Fetch a schema by schemaID
 const fetchSchema = async (schemaID) => {
-	try{
-		const schema = await AdminAPI.Schemas.fetchSchema(schemaID);
+  try {
+    const schema = await AdminAPI.Schemas.fetchSchema(schemaID)
 
-		console.log(schema);
+    console.log(schema)
 
-		return schema;
-
-	} catch (error){
-		console.error("Error Fetching Schema");
-		throw error;
-	}
+    return schema
+  } catch (error) {
+    console.error('Error Fetching Schema')
+    throw error
+  }
 }
 
-
 module.exports = {
-	fetchSchema
+  fetchSchema,
 }
