@@ -17,6 +17,7 @@ See also: https://mit-license.org/
 * [db-migrate-pg](https://github.com/db-migrate/pg)
 * [nodemon](https://github.com/remy/nodemon/)
 * [Prettier](https://github.com/prettier/prettier)
+* [wait-for-it](https://github.com/vishnubob/wait-for-it)
 * [ws](https://github.com/websockets/ws)
 
 ### BSD 2-Clause "Simplified" License
