@@ -30,7 +30,7 @@ const agentWebhookRouter = require('./agentWebhook')
 app.use('/api/controller-webhook', agentWebhookRouter)
 
 //Present only in development to catch the secondary agent webhooks for ease of development
-app.use('/second-controller', (req, res) => {
+app.use('/api/second-controller', (req, res) => {
   console.log('Second ACA-Py Agent Webhook Message')
   res.status(200).send()
 })
