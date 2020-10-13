@@ -200,6 +200,7 @@ exports.readCredential = async function(credential_id) {
     const credential = await Credential.findAll({
       where: {
         credential_id: credential_id
+        //credential
       },
     })
     //console.log(credential[0] instanceof Credential) // true

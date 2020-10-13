@@ -285,6 +285,22 @@ exports.readConnections = async function() {
   }
 }
 
+exports.readInvitations = async function(connection_id) {
+  try {
+    const invitations = await Connection.findAll({
+      where: {
+        state: 'invitation'
+      }
+    })
+    //console.log(connection[0] instanceof Connection) // true
+    
+    console.log("All invitations:", JSON.stringify(invitations, null, 2))
+    return invitations
+  } catch (error) {
+    console.error('Could not find connection in the database: ', error)
+  }
+}
+
 exports.readConnection = async function(connection_id) {
   try {
     const connection = await Connection.findAll({
