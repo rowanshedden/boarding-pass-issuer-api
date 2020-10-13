@@ -17,7 +17,7 @@ wss.on('connection', (ws) => {
       const parsedMessage = JSON.parse(message)
       console.log('New Websocket Message:', parsedMessage)
 
-      messageHandler(ws, parsedMessage.messageType, parsedMessage.messageData)
+      messageHandler(ws, parsedMessage.context, parsedMessage.type, parsedMessage.data)
     } catch (error) {
       console.error(error)
     }
@@ -25,10 +25,10 @@ wss.on('connection', (ws) => {
 })
 
 //Send an outbound message to a websocket client
-const sendMessage = (ws, messageType, messageData = {}) => {
-  console.log(`Sending Message to websocket client of type: ${messageType}`)
+const sendMessage = (ws, context, type, data = {}) => {
+  console.log(`Sending Message to websocket client of type: ${type}`)
   try {
-    ws.send(JSON.stringify({messageType, messageData}))
+    ws.send(JSON.stringify({context, type, data}))
   } catch (error) {
     console.error(error)
     throw error
@@ -40,7 +40,7 @@ const sendErrorMessage = (ws, errorCode, errorReason) => {
   try {
     console.log('Sending Error Message')
 
-    sendMessage(ws, 'SERVER_ERROR', {errorCode, errorReason})
+    sendMessage(ws, 'ERROR', 'SERVER_ERROR', {errorCode, errorReason})
   } catch (error) {
     console.error('Error Sending Error Message to Client')
     console.error(error)
@@ -48,16 +48,16 @@ const sendErrorMessage = (ws, errorCode, errorReason) => {
 }
 
 //Send a message to all connected clients
-const sendMessageToAll = (messageType, messageData = {}) => {
+const sendMessageToAll = (context, type, data = {}) => {
   try {
     console.log(
-      `Sending Message to all websocket clients of type: ${messageType}`,
+      `Sending Message to all websocket clients of type: ${type}`,
     )
 
     wss.clients.forEach(function each(client) {
       if (client.readyState === WebSocket.OPEN) {
         console.log('Sending Message to Client')
-        client.send(JSON.stringify({messageType, messageData}))
+        client.send(JSON.stringify({context, type, data}))
       } else {
         console.log('Client Not Ready')
       }
@@ -69,10 +69,25 @@ const sendMessageToAll = (messageType, messageData = {}) => {
 }
 
 //Handle inbound messages
-const messageHandler = async (ws, messageType, messageData = {}) => {
+const messageHandler = async (ws, context, type, data = {}) => {
   try {
-    switch (messageType) {
-      case 'CREATE_INVITATION':
+    switch (context) {
+      case 'CONTACTS':
+        console.log(`CONTACTS Message`)
+
+        switch(type){
+          case 'GET_ALL':
+            console.log("GET_ALL")
+
+            break;
+          default:
+            console.error(`Unrecognized Message Type: ${type}`)
+            sendErrorMessage(ws, 1, 'Unrecognized Message Type')
+            break;
+        }
+
+        break
+      /*case 'INVITATIONS':
         console.log('Create Invitation Requested')
 
         const invitationURL = await Invitations.createInvitation()
@@ -95,10 +110,10 @@ const messageHandler = async (ws, messageType, messageData = {}) => {
         )
 
         sendMessage(ws, 'CREDENTIAL_OFFERED', {})
-        break
+        break*/
       default:
-        console.error(`Unrecognized Message Type: ${messageType}`)
-        sendErrorMessage(ws, 1, 'Unrecognized Message Type')
+        console.error(`Unrecognized Message Context: ${context}`)
+        sendErrorMessage(ws, 1, 'Unrecognized Message Context')
         break
     }
   } catch (error) {
