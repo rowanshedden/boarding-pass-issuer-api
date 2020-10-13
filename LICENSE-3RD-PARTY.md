@@ -14,6 +14,7 @@ See also: https://mit-license.org/
 * [db-migrate-pg](https://github.com/db-migrate/pg)
 * [nodemon](https://github.com/remy/nodemon/)
 * [Prettier](https://github.com/prettier/prettier)
+* [Sequelize](https://sequelize.org/master/)
 * [wait-for-it](https://github.com/vishnubob/wait-for-it)
 * [ws](https://github.com/websockets/ws)
 
@@ -26,6 +27,7 @@ See also: https://mit-license.org/
 See also: https://creativecommons.org/licenses/by-sa/3.0/deed.en_GB
 
 * [Express](https://github.com/expressjs/expressjs.com)
+
 
 ## Complete Text of Relevant Licenses
 

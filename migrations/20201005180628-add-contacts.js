@@ -16,7 +16,7 @@ exports.setup = function (options, seedLink) {
 
 exports.up = function (db) {
   return db.createTable('contacts', {
-    id: {type: 'int', primaryKey: true, unique: true},
+    contact_id: {type: 'int', primaryKey: true, autoIncrement: true},
     label: 'string',
     created_at: 'timestamptz',
     updated_at: 'timestamptz',
