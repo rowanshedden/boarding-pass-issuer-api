@@ -146,6 +146,8 @@ exports.readContacts = async function() {
     const contacts = await Contact.findAll({
       include: [{
         model: Connection,
+        required: true,
+        where: {'state': { [Sequelize.Op.not]: 'invitation'}}
       }]
     })
     // console.log(contacts.every(contact => contact instanceof Contact)) // true
@@ -165,6 +167,25 @@ exports.readContact = async function(contact_id) {
       },
       include: [{
         model: Connection,
+      }]
+    })
+    //console.log(contact[0] instanceof Contact) // true
+    
+    console.log("Requested contact:", JSON.stringify(contact[0], null, 2))
+    return contact[0]
+  } catch (error) {
+    console.error('Could not find contact in the database: ', error)
+  }
+}
+
+exports.readContactByConnection = async function(connection_id) {
+  try {
+    const contact = await Contact.findAll({
+      include: [{
+        model: Connection,
+          where: {
+          connection_id: connection_id
+        },
       }]
     })
     //console.log(contact[0] instanceof Contact) // true
@@ -269,6 +290,101 @@ exports.createConnection = async function(
   }
 }
 
+exports.createOrUpdateConnection = async function(
+    connection_id,
+    state,
+    my_did,
+    alias,
+    request_id,
+    invitation_key,
+    invitation_mode,
+    invitation_url,
+    invitation,
+    accept,
+    initiator,
+    their_role,
+    their_did,
+    their_label,
+    routing_state,
+    inbound_connection_id,
+    error_msg,
+  ) {
+  try {
+    const connection = await sequelize.transaction({
+      isolationLevel: Sequelize.Transaction.SERIALIZABLE
+    },
+    async (t) => {
+
+      let connection = await Connection.findOne({ where: {
+        connection_id: connection_id
+      }})
+
+      const timestamp = Date.now()
+
+      //(JamesKEbert)TODO: Change upsert for a better mechanism, such as locking potentially.
+      if(!connection){
+        console.log("Creating Connection");
+        connection = await Connection.upsert({
+          connection_id: connection_id,
+          state: state,
+          my_did: my_did,
+          alias: alias,
+          request_id: request_id,
+          invitation_key: invitation_key,
+          invitation_mode: invitation_mode,
+          invitation_url: invitation_url,
+          invitation: invitation,
+          accept: accept,
+          initiator: initiator,
+          their_role: their_role,
+          their_did: their_did,
+          their_label: their_label,
+          routing_state: routing_state,
+          inbound_connection_id: inbound_connection_id,
+          error_msg: error_msg,
+          created_at: timestamp,
+          updated_at: timestamp, 
+        })
+      }
+      else{
+        console.log("Updating Connection");
+        connection = await Connection.update({
+          connection_id: connection_id,
+          state: state,
+          my_did: my_did,
+          alias: alias,
+          request_id: request_id,
+          invitation_key: invitation_key,
+          invitation_mode: invitation_mode,
+          invitation_url: invitation_url,
+          invitation: invitation,
+          accept: accept,
+          initiator: initiator,
+          their_role: their_role,
+          their_did: their_did,
+          their_label: their_label,
+          routing_state: routing_state,
+          inbound_connection_id: inbound_connection_id,
+          error_msg: error_msg,
+          updated_at: timestamp,
+        }, {
+          where: {
+            connection_id: connection_id
+          }
+        })
+      }
+      
+      
+      return connection
+    });
+
+    console.log('Connection saved successfully.')
+    return connection
+  } catch (error) {
+    console.error('Error saving connection to the database: ', error)
+  }
+}
+
 exports.readConnections = async function() {
   try {
     const connections = await Connection.findAll({
@@ -342,7 +458,7 @@ exports.updateConnection = async function(
   try {
     const timestamp = Date.now()
 
-    await Connection.update({
+    const connection = await Connection.update({
       connection_id: connection_id,
       state: state,
       my_did: my_did,
@@ -368,6 +484,7 @@ exports.updateConnection = async function(
     })
 
     console.log('Connection updated successfully.')
+    return connection
   } catch (error) {
     console.error('Error updating the Connection: ', error) 
   }

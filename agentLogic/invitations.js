@@ -1,17 +1,40 @@
 const AdminAPI = require('../adminAPI')
 
+let Contacts = require('../orm/contacts.js')
+
 //Perform Agent Business Logic
 
-//Create an invitation
-const createInvitation = async () => {
+//Create an invitation 
+const createSingleUseInvitation = async (alias) => {
   try {
-    const invitationMessage = await AdminAPI.Connections.createInvitation()
+    const invitationMessage = await AdminAPI.Connections.createInvitation(alias, true, false, false)
     console.log(invitationMessage)
 
-    const invitationURL = invitationMessage.invitation_url
-    console.log(`Invitation URL: ${invitationURL}`)
+    await Contacts.createOrUpdateConnection(
+      invitationMessage.connection_id, 
+      'invitation',
+      null,
+      invitationMessage.alias,
+      null,
+      null,
+      null,
+      invitationMessage.invitation_url,
+      invitationMessage.invitation,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    )
 
-    return invitationURL
+    //(JamesKEbert)TODO: Strategy of invitations, specifically broadcasting to users
+    const invitation = await Contacts.readConnection(invitationMessage.connection_id)
+
+    //Return to the user that triggered the generation of that invitation
+    return invitation
   } catch (error) {
     console.error('Error Creating Invitation')
     throw error
@@ -19,5 +42,5 @@ const createInvitation = async () => {
 }
 
 module.exports = {
-  createInvitation,
+  createSingleUseInvitation,
 }

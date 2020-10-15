@@ -3,14 +3,13 @@ const server = require('./index.js').server
 
 const ControllerError = require('./errors.js')
 
-const Invitations = require('./agentLogic/invitations')
-const Credentials = require('./agentLogic/credentials')
+
 
 wss = new WebSocket.Server({server: server, path: '/api/ws'})
 console.log('Websockets Setup')
-
+//(JamesKEbert)TODO: Add a connection timeout to gracefully exit versus nginx configuration closing abrubtly
 wss.on('connection', (ws) => {
-  console.log('New Connection')
+  console.log('New Websocket Connection')
 
   ws.on('message', (message) => {
     try {
@@ -21,6 +20,17 @@ wss.on('connection', (ws) => {
     } catch (error) {
       console.error(error)
     }
+  })
+
+  ws.on('close', (code, reason) => {
+    console.log("Websocket Connection Closed", code, reason);
+  })
+
+  ws.on('ping', (data) => {
+    console.log("Ping");
+  })
+  ws.on('pong', (data) => {
+    console.log("Pong");
   })
 })
 
@@ -71,13 +81,14 @@ const sendMessageToAll = (context, type, data = {}) => {
 //Handle inbound messages
 const messageHandler = async (ws, context, type, data = {}) => {
   try {
+    console.log(`New Message with context: '${context}' and type: '${type}'`)
     switch (context) {
-      case 'CONTACTS':
-        console.log(`CONTACTS Message`)
-
+      case 'INVITATIONS':
         switch(type){
-          case 'GET_ALL':
-            console.log("GET_ALL")
+          case 'CREATE_SINGLE_USE':
+            const invitation = await Invitations.createSingleUseInvitation()
+
+            sendMessage(ws, 'INVITATIONS', 'INVITATION', {invitation_record:invitation})
 
             break;
           default:
@@ -85,7 +96,26 @@ const messageHandler = async (ws, context, type, data = {}) => {
             sendErrorMessage(ws, 1, 'Unrecognized Message Type')
             break;
         }
+        break
+      case 'CONTACTS':
+        switch(type){
+          case 'GET_ALL':
+            const contacts = await Contacts.getAll(data.additional_tables);
 
+            sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts})
+
+            break;
+          case 'GET':
+            const contact = await Contacts.getContact(data.contact_id, data.additional_tables);
+
+            sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts:[contact]})
+
+            break;
+          default:
+            console.error(`Unrecognized Message Type: ${type}`)
+            sendErrorMessage(ws, 1, 'Unrecognized Message Type')
+            break;
+        }
         break
       /*case 'INVITATIONS':
         console.log('Create Invitation Requested')
@@ -130,3 +160,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
 module.exports = {
   sendMessageToAll,
 }
+
+const Invitations = require('./agentLogic/invitations')
+const Contacts = require('./agentLogic/contacts')
+const Credentials = require('./agentLogic/credentials')
