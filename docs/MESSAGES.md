@@ -190,7 +190,7 @@ Data:
 ### Send Issued Credential(s)
 
 May be one or multiple credentials. Should be used to update local UI state. Unique Key is the credential_exchange_id.
-Credential Values should be taken from credential.values. It could also be appropriate to use credential_proposal_dict.credential_proposal.attributes.
+Credential Values should be taken from credential.values. It could also be appropriate to use credential_proposal_dict.credential_proposal.attributes. These will sometimes be null. State can be relied on to always be present. 
 
 Controller -> SPA
 Context: CREDENTIALS
@@ -353,6 +353,49 @@ Data:
 }
 ```
 
+### Issue a Credential
+
+TODO:
+SPA -> Controller
+Context: CREDENTIALS
+Type: ISSUE
+Data:
+
+### Issue a Credential Based Off of a Schema
+
+Correlates Credential Definition From Supplied Schema ID
+
+SPA -> Controller
+Context: CREDENTIALS
+Type: ISSUE_USING_SCHEMA
+Data:
+```
+{
+	connectionID: "2a5db91d-0ae9-4d83-a1f0-236c6f7ed879",
+  schemaID: "W1vtCQVTy1aMJAjsHt5UK4:2:Covid_19_Lab_Result:1.3",
+  schemaVersion: "1.3",
+  schemaName: "Covid_19_Lab_Result",
+  schemaIssuerDID: "W1vtCQVTy1aMJAjsHt5UK4",
+  comment: 'Credential Issuance Description',
+  attributes: [
+    {
+      "name": "result",
+      "value": "negative"
+    },
+    {
+      "name": "sending_facility",
+      "value": "Bronx RHIO"
+    },
+    {
+      "name": "lab_specimen_collected_date",
+      "value": "2020-09-21 00:00:00"
+    },
+    ...
+  ]
+}
+```
+
+
 ## Settings
 
 ### Set Settings
@@ -360,8 +403,9 @@ Data:
 SPA -> Controller
 Context: SETTINGS
 Type: SET_THEME
+Data:
 ```
-Data:{
+{
 	theme: {}
 }
 ```
