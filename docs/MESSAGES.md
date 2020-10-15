@@ -20,17 +20,20 @@ Type: INVITATION
 Data: 
 ```
 {
-	connection_id: '18a5b7a0-9380-4422-b930-efd2c9363492',
-	invitation:{ 
-		'@type':
-    'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/invitation',
-   	'@id': 'bedc9ffa-36c1-44cc-ad78-e5082661abce',
-   	recipientKeys: [ 'Csjg8kuZreanP5U8W18c29GpUouW3KpPKvQdquWyTx6y' ],
-   	label: 'Enterprise',
-   	serviceEndpoint: 'https://d00e4066779b.ngrok.io' 
-  },
-	invitation_url: 'https://d00e4066779b.ngrok.io?c_i=eyJAdHlwZSI6ICJkaWQ6c292OkJ6Q2JzTlloTXJqSGlxWkRUVUFTSGc7c3BlYy9jb25uZWN0aW9ucy8xLjAvaW52aXRhdGlvbiIsICJAaWQiOiAiYmVkYzlmZmEtMzZjMS00NGNjLWFkNzgtZTUwODI2NjFhYmNlIiwgInJlY2lwaWVudEtleXMiOiBbIkNzamc4a3VacmVhblA1VThXMThjMjlHcFVvdVczS3BQS3ZRZHF1V3lUeDZ5Il0sICJsYWJlbCI6ICJFbnRlcnByaXNlIiwgInNlcnZpY2VFbmRwb2ludCI6ICJodHRwczovL2QwMGU0MDY2Nzc5Yi5uZ3Jvay5pbyJ9',
-	alias: 'Enterprise Invite'
+	invitation_record:
+	{
+		connection_id: '18a5b7a0-9380-4422-b930-efd2c9363492',
+		invitation:{ 
+			'@type':
+	    'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/invitation',
+	   	'@id': 'bedc9ffa-36c1-44cc-ad78-e5082661abce',
+	   	recipientKeys: [ 'Csjg8kuZreanP5U8W18c29GpUouW3KpPKvQdquWyTx6y' ],
+	   	label: 'Enterprise',
+	   	serviceEndpoint: 'https://d00e4066779b.ngrok.io' 
+	  },
+		invitation_url: 'https://d00e4066779b.ngrok.io?c_i=eyJAdHlwZSI6ICJkaWQ6c292OkJ6Q2JzTlloTXJqSGlxWkRUVUFTSGc7c3BlYy9jb25uZWN0aW9ucy8xLjAvaW52aXRhdGlvbiIsICJAaWQiOiAiYmVkYzlmZmEtMzZjMS00NGNjLWFkNzgtZTUwODI2NjFhYmNlIiwgInJlY2lwaWVudEtleXMiOiBbIkNzamc4a3VacmVhblA1VThXMThjMjlHcFVvdVczS3BQS3ZRZHF1V3lUeDZ5Il0sICJsYWJlbCI6ICJFbnRlcnByaXNlIiwgInNlcnZpY2VFbmRwb2ludCI6ICJodHRwczovL2QwMGU0MDY2Nzc5Yi5uZ3Jvay5pbyJ9',
+		alias: 'Enterprise Invite'
+	}
 }
 ```
 
