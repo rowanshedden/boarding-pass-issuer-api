@@ -3,7 +3,9 @@ const server = require('./index.js').server
 
 const ControllerError = require('./errors.js')
 
-
+const Invitations = require('./agentLogic/invitations')
+const Credentials = require('./agentLogic/credentials')
+const Settings = require('./agentLogic/settings')
 
 wss = new WebSocket.Server({server: server, path: '/api/ws'})
 console.log('Websockets Setup')
@@ -117,14 +119,21 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break;
         }
         break
-      /*case 'INVITATIONS':
-        console.log('Create Invitation Requested')
-
-        const invitationURL = await Invitations.createInvitation()
-        sendMessage(ws, 'NEW_INVITATION', {invitationURL})
-
+      case 'SETTINGS':
+        switch(type){
+          case 'SET_THEME':
+            console.log('SET_THEME')
+            const updatedTheme = await Settings.setTheme(data)
+            sendMessage(ws, 'SETTINGS', 'THEME_SETTINGS', updatedTheme)
+            break
+          default:
+            console.log('GET_THEME')
+            const currentTheme = await Settings.getTheme()
+            sendMessage(ws, 'SETTINGS', 'THEME_SETTINGS', currentTheme)
+            break
+        }
         break
-      case 'AUTO_ISSUE_CREDENTIAL':
+      /*case 'AUTO_ISSUE_CREDENTIAL':
         console.log('Auto Issuing Credential')
 
         await Credentials.autoIssueCredential(
@@ -160,7 +169,3 @@ const messageHandler = async (ws, context, type, data = {}) => {
 module.exports = {
   sendMessageToAll,
 }
-
-const Invitations = require('./agentLogic/invitations')
-const Contacts = require('./agentLogic/contacts')
-const Credentials = require('./agentLogic/credentials')

@@ -1,5 +1,6 @@
 let Settings = require('./orm/settings.js')
 let Contacts = require('./orm/contacts.js')
+let Demographics = require('./orm/demographics.js')
 let Credentials = require('./orm/credentials.js')
 
 const key = 'theme'
@@ -35,22 +36,22 @@ const new_value = {
 }
 
 const run = async function() {
-  await Settings.createSetting(key, value)
-  await Settings.readSetting(key)
+  // await Settings.createSetting(key, value)
+  // await Settings.readSetting(key)
 
-  await Settings.updateSettingKey(key, new_key)
-  await Settings.readSetting(new_key)
+  // await Settings.updateSettingKey(key, new_key)
+  // await Settings.readSetting(new_key)
 
-  await Settings.updateSetting(new_key, new_value)
-  await Settings.readSetting(new_key)
+  // await Settings.updateSetting(new_key, new_value)
+  // await Settings.readSetting(new_key)
 
-  await Settings.createSetting(key, value)
-  await Settings.readSetting(key)
+  // await Settings.createSetting(key, value)
+  // await Settings.readSetting(key)
 
-  await Settings.readSettings()
+  // await Settings.readSettings()
 
-  await Settings.deleteSetting(key)
-  await Settings.deleteSetting(new_key)
+  // await Settings.deleteSetting(key)
+  // await Settings.deleteSetting(new_key)
 
 
 
@@ -155,6 +156,74 @@ const run = async function() {
   await Contacts.readContacts()
   await Contacts.readConnections()
 
+
+
+  const demographic = await Demographics.createDemographic (
+    contact.contact_id, // contact_id
+    '123556789', // mpid
+    'John', // first_name
+    'Jacob', // middle_name
+    'Jingle-heimer Schmidt', // last_name
+    '1962-10-31', // date_of_birth
+    'male', //gender
+    '+1 208-710-0000', // phone
+    {
+      address_1: '1234 Lane St.',
+      address_2: '',
+      city: 'Rexburg',
+      state: 'Idaho',
+      zip_code: '83440',
+      country: 'United States',
+    }, // address
+  )
+  await Demographics.readDemographic(contact.contact_id)
+  
+  await Demographics.updateDemographic (
+    contact.contact_id, // contact_id
+    '123556789', // mpid
+    'John', // first_name
+    'Jacob', // middle_name
+    'Schmidt', // last_name
+    '1962-10-31', // date_of_birth
+    'male', //gender
+    '+1 208-710-1234', // phone
+    {
+      address_1: '4321 Lane St.',
+      address_2: '',
+      city: 'Rexburg',
+      state: 'Idaho',
+      zip_code: '83440',
+      country: 'United States',
+    }, // address
+  )
+  await Demographics.readDemographic(contact.contact_id)
+
+  await Demographics.readContactDemographic(contact.contact_id)
+
+  // await Demographics.createDemographic (
+  //   new_contact.contact_id, // contact_id
+  //   '123556789', // mpid
+  //   'John', // first_name
+  //   'Definitely', // middle_name
+  //   'Doe', // last_name
+  //   '1962-10-30', // date_of_birth
+  //   'male', //gender
+  //   '+1 208-710-1337', // phone
+  //   {
+  //     address_1: '4322 Lane St.',
+  //     address_2: '',
+  //     city: 'Rexburg',
+  //     state: 'Idaho',
+  //     zip_code: '83440',
+  //     country: 'United States',
+  //   }, // address
+  // )
+  await Demographics.readDemographics()
+
+  await Demographics.readContactsDemographics()
+
+  await Demographics.deleteDemographic(contact.contact_id)
+  await Demographics.deleteDemographic(new_contact.contact_id)
   await Contacts.deleteConnection('3fa85f64-5717-4562-b3fc-2c963f66afa6')
   await Contacts.deleteConnection('3fa85f64-5717-4562-b3fc-2c963f66b0b7')
   await Contacts.deleteContact(contact.contact_id)
