@@ -23,9 +23,12 @@ const fetchConnection = async (connectionID) => {
 
 const getContact = async (contactID, additionalTables) => {
   try {
-    const contact = await ContactsCompiled.readContact(contactID, additionalTables)
+    const contact = await ContactsCompiled.readContact(
+      contactID,
+      additionalTables,
+    )
 
-    console.log("Contact:", contact)
+    console.log('Contact:', contact)
 
     return contact
   } catch (error) {
@@ -38,7 +41,7 @@ const getAll = async (additionalTables) => {
   try {
     const contacts = await ContactsCompiled.readContacts(additionalTables)
 
-    console.log("Contacts:", contacts)
+    console.log('Contacts:', contacts)
 
     return contacts
   } catch (error) {
@@ -49,13 +52,13 @@ const getAll = async (additionalTables) => {
 
 const adminMessage = async (connectionMessage) => {
   try {
-    console.log("Received new Admin Webhook Message", connectionMessage);
-    
-    if(connectionMessage.state === 'invitation'){
-      console.log("State - Invitation");
+    console.log('Received new Admin Webhook Message', connectionMessage)
+
+    if (connectionMessage.state === 'invitation') {
+      console.log('State - Invitation')
 
       await Connections.createOrUpdateConnection(
-        connectionMessage.connection_id, 
+        connectionMessage.connection_id,
         connectionMessage.state,
         connectionMessage.my_did,
         connectionMessage.alias,
@@ -74,15 +77,14 @@ const adminMessage = async (connectionMessage) => {
         connectionMessage.error_msg,
       )
       //Broadcast the invitation in the invitation agent logic
-      return;
+      return
     }
 
+    var contact
 
-    var contact;
-
-    if (connectionMessage.state === 'request'){
-      console.log("State - Request");
-      console.log("Creating Contact")
+    if (connectionMessage.state === 'request') {
+      console.log('State - Request')
+      console.log('Creating Contact')
 
       contact = await Contacts.createContact(
         connectionMessage.their_label, // label
@@ -90,7 +92,7 @@ const adminMessage = async (connectionMessage) => {
       )
 
       await Connections.updateConnection(
-        connectionMessage.connection_id, 
+        connectionMessage.connection_id,
         connectionMessage.state,
         connectionMessage.my_did,
         connectionMessage.alias,
@@ -109,13 +111,17 @@ const adminMessage = async (connectionMessage) => {
         connectionMessage.error_msg,
       )
 
-      await Connections.linkContactAndConnection(contact.contact_id, connectionMessage.connection_id)
-      Websockets.sendMessageToAll('INVITATIONS', 'SINGLE_USE_USED', {connection_id:connectionMessage.connection_id})
-    }
-    else{
-      console.log("State - Response or later");
+      await Connections.linkContactAndConnection(
+        contact.contact_id,
+        connectionMessage.connection_id,
+      )
+      Websockets.sendMessageToAll('INVITATIONS', 'SINGLE_USE_USED', {
+        connection_id: connectionMessage.connection_id,
+      })
+    } else {
+      console.log('State - Response or later')
       await Connections.updateConnection(
-        connectionMessage.connection_id, 
+        connectionMessage.connection_id,
         connectionMessage.state,
         connectionMessage.my_did,
         connectionMessage.alias,
@@ -135,11 +141,12 @@ const adminMessage = async (connectionMessage) => {
       )
     }
 
-    contact = await ContactsCompiled.readContactByConnection(connectionMessage.connection_id, ['Demographic'])
+    contact = await ContactsCompiled.readContactByConnection(
+      connectionMessage.connection_id,
+      ['Demographic'],
+    )
 
-    Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts:[contact]})
-
-
+    Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: [contact]})
   } catch (error) {
     console.error('Error Storing Connection Message')
     throw error
@@ -150,5 +157,5 @@ module.exports = {
   adminMessage,
   fetchConnection,
   getContact,
-  getAll
+  getAll,
 }

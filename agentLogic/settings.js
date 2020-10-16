@@ -7,7 +7,7 @@ const Settings = require('../orm/settings')
 //Perform Agent Business Logic
 
 // Update the settings JSON
-const setTheme = async(data = {}) => {
+const setTheme = async (data = {}) => {
   try {
     // Something to do with settings
     await Settings.updateSetting('theme', data)
@@ -20,7 +20,7 @@ const setTheme = async(data = {}) => {
 }
 
 // UI asked for the settings JSON
-const getTheme = async() => {
+const getTheme = async () => {
   try {
     // Something to do with settings
     const currentTheme = await Settings.readSetting('theme')
@@ -28,10 +28,10 @@ const getTheme = async() => {
   } catch (error) {
     console.error('Error updating settings')
     throw error
-  } 
+  }
 }
 
 module.exports = {
   setTheme,
-  getTheme
+  getTheme,
 }

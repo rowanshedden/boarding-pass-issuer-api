@@ -3,8 +3,8 @@ const Websockets = require('./websockets.js')
 const express = require('express')
 const router = express.Router()
 
-const Contacts = require('./agentLogic/contacts.js');
-const Credentials = require('./agentLogic/credentials.js');
+const Contacts = require('./agentLogic/contacts.js')
+const Credentials = require('./agentLogic/credentials.js')
 
 router.post('/topic/connections', async (req, res, next) => {
   console.log('Aries Cloud Agent Webhook Message----Connection------')

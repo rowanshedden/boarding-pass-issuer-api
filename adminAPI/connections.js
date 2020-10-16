@@ -3,7 +3,12 @@ const sendAdminMessage = require('./transport')
 //Generate operations and requests to be sent to the Cloud Agent Adminstration API
 
 //Create an invitation request message to be sent to the Cloud Agent Adminstration API
-const createInvitation = async (alias = 'Single-Use Invitation', autoAccept = false, multiUse = false, public = false) => {
+const createInvitation = async (
+  alias = 'Single-Use Invitation',
+  autoAccept = false,
+  multiUse = false,
+  public = false,
+) => {
   try {
     console.log('Generating Invitation')
 
@@ -14,7 +19,7 @@ const createInvitation = async (alias = 'Single-Use Invitation', autoAccept = fa
         alias,
         auto_accept: autoAccept,
         multi_use: multiUse,
-        public
+        public,
       },
       {},
     )

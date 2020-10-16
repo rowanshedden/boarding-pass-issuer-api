@@ -1,6 +1,6 @@
-const { Sequelize } = require('sequelize')
+const {Sequelize} = require('sequelize')
 
-exports.connect = function() {
+exports.connect = function () {
   const sequelize = new Sequelize('development', 'development', 'development', {
     host: 'db',
     dialect: 'postgres',

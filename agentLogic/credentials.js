@@ -13,9 +13,11 @@ const Credentials = require('../orm/credentials.js')
 
 const getCredential = async (credential_exchange_id) => {
   try {
-    const credentialRecord = await Credentials.readCredential(credential_exchange_id)
+    const credentialRecord = await Credentials.readCredential(
+      credential_exchange_id,
+    )
 
-    console.log("Credential Record:", credentialRecord)
+    console.log('Credential Record:', credentialRecord)
 
     return credentialRecord
   } catch (error) {
@@ -28,7 +30,7 @@ const getAll = async () => {
   try {
     const credentialRecords = await Credentials.readCredentials()
 
-    console.log("Credential Records:", credentialRecords)
+    console.log('Credential Records:', credentialRecords)
 
     return credentialRecords
   } catch (error) {
@@ -39,11 +41,16 @@ const getAll = async () => {
 
 const adminMessage = async (credentialIssuanceMessage) => {
   try {
-    console.log("Received new Admin Webhook Message", credentialIssuanceMessage);
-    
-    console.log(`State - ${credentialIssuanceMessage.state}`);
-    var credentialRecord;
-    if(credentialIssuanceMessage.state === 'proposal_received' || credentialIssuanceMessage.state === 'proposal_sent' || credentialIssuanceMessage.state === 'offer_received' || credentialIssuanceMessage.state === 'offer_sent'){
+    console.log('Received new Admin Webhook Message', credentialIssuanceMessage)
+
+    console.log(`State - ${credentialIssuanceMessage.state}`)
+    var credentialRecord
+    if (
+      credentialIssuanceMessage.state === 'proposal_received' ||
+      credentialIssuanceMessage.state === 'proposal_sent' ||
+      credentialIssuanceMessage.state === 'offer_received' ||
+      credentialIssuanceMessage.state === 'offer_sent'
+    ) {
       credentialRecord = await Credentials.createCredential(
         credentialIssuanceMessage.credential_exchange_id,
         credentialIssuanceMessage.credential_id,
@@ -72,8 +79,7 @@ const adminMessage = async (credentialIssuanceMessage) => {
         credentialIssuanceMessage.created_at,
         credentialIssuanceMessage.updated_at,
       )
-    }
-    else{
+    } else {
       credentialRecord = await Credentials.updateCredential(
         credentialIssuanceMessage.credential_exchange_id,
         credentialIssuanceMessage.credential_id,
@@ -104,10 +110,11 @@ const adminMessage = async (credentialIssuanceMessage) => {
       )
     }
 
-    if(credentialIssuanceMessage.role === 'issuer'){
-      Websockets.sendMessageToAll('CREDENTIALS', 'CREDENTIALS', {credential_records:[credentialRecord]})
+    if (credentialIssuanceMessage.role === 'issuer') {
+      Websockets.sendMessageToAll('CREDENTIALS', 'CREDENTIALS', {
+        credential_records: [credentialRecord],
+      })
     }
-    
   } catch (error) {
     console.error('Error Storing Connection Message')
     throw error

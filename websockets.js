@@ -9,9 +9,7 @@ console.log('Websockets Setup')
 //Send a message to all connected clients
 const sendMessageToAll = (context, type, data = {}) => {
   try {
-    console.log(
-      `Sending Message to all websocket clients of type: ${type}`,
-    )
+    console.log(`Sending Message to all websocket clients of type: ${type}`)
 
     wss.clients.forEach(function each(client) {
       if (client.readyState === WebSocket.OPEN) {
@@ -36,21 +34,26 @@ wss.on('connection', (ws) => {
       const parsedMessage = JSON.parse(message)
       console.log('New Websocket Message:', parsedMessage)
 
-      messageHandler(ws, parsedMessage.context, parsedMessage.type, parsedMessage.data)
+      messageHandler(
+        ws,
+        parsedMessage.context,
+        parsedMessage.type,
+        parsedMessage.data,
+      )
     } catch (error) {
       console.error(error)
     }
   })
 
   ws.on('close', (code, reason) => {
-    console.log("Websocket Connection Closed", code, reason);
+    console.log('Websocket Connection Closed', code, reason)
   })
 
   ws.on('ping', (data) => {
-    console.log("Ping");
+    console.log('Ping')
   })
   ws.on('pong', (data) => {
-    console.log("Pong");
+    console.log('Pong')
   })
 })
 
@@ -83,41 +86,46 @@ const messageHandler = async (ws, context, type, data = {}) => {
     console.log(`New Message with context: '${context}' and type: '${type}'`)
     switch (context) {
       case 'INVITATIONS':
-        switch(type){
+        switch (type) {
           case 'CREATE_SINGLE_USE':
             const invitation = await Invitations.createSingleUseInvitation()
 
-            sendMessage(ws, 'INVITATIONS', 'INVITATION', {invitation_record:invitation})
+            sendMessage(ws, 'INVITATIONS', 'INVITATION', {
+              invitation_record: invitation,
+            })
 
-            break;
+            break
           default:
             console.error(`Unrecognized Message Type: ${type}`)
             sendErrorMessage(ws, 1, 'Unrecognized Message Type')
-            break;
+            break
         }
         break
       case 'CONTACTS':
-        switch(type){
+        switch (type) {
           case 'GET_ALL':
-            const contacts = await Contacts.getAll(data.additional_tables);
+            const contacts = await Contacts.getAll(data.additional_tables)
 
             sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts})
 
-            break;
+            break
           case 'GET':
-            const contact = await Contacts.getContact(data.contact_id, data.additional_tables);
+            const contact = await Contacts.getContact(
+              data.contact_id,
+              data.additional_tables,
+            )
 
-            sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts:[contact]})
+            sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts: [contact]})
 
-            break;
+            break
           default:
             console.error(`Unrecognized Message Type: ${type}`)
             sendErrorMessage(ws, 1, 'Unrecognized Message Type')
-            break;
+            break
         }
         break
       case 'DEMOGRAPHICS':
-        switch(type){
+        switch (type) {
           case 'UPDATE_OR_CREATE':
             await Demographics.updateOrCreateDemographic(
               data.contact_id,
@@ -128,17 +136,17 @@ const messageHandler = async (ws, context, type, data = {}) => {
               data.date_of_birth,
               data.gender,
               data.phone,
-              data.address
+              data.address,
             )
-            break;
+            break
           default:
             console.error(`Unrecognized Message Type: ${type}`)
             sendErrorMessage(ws, 1, 'Unrecognized Message Type')
-            break;
+            break
         }
         break
       case 'SETTINGS':
-        switch(type){
+        switch (type) {
           case 'SET_THEME':
             console.log('SET_THEME')
             const updatedTheme = await Settings.setTheme(data)
@@ -152,7 +160,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
         }
         break
       case 'CREDENTIALS':
-        switch(type){
+        switch (type) {
           case 'ISSUE_USING_SCHEMA':
             await Credentials.autoIssueCredential(
               data.connectionID,
@@ -165,21 +173,27 @@ const messageHandler = async (ws, context, type, data = {}) => {
               data.comment,
               data.attributes,
             )
-            break;
+            break
           case 'GET':
-            const credentialRecord = await Credentials.getCredential(data.credential_exchange_id)
+            const credentialRecord = await Credentials.getCredential(
+              data.credential_exchange_id,
+            )
 
-            sendMessage(ws, 'CREDENTIALS', 'CREDENTIALS', {credential_records:[credentialRecord]})
-            break;
+            sendMessage(ws, 'CREDENTIALS', 'CREDENTIALS', {
+              credential_records: [credentialRecord],
+            })
+            break
           case 'GET_ALL':
             const credentialRecords = await Credentials.getAll()
 
-            sendMessage(ws, 'CREDENTIALS', 'CREDENTIALS', {credential_records:credentialRecords})
-            break;
+            sendMessage(ws, 'CREDENTIALS', 'CREDENTIALS', {
+              credential_records: credentialRecords,
+            })
+            break
           default:
             console.error(`Unrecognized Message Type: ${type}`)
             sendErrorMessage(ws, 1, 'Unrecognized Message Type')
-            break;
+            break
         }
         break
       default:

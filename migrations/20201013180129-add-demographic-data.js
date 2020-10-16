@@ -17,7 +17,7 @@ exports.setup = function (options, seedLink) {
 exports.up = function (db) {
   return db.createTable('demographic_data', {
     contact_id: {type: 'int', primaryKey: true, unique: true},
-    mpid:  'text',
+    mpid: 'text',
     first_name: 'text',
     middle_name: 'text',
     last_name: 'text',
@@ -30,7 +30,7 @@ exports.up = function (db) {
   })
 }
 
-exports.down = function(db) {
+exports.down = function (db) {
   return db.dropTable('demographic_data')
 }
 

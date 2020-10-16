@@ -35,7 +35,7 @@ const new_value = {
   background_secondary: '#f5f5f5',
 }
 
-const run = async function() {
+const run = async function () {
   // await Settings.createSetting(key, value)
   // await Settings.readSetting(key)
 
@@ -52,8 +52,6 @@ const run = async function() {
 
   // await Settings.deleteSetting(key)
   // await Settings.deleteSetting(new_key)
-
-
 
   await Contacts.createConnection(
     '3fa85f64-5717-4562-b3fc-2c963f66afa6', // connection_id,
@@ -118,8 +116,6 @@ const run = async function() {
   )
   await Contacts.readConnections()
 
-
-
   const contact = await Contacts.createContact(
     'John Doe', // label
     {
@@ -151,14 +147,15 @@ const run = async function() {
   )
   await Contacts.readContact(new_contact.contact_id)
 
-  await Contacts.linkContactAndConnection(contact.contact_id, '3fa85f64-5717-4562-b3fc-2c963f66afa6')
+  await Contacts.linkContactAndConnection(
+    contact.contact_id,
+    '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+  )
 
   await Contacts.readContacts()
   await Contacts.readConnections()
 
-
-
-  const demographic = await Demographics.createDemographic (
+  const demographic = await Demographics.createDemographic(
     contact.contact_id, // contact_id
     '123556789', // mpid
     'John', // first_name
@@ -177,8 +174,8 @@ const run = async function() {
     }, // address
   )
   await Demographics.readDemographic(contact.contact_id)
-  
-  await Demographics.updateDemographic (
+
+  await Demographics.updateDemographic(
     contact.contact_id, // contact_id
     '123556789', // mpid
     'John', // first_name
@@ -228,8 +225,6 @@ const run = async function() {
   await Contacts.deleteConnection('3fa85f64-5717-4562-b3fc-2c963f66b0b7')
   await Contacts.deleteContact(contact.contact_id)
   await Contacts.deleteContact(new_contact.contact_id)
-
-
 
   await Credentials.createCredential(
     '2fa85f64-5717-4562-b3fc-2c963f66b0b7', // credential_id,
@@ -334,7 +329,7 @@ const run = async function() {
   await Credentials.readCredential('2fa85f64-5717-4562-b3fc-2c963f66b0a9')
 
   await Credentials.readCredentials()
-  
+
   await Credentials.deleteCredential('2fa85f64-5717-4562-b3fc-2c963f66b0b7')
   await Credentials.deleteCredential('2fa85f64-5717-4562-b3fc-2c963f66b0a9')
 }

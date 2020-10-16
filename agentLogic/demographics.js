@@ -6,16 +6,16 @@ let ContactsCompiled = require('../orm/contactsCompiled.js')
 let Demographics = require('../orm/demographics.js')
 
 const updateOrCreateDemographic = async function (
-		contactID, 
-		mpid,  
-		firstName, 
-		middleName, 
-		lastName, 
-		dateOfBirth, 
-		gender, 
-		phone,
-		address
-	)  {
+  contactID,
+  mpid,
+  firstName,
+  middleName,
+  lastName,
+  dateOfBirth,
+  gender,
+  phone,
+  address,
+) {
   try {
     await Demographics.createOrUpdateDemographic(
       contactID,
@@ -26,15 +26,16 @@ const updateOrCreateDemographic = async function (
       dateOfBirth,
       gender,
       phone,
-      address
-    );
+      address,
+    )
 
-    const contact = await ContactsCompiled.readContact(contactID, ['Demographic'])
+    const contact = await ContactsCompiled.readContact(contactID, [
+      'Demographic',
+    ])
 
-    console.log("Contact:", contact)
+    console.log('Contact:', contact)
 
-    Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts:[contact]})
-
+    Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: [contact]})
   } catch (error) {
     console.error('Error Fetching Contacts')
     throw error
@@ -42,5 +43,5 @@ const updateOrCreateDemographic = async function (
 }
 
 module.exports = {
-  updateOrCreateDemographic
+  updateOrCreateDemographic,
 }
