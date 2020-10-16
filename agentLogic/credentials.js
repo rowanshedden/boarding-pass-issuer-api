@@ -1,12 +1,118 @@
 const ControllerError = require('../errors.js')
 
 const AdminAPI = require('../adminAPI')
+const Websockets = require('../websockets.js')
 const CredDefs = require('./credDefs.js')
 const Contacts = require('./contacts.js')
 const DIDs = require('./dids.js')
 const Schemas = require('./schemas.js')
 
+const Credentials = require('../orm/credentials.js')
+
 //Perform Agent Business Logic
+
+const getCredential = async (credential_exchange_id) => {
+  try {
+    const credentialRecord = await Credentials.readCredential(credential_exchange_id)
+
+    console.log("Credential Record:", credentialRecord)
+
+    return credentialRecord
+  } catch (error) {
+    console.error('Error Fetching Credential Record')
+    throw error
+  }
+}
+
+const getAll = async () => {
+  try {
+    const credentialRecords = await Credentials.readCredentials()
+
+    console.log("Credential Records:", credentialRecords)
+
+    return credentialRecords
+  } catch (error) {
+    console.error('Error Fetching Credential Records')
+    throw error
+  }
+}
+
+const adminMessage = async (credentialIssuanceMessage) => {
+  try {
+    console.log("Received new Admin Webhook Message", credentialIssuanceMessage);
+    
+    console.log(`State - ${credentialIssuanceMessage.state}`);
+    var credentialRecord;
+    if(credentialIssuanceMessage.state === 'proposal_received' || credentialIssuanceMessage.state === 'proposal_sent' || credentialIssuanceMessage.state === 'offer_received' || credentialIssuanceMessage.state === 'offer_sent'){
+      credentialRecord = await Credentials.createCredential(
+        credentialIssuanceMessage.credential_exchange_id,
+        credentialIssuanceMessage.credential_id,
+        credentialIssuanceMessage.credential,
+        credentialIssuanceMessage.raw_credential,
+        credentialIssuanceMessage.revocation_id,
+        credentialIssuanceMessage.connection_id,
+        credentialIssuanceMessage.state,
+        credentialIssuanceMessage.role,
+        credentialIssuanceMessage.initiator,
+        credentialIssuanceMessage.thread_id,
+        credentialIssuanceMessage.parent_thread_id,
+        credentialIssuanceMessage.schema_id,
+        credentialIssuanceMessage.credential_definition_id,
+        credentialIssuanceMessage.revoc_reg_id,
+        credentialIssuanceMessage.credential_proposal_dict,
+        credentialIssuanceMessage.credential_offer,
+        credentialIssuanceMessage.credential_offer_dict,
+        credentialIssuanceMessage.credential_request,
+        credentialIssuanceMessage.credential_request_metadata,
+        credentialIssuanceMessage.auto_issue,
+        credentialIssuanceMessage.auto_offer,
+        credentialIssuanceMessage.auto_remove,
+        credentialIssuanceMessage.error_msg,
+        credentialIssuanceMessage.trace,
+        credentialIssuanceMessage.created_at,
+        credentialIssuanceMessage.updated_at,
+      )
+    }
+    else{
+      credentialRecord = await Credentials.updateCredential(
+        credentialIssuanceMessage.credential_exchange_id,
+        credentialIssuanceMessage.credential_id,
+        credentialIssuanceMessage.credential,
+        credentialIssuanceMessage.raw_credential,
+        credentialIssuanceMessage.revocation_id,
+        credentialIssuanceMessage.connection_id,
+        credentialIssuanceMessage.state,
+        credentialIssuanceMessage.role,
+        credentialIssuanceMessage.initiator,
+        credentialIssuanceMessage.thread_id,
+        credentialIssuanceMessage.parent_thread_id,
+        credentialIssuanceMessage.schema_id,
+        credentialIssuanceMessage.credential_definition_id,
+        credentialIssuanceMessage.revoc_reg_id,
+        credentialIssuanceMessage.credential_proposal_dict,
+        credentialIssuanceMessage.credential_offer,
+        credentialIssuanceMessage.credential_offer_dict,
+        credentialIssuanceMessage.credential_request,
+        credentialIssuanceMessage.credential_request_metadata,
+        credentialIssuanceMessage.auto_issue,
+        credentialIssuanceMessage.auto_offer,
+        credentialIssuanceMessage.auto_remove,
+        credentialIssuanceMessage.error_msg,
+        credentialIssuanceMessage.trace,
+        credentialIssuanceMessage.created_at,
+        credentialIssuanceMessage.updated_at,
+      )
+    }
+
+    if(credentialIssuanceMessage.role === 'issuer'){
+      Websockets.sendMessageToAll('CREDENTIALS', 'CREDENTIALS', {credential_records:[credentialRecord]})
+    }
+    
+  } catch (error) {
+    console.error('Error Storing Connection Message')
+    throw error
+  }
+}
 
 //Auto Credential Issuance
 const autoIssueCredential = async (
@@ -98,7 +204,7 @@ const autoIssueCredential = async (
     const response = await AdminAPI.Credentials.autoIssueCred(
       connectionID,
       issuerDID,
-      credDefID,
+      credDefIDs[0],
       schemaID,
       schemaVersion,
       schemaName,
@@ -115,5 +221,8 @@ const autoIssueCredential = async (
 }
 
 module.exports = {
+  adminMessage,
   autoIssueCredential,
+  getCredential,
+  getAll,
 }

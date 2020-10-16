@@ -8,11 +8,14 @@ sequelize = init.connect()
 class Credential extends Model {}
 
 Credential.init({
-  credential_id: {
+  credential_exchange_id: {
     type: DataTypes.TEXT,
     unique: true,
     primaryKey: true,
     allowNull: false,
+  },
+  credential_id: {
+    type: DataTypes.TEXT,
   },
   credential: {
     type: DataTypes.JSON,
@@ -41,9 +44,6 @@ Credential.init({
     type: DataTypes.TEXT,
   },
   parent_thread_id: {
-    type: DataTypes.TEXT,
-  },
-  credential_exchange_id: {
     type: DataTypes.TEXT,
   },
 
@@ -105,7 +105,8 @@ Credential.init({
 
 
 
-exports.createCredential = async function(
+const createCredential = async function(
+    credential_exchange_id,
     credential_id,
     credential,
     raw_credential,
@@ -118,7 +119,6 @@ exports.createCredential = async function(
 
     thread_id,
     parent_thread_id,
-    credential_exchange_id,
 
     schema_id,
     credential_definition_id,
@@ -136,11 +136,13 @@ exports.createCredential = async function(
 
     error_msg,
     trace,
+
+    created_at,
+    updated_at,
   ) {
   try {
-    const timestamp = Date.now()
-
-    const createCredential = await Credential.create({
+    const credentialRecord = await Credential.upsert({
+      credential_exchange_id: credential_exchange_id,
       credential_id: credential_id,
       credential: credential,
       raw_credential: raw_credential,
@@ -153,7 +155,6 @@ exports.createCredential = async function(
 
       thread_id: thread_id,
       parent_thread_id: parent_thread_id,
-      credential_exchange_id: credential_exchange_id,
 
       schema_id: schema_id,
       credential_definition_id: credential_definition_id,
@@ -172,34 +173,23 @@ exports.createCredential = async function(
       error_msg: error_msg,
       trace: trace,
 
-      created_at: timestamp,
-      updated_at: timestamp,
+      created_at: created_at,
+      updated_at: updated_at,
     })
     //console.log(createCredential instanceof Credential)
 
     console.log('Credential saved successfully.')
-    return createCredential
+    return credentialRecord[0]
   } catch (error) {
     console.error('Error saving credential to the database: ', error)
   }
 }
 
-exports.readCredentials = async function() {
-  try {
-    const credentials = await Credential.findAll()
-    //console.log(credentials.every(credential => credential instanceof Credential)) // true
-    console.log("All credentials:", JSON.stringify(credentials, null, 2))
-    return credentials
-  } catch (error) {
-    console.error('Could not find credentials in the database: ', error)
-  }
-}
-
-exports.readCredential = async function(credential_id) {
+const readCredential = async function(credential_exchange_id) {
   try {
     const credential = await Credential.findAll({
       where: {
-        credential_id: credential_id
+        credential_exchange_id: credential_exchange_id
         //credential
       },
     })
@@ -211,7 +201,19 @@ exports.readCredential = async function(credential_id) {
   }
 }
 
-exports.updateCredential = async function(
+const readCredentials = async function() {
+  try {
+    const credentials = await Credential.findAll()
+    //console.log(credentials.every(credential => credential instanceof Credential)) // true
+    console.log("All credentials:", JSON.stringify(credentials, null, 2))
+    return credentials
+  } catch (error) {
+    console.error('Could not find credentials in the database: ', error)
+  }
+}
+
+const updateCredential = async function(
+    credential_exchange_id,
     credential_id,
     credential,
     raw_credential,
@@ -224,7 +226,6 @@ exports.updateCredential = async function(
 
     thread_id,
     parent_thread_id,
-    credential_exchange_id,
 
     schema_id,
     credential_definition_id,
@@ -242,11 +243,14 @@ exports.updateCredential = async function(
 
     error_msg,
     trace,
+
+    created_at,
+    updated_at,
   ) {
   try {
-    const timestamp = Date.now()
-
-    await Credential.update({
+    const credentialRecord = await Credential.update(
+    {
+      credential_exchange_id: credential_exchange_id,
       credential_id: credential_id,
       credential: credential,
       raw_credential: raw_credential,
@@ -259,7 +263,6 @@ exports.updateCredential = async function(
 
       thread_id: thread_id,
       parent_thread_id: parent_thread_id,
-      credential_exchange_id: credential_exchange_id,
 
       schema_id: schema_id,
       credential_definition_id: credential_definition_id,
@@ -278,20 +281,24 @@ exports.updateCredential = async function(
       error_msg: error_msg,
       trace: trace,
 
-      updated_at: timestamp,
-    }, {
+      created_at: created_at,
+      updated_at: updated_at,
+    }, 
+    {
       where: {
-        credential_id: credential_id
-      }
+        credential_exchange_id: credential_exchange_id
+      },
+      returning: true,
     })
-
+    console.log('Credential Record:', credentialRecord[1])
+    return credentialRecord[1];
     console.log('Credential updated successfully.')
   } catch (error) {
     console.error('Error updating the Credential: ', error) 
   }
 }
 
-exports.deleteCredential = async function(credential_id) {
+const deleteCredential = async function(credential_id) {
   try {
     await Credential.destroy({
       where: {
@@ -303,4 +310,12 @@ exports.deleteCredential = async function(credential_id) {
   } catch (error) {
     console.error('Error while deleting credential: ', error)
   }
+}
+
+module.exports = {
+  createCredential,
+  readCredential,
+  readCredentials,
+  updateCredential,
+  deleteCredential
 }

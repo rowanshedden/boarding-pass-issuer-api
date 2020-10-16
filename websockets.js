@@ -151,23 +151,37 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break
         }
         break
-      /*case 'AUTO_ISSUE_CREDENTIAL':
-        console.log('Auto Issuing Credential')
+      case 'CREDENTIALS':
+        switch(type){
+          case 'ISSUE_USING_SCHEMA':
+            await Credentials.autoIssueCredential(
+              data.connectionID,
+              data.issuerDID,
+              data.credDefID,
+              data.schemaID,
+              data.schemaVersion,
+              data.schemaName,
+              data.schemaIssuerDID,
+              data.comment,
+              data.attributes,
+            )
+            break;
+          case 'GET':
+            const credentialRecord = await Credentials.getCredential(data.credential_exchange_id)
 
-        await Credentials.autoIssueCredential(
-          messageData.connectionID,
-          messageData.issuerDID,
-          messageData.credDefID,
-          messageData.schemaID,
-          messageData.schemaVersion,
-          messageData.schemaName,
-          messageData.schemaIssuerDID,
-          messageData.comment,
-          messageData.attributes,
-        )
+            sendMessage(ws, 'CREDENTIALS', 'CREDENTIALS', {credential_records:[credentialRecord]})
+            break;
+          case 'GET_ALL':
+            const credentialRecords = await Credentials.getAll()
 
-        sendMessage(ws, 'CREDENTIAL_OFFERED', {})
-        break*/
+            sendMessage(ws, 'CREDENTIALS', 'CREDENTIALS', {credential_records:credentialRecords})
+            break;
+          default:
+            console.error(`Unrecognized Message Type: ${type}`)
+            sendErrorMessage(ws, 1, 'Unrecognized Message Type')
+            break;
+        }
+        break
       default:
         console.error(`Unrecognized Message Context: ${context}`)
         sendErrorMessage(ws, 1, 'Unrecognized Message Context')

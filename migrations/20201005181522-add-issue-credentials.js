@@ -16,7 +16,8 @@ exports.setup = function (options, seedLink) {
 
 exports.up = function (db) {
   return db.createTable('issue_credentials', {
-    credential_id: {type: 'text', primaryKey: true, unique: true},
+    credential_exchange_id: {type: 'text', primaryKey: true, unique: true},
+    credential_id: 'text',
     credential: 'json',
     raw_credential: 'json',
     revocation_id: 'text',
@@ -28,7 +29,6 @@ exports.up = function (db) {
 
     thread_id: 'text',
     parent_thread_id: 'text',
-    credential_exchange_id: 'text',
 
     schema_id: 'text',
     credential_definition_id: 'text',
