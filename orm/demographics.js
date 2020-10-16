@@ -3,36 +3,8 @@ const { Sequelize, DataTypes, Model } = require('sequelize')
 const init = require('./init.js')
 sequelize = init.connect()
 
-const { Connection, Contact }  = require('./contacts.js')
-
-/*class Contact extends Model {}
-
-Contact.init({
-  contact_id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    //allowNull: false,
-  },
-  label: {
-    type: DataTypes.TEXT,
-  },
-  meta_data: {
-    type: DataTypes.JSON,
-  },
-  created_at: {
-    type: DataTypes.DATE,
-  },
-  updated_at: {
-    type: DataTypes.DATE,
-  },
-}, {
-  sequelize, // Pass the connection instance
-  modelName: 'Contact',
-  tableName: 'contacts', // Our table names don't follow the sequelize convention and thus must be explicitly declared
-  timestamps: false,
-})*/
-
-
+const { Contact }  = require('./contacts.js')
+const { Connection } = require('./connections.js');
 
 class Demographic extends Model {}
 
@@ -94,7 +66,7 @@ Demographic.belongsTo(Contact, {
 
 
 
-exports.createDemographic = async function(
+const createDemographic = async function(
     contact_id,
     mpid,
     first_name,
@@ -130,42 +102,7 @@ exports.createDemographic = async function(
   }
 }
 
-exports.readDemographics = async function() {
-  try {
-    const demographics = await Demographic.findAll({
-      include: [{
-        model: Contact,
-      }]
-    })
-    console.log(demographics.every(demographic => demographic instanceof Demographic)) // true
-
-    console.log("All demographics:", JSON.stringify(demographics, null, 2))
-    return demographics
-  } catch (error) {
-    console.error('Could not find demographics in the database: ', error)
-  }
-}
-
-exports.readDemographic = async function(contact_id) {
-  try {
-    const demographic = await Demographic.findAll({
-      where: {
-        contact_id: contact_id
-      },
-      include: [{
-        model: Contact,
-      }]
-    })
-    console.log(demographic[0] instanceof Demographic) // true
-    
-    console.log("Requested demographic:", JSON.stringify(demographic[0], null, 2))
-    return demographic[0]
-  } catch (error) {
-    console.error('Could not find demographic in the database: ', error)
-  }
-}
-
-exports.createOrUpdateConnection = async function(
+const createOrUpdateDemographic = async function(
     contact_id,
     mpid,
     first_name,
@@ -177,7 +114,7 @@ exports.createOrUpdateConnection = async function(
     address,
   ) {
   try {
-    const contact = await sequelize.transaction({
+    await sequelize.transaction({
       isolationLevel: Sequelize.Transaction.SERIALIZABLE
     },
     async (t) => {
@@ -226,34 +163,53 @@ exports.createOrUpdateConnection = async function(
           }
         })
       }
-      
-      const contact = await Contact.findAll({
-        where: {
-          contact_id: contact_id
-        },
-        include: [
-          {
-            model: Demographic,
-            required: false,
-          },
-          {
-            model: Connection,
-            required: true,
-          }
-        ]
-      })
-      
-      return contact
     });
 
     console.log('demographic saved successfully.')
-    return contact
+    return
   } catch (error) {
     console.error('Error saving demographic to the database: ', error)
   }
 }
 
-exports.updateDemographic = async function(
+
+const readDemographics = async function() {
+  try {
+    const demographics = await Demographic.findAll({
+      include: [{
+        model: Contact,
+        required: true
+      }]
+    })
+
+    console.log("All demographics:", JSON.stringify(demographics, null, 2))
+    return demographics
+  } catch (error) {
+    console.error('Could not find demographics in the database: ', error)
+  }
+}
+
+const readDemographic = async function(contact_id) {
+  try {
+    const demographic = await Demographic.findAll({
+      where: {
+        contact_id: contact_id
+      },
+      include: [{
+        model: Contact,
+        required: true
+      }]
+    })
+    
+    console.log("Requested demographic:", JSON.stringify(demographic[0], null, 2))
+    return demographic[0]
+  } catch (error) {
+    console.error('Could not find demographic in the database: ', error)
+  }
+}
+
+
+const updateDemographic = async function(
     contact_id,
     mpid,
     first_name,
@@ -290,7 +246,7 @@ exports.updateDemographic = async function(
   }
 }
 
-exports.deleteDemographic = async function(contact_id) {
+const deleteDemographic = async function(contact_id) {
   try {
     await Demographic.destroy({
       where: {
@@ -304,77 +260,12 @@ exports.deleteDemographic = async function(contact_id) {
   }
 }
 
-
-
-exports.readContactsDemographics = async function() {
-  try {
-    const contacts = await Contact.findAll({
-      include: [{
-        model: Demographic,
-        required: false,
-      },
-      {
-        model: Connection,
-        required: true,
-      }]
-    })
-    // console.log(contacts.every(contact => contact instanceof Contact)) // true
-    
-    console.log("All contacts:", JSON.stringify(contacts, null, 2))
-    return contacts
-  } catch (error) {
-    console.error('Could not find contacts in the database: ', error)
-  }
+module.exports = {
+  Demographic,
+  createDemographic,
+  createOrUpdateDemographic,
+  readDemographic,
+  readDemographics,
+  updateDemographic,
+  deleteDemographic
 }
-
-exports.readContactDemographic = async function(contact_id) {
-  try {
-    const contact = await Contact.findAll({
-      where: {
-        contact_id: contact_id
-      },
-      include: [
-        {
-          model: Demographic,
-          required: false,
-        },
-        {
-          model: Connection,
-          required: true,
-        }
-      ]
-    })
-    //console.log(contact[0] instanceof Contact) // true
-    
-    console.log("Requested contact:", JSON.stringify(contact[0], null, 2))
-    return contact[0]
-  } catch (error) {
-    console.error('Could not find contact in the database: ', error)
-  }
-}
-
-exports.readContactByConnection = async function(connection_id) {
-  try {
-    const contact = await Contact.findAll({
-      include: [
-        {
-          model: Connection,
-          where: {
-            connection_id: connection_id
-          }
-        },
-        {
-          model: Demographic,
-          required: false,
-        }
-      ]
-    })
-    //console.log(contact[0] instanceof Contact) // true
-    
-    console.log("Requested contact:", JSON.stringify(contact[0], null, 2))
-    return contact[0]
-  } catch (error) {
-    console.error('Could not find contact in the database: ', error)
-  }
-}
-

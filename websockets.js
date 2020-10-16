@@ -119,16 +119,16 @@ const messageHandler = async (ws, context, type, data = {}) => {
       case 'DEMOGRAPHICS':
         switch(type){
           case 'UPDATE_OR_CREATE':
-            await Contacts.updateOrCreateDemographic(
+            await Demographics.updateOrCreateDemographic(
               data.contact_id,
+              data.mpid,
               data.first_name,
               data.middle_name,
               data.last_name,
               data.date_of_birth,
               data.gender,
-              data.mpid,
-              data.address,
-              data.phone
+              data.phone,
+              data.address
             )
             break;
           default:
@@ -189,6 +189,7 @@ module.exports = {
 }
 
 const Invitations = require('./agentLogic/invitations')
+const Demographics = require('./agentLogic/demographics')
 const Contacts = require('./agentLogic/contacts')
 const Credentials = require('./agentLogic/credentials')
 const Settings = require('./agentLogic/settings')

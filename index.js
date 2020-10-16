@@ -40,3 +40,6 @@ app.use('/', (req, res) => {
   console.log(req.body)
   res.status(404).send()
 })
+
+let contactsCompiled = require('./orm/contactsCompiled.js')
+contactsCompiled.readContacts(['Demographic'])

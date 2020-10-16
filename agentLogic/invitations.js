@@ -1,6 +1,6 @@
 const AdminAPI = require('../adminAPI')
 
-let Contacts = require('../orm/contacts.js')
+let Connections = require('../orm/connections.js')
 
 //Perform Agent Business Logic
 
@@ -10,7 +10,7 @@ const createSingleUseInvitation = async (alias) => {
     const invitationMessage = await AdminAPI.Connections.createInvitation(alias, true, false, false)
     console.log(invitationMessage)
 
-    await Contacts.createOrUpdateConnection(
+    await Connections.createOrUpdateConnection(
       invitationMessage.connection_id, 
       'invitation',
       null,
@@ -31,7 +31,7 @@ const createSingleUseInvitation = async (alias) => {
     )
 
     //(JamesKEbert)TODO: Strategy of invitations, specifically broadcasting to users
-    const invitation = await Contacts.readConnection(invitationMessage.connection_id)
+    const invitation = await Connections.readConnection(invitationMessage.connection_id)
 
     //Return to the user that triggered the generation of that invitation
     return invitation

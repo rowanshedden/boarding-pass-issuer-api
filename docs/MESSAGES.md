@@ -171,12 +171,13 @@ Data:
 ```
 {
 	contact_id: 3,
+  mpid: "42352",
   first_name: "John",
   middle_name: "Michael",
   last_name: "Doe",
   date_of_birth: "2003-10-13T23:31:07.190Z",
   gender: "male",
-  mpid: "42352",
+  phone: "123-456-789",
   address: {
     address_1:  "123 Abc Street",
     address_2:  "Apt 3",
@@ -184,8 +185,7 @@ Data:
     state:  "New York",
     zip_code:  "10034",
     country:  "United States",
-  },
-  phone: "123-456-789"
+  }
 }
 ```
 
@@ -240,7 +240,7 @@ Data:
             rev_reg_id: null,
             values:
             { 
-               "lab_coding_qualifer": {
+              "lab_coding_qualifer": {
                 "raw": "345a55",
                 "encoded": "102987336249554097029535212322581322789799900648198034993379397001115665086549"
               },
