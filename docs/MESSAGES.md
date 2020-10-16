@@ -62,7 +62,7 @@ Type: GET_ALL
 Data: 
 ```
 {
-  additional_tables: ["demographic_data"]
+  additional_tables: ["Demographic"]
 }
 ```
 
@@ -75,7 +75,7 @@ Data:
 ```
 {
   contact_id: 212,
-  additional_tables: ["demographic_data"]
+  additional_tables: ["Demographic"]
 }
 ```
 
@@ -133,7 +133,7 @@ Data:
         },
         ...
       ],
-      additional_tables: ["demographic_data"]
+      additional_tables: ["Demographic"]
     },
     ...
   ],
@@ -142,8 +142,8 @@ Data:
 
 #### Additional Tables:
 ```
-demographic_data: {
-  contact_id: ,
+Demographic: {
+  contact_id: 3,
   first_name: "John",
   middle_name: "Michael",
   last_name: "Doe",
@@ -157,6 +157,33 @@ demographic_data: {
     State:  "New York",
     Zip Code:  "10034",
     Country:  "United States",
+  },
+  phone: "123-456-789"
+}
+```
+
+### Create or Update Demographic Data
+
+SPA -> Controller
+Context: DEMOGRAPHICS
+Type: UPDATE_OR_CREATE
+Data:
+```
+{
+	contact_id: 3,
+  first_name: "John",
+  middle_name: "Michael",
+  last_name: "Doe",
+  date_of_birth: "2003-10-13T23:31:07.190Z",
+  gender: "male",
+  mpid: "42352",
+  address: {
+    address_1:  "123 Abc Street",
+    address_2:  "Apt 3",
+    city:  "New York City",
+    state:  "New York",
+    zip_code:  "10034",
+    country:  "United States",
   },
   phone: "123-456-789"
 }

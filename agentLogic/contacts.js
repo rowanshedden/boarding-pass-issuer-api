@@ -2,6 +2,7 @@ const AdminAPI = require('../adminAPI')
 const Websockets = require('../websockets.js')
 
 let Contacts = require('../orm/contacts.js')
+let Demographics = require('../orm/demographics.js')
 
 //Perform Agent Business Logic
 
@@ -18,9 +19,38 @@ const fetchConnection = async (connectionID) => {
   }
 }
 
+const updateOrCreateDemographic = async (contactID, firstName, middleName, lastName, dateOfBirth, gender, mpid, address, phone) => {
+  try {
+    const contact = await Demographics.readContactDemographic(
+      contactID,
+      firstName,
+      middleName,
+      lastName,
+      dateOfBirth,
+      gender,
+      mpid,
+      address,
+      phone
+    );
+    
+    console.log("Contact:", contact)
+
+    Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts:[contact]})
+
+  } catch (error) {
+    console.error('Error Fetching Contacts')
+    throw error
+  }
+}
+
 const getContact = async (contactID, additionalTables) => {
   try {
-    const contact = await Contacts.readContact(contactID)
+    let contacts = [];
+    if(additionalTables.includes("Demographic")){
+      contacts = await Demographics.readContactDemographic(contactID)
+    } else{
+      contacts = await Contacts.readContact(contactID)
+    }
     console.log("Contact:", contact)
 
     return contact
@@ -32,7 +62,13 @@ const getContact = async (contactID, additionalTables) => {
 
 const getAll = async (additionalTables) => {
   try {
-    const contacts = await Contacts.readContacts()
+    let contacts = [];
+    if(additionalTables.includes("Demographic")){
+      contacts = await Demographics.readContactsDemographics()
+    } else{
+      contacts = await Contacts.readContacts()
+    }
+
     console.log("Contacts:", contacts)
 
     return contacts
@@ -109,7 +145,7 @@ const adminMessage = async (connectionMessage) => {
     }
     else{
       console.log("State - Response or later");
-      const connection = await Contacts.updateConnection(
+      await Contacts.updateConnection(
         connectionMessage.connection_id, 
         connectionMessage.state,
         connectionMessage.my_did,
@@ -130,7 +166,8 @@ const adminMessage = async (connectionMessage) => {
       )
     }
 
-    contact = await Contacts.readContactByConnection(connectionMessage.connection_id)
+    //contact = await Contacts.readContactByConnection(connectionMessage.connection_id)
+    contact = await Demographics.readContactByConnection(connectionMessage.connection_id)
 
     Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts:[contact]})
 
@@ -145,5 +182,6 @@ module.exports = {
   adminMessage,
   fetchConnection,
   getContact,
-  getAll
+  getAll,
+  updateOrCreateDemographic
 }

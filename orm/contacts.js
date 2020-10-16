@@ -118,7 +118,7 @@ Connection.belongsToMany(Contact, { through: Contact_Connection, foreignKey: 'co
 
 
 
-exports.createContact = async function(
+const createContact = async function(
     // contact_id, // Auto-issued
     label,
     meta_data,
@@ -141,7 +141,7 @@ exports.createContact = async function(
   }
 }
 
-exports.readContacts = async function() {
+const readContacts = async function() {
   try {
     const contacts = await Contact.findAll({
       include: [{
@@ -158,7 +158,7 @@ exports.readContacts = async function() {
   }
 }
 
-exports.readContact = async function(contact_id) {
+const readContact = async function(contact_id) {
   try {
     const contact = await Contact.findAll({
       where: {
@@ -177,7 +177,27 @@ exports.readContact = async function(contact_id) {
   }
 }
 
-exports.updateContact = async function(
+const readContactByConnection = async function(connection_id) {
+  try {
+    const contact = await Contact.findAll({
+      include: [{
+        model: Connection,
+          where: {
+          connection_id: connection_id
+        },
+      }]
+    })
+    //console.log(contact[0] instanceof Contact) // true
+    
+    console.log("Requested contact:", JSON.stringify(contact[0], null, 2))
+    return contact[0]
+  } catch (error) {
+    console.error('Could not find contact in the database: ', error)
+  }
+}
+
+
+const updateContact = async function(
     contact_id,
     label,
     meta_data,
@@ -202,7 +222,7 @@ exports.updateContact = async function(
   }
 }
 
-exports.deleteContact = async function(contact_id) {
+const deleteContact = async function(contact_id) {
   try {
     await Contact.destroy({
       where: {
@@ -218,7 +238,7 @@ exports.deleteContact = async function(contact_id) {
 
 
 
-exports.createConnection = async function(
+const createConnection = async function(
     connection_id,
     state,
     my_did,
@@ -270,7 +290,103 @@ exports.createConnection = async function(
   }
 }
 
-exports.readConnections = async function() {
+const createOrUpdateConnection = async function(
+    connection_id,
+    state,
+    my_did,
+    alias,
+    request_id,
+    invitation_key,
+    invitation_mode,
+    invitation_url,
+    invitation,
+    accept,
+    initiator,
+    their_role,
+    their_did,
+    their_label,
+    routing_state,
+    inbound_connection_id,
+    error_msg,
+  ) {
+  try {
+    const connection = await sequelize.transaction({
+      isolationLevel: Sequelize.Transaction.SERIALIZABLE
+    },
+    async (t) => {
+
+      let connection = await Connection.findOne({ where: {
+        connection_id: connection_id
+      }})
+
+      const timestamp = Date.now()
+
+      //(JamesKEbert)TODO: Change upsert for a better mechanism, such as locking potentially.
+      if(!connection){
+        console.log("Creating Connection");
+        connection = await Connection.upsert({
+          connection_id: connection_id,
+          state: state,
+          my_did: my_did,
+          alias: alias,
+          request_id: request_id,
+          invitation_key: invitation_key,
+          invitation_mode: invitation_mode,
+          invitation_url: invitation_url,
+          invitation: invitation,
+          accept: accept,
+          initiator: initiator,
+          their_role: their_role,
+          their_did: their_did,
+          their_label: their_label,
+          routing_state: routing_state,
+          inbound_connection_id: inbound_connection_id,
+          error_msg: error_msg,
+          created_at: timestamp,
+          updated_at: timestamp, 
+        })
+      }
+      else{
+        console.log("Updating Connection");
+        connection = await Connection.update({
+          connection_id: connection_id,
+          state: state,
+          my_did: my_did,
+          alias: alias,
+          request_id: request_id,
+          invitation_key: invitation_key,
+          invitation_mode: invitation_mode,
+          invitation_url: invitation_url,
+          invitation: invitation,
+          accept: accept,
+          initiator: initiator,
+          their_role: their_role,
+          their_did: their_did,
+          their_label: their_label,
+          routing_state: routing_state,
+          inbound_connection_id: inbound_connection_id,
+          error_msg: error_msg,
+          updated_at: timestamp,
+        }, {
+          where: {
+            connection_id: connection_id
+          }
+        })
+      }
+      
+      
+      return connection
+    });
+
+    console.log('Connection saved successfully.')
+    return connection
+  } catch (error) {
+    console.error('Error saving connection to the database: ', error)
+  }
+}
+
+
+const readConnections = async function() {
   try {
     const connections = await Connection.findAll({
       include: [{
@@ -286,7 +402,7 @@ exports.readConnections = async function() {
   }
 }
 
-exports.readInvitations = async function(connection_id) {
+const readInvitations = async function(connection_id) {
   try {
     const invitations = await Connection.findAll({
       where: {
@@ -302,7 +418,7 @@ exports.readInvitations = async function(connection_id) {
   }
 }
 
-exports.readConnection = async function(connection_id) {
+const readConnection = async function(connection_id) {
   try {
     const connection = await Connection.findAll({
       where: {
@@ -321,7 +437,7 @@ exports.readConnection = async function(connection_id) {
   }
 }
 
-exports.updateConnection = async function(
+const updateConnection = async function(
     connection_id,
     state,
     my_did,
@@ -343,7 +459,7 @@ exports.updateConnection = async function(
   try {
     const timestamp = Date.now()
 
-    await Connection.update({
+    const connection = await Connection.update({
       connection_id: connection_id,
       state: state,
       my_did: my_did,
@@ -369,12 +485,13 @@ exports.updateConnection = async function(
     })
 
     console.log('Connection updated successfully.')
+    return connection
   } catch (error) {
     console.error('Error updating the Connection: ', error) 
   }
 }
 
-exports.deleteConnection = async function(connection_id) {
+const deleteConnection = async function(connection_id) {
   try {
     await Connection.destroy({
       where: {
@@ -390,10 +507,10 @@ exports.deleteConnection = async function(connection_id) {
 
 
 
-exports.linkContactAndConnection = async function(contact_id, connection_id) {
+const linkContactAndConnection = async function(contact_id, connection_id) {
   try {
-    const contact = await exports.readContact(contact_id)
-    const connection = await exports.readConnection(connection_id)
+    const contact = readContact(contact_id)
+    const connection = readConnection(connection_id)
 
     await contact.addConnection(connection, {})
 
@@ -401,4 +518,23 @@ exports.linkContactAndConnection = async function(contact_id, connection_id) {
   } catch (error) {
     console.error('Error linking contact and connection', error)
   }
+}
+
+module.exports = {
+  Connection,
+  Contact,
+  createConnection,
+  createContact,
+  createOrUpdateConnection,
+  deleteConnection,
+  deleteContact,
+  linkContactAndConnection,
+  readConnection,
+  readConnections,
+  readContact,
+  readContactByConnection,
+  readContacts,
+  readInvitations,
+  updateConnection,
+  updateContact
 }

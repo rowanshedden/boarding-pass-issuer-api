@@ -3,12 +3,30 @@ const server = require('./index.js').server
 
 const ControllerError = require('./errors.js')
 
-const Invitations = require('./agentLogic/invitations')
-const Credentials = require('./agentLogic/credentials')
-const Settings = require('./agentLogic/settings')
-
 wss = new WebSocket.Server({server: server, path: '/api/ws'})
 console.log('Websockets Setup')
+
+//Send a message to all connected clients
+const sendMessageToAll = (context, type, data = {}) => {
+  try {
+    console.log(
+      `Sending Message to all websocket clients of type: ${type}`,
+    )
+
+    wss.clients.forEach(function each(client) {
+      if (client.readyState === WebSocket.OPEN) {
+        console.log('Sending Message to Client')
+        client.send(JSON.stringify({context, type, data}))
+      } else {
+        console.log('Client Not Ready')
+      }
+    })
+  } catch (error) {
+    console.error('Error Sending Message to All Clients')
+    throw error
+  }
+}
+
 //(JamesKEbert)TODO: Add a connection timeout to gracefully exit versus nginx configuration closing abrubtly
 wss.on('connection', (ws) => {
   console.log('New Websocket Connection')
@@ -59,27 +77,6 @@ const sendErrorMessage = (ws, errorCode, errorReason) => {
   }
 }
 
-//Send a message to all connected clients
-const sendMessageToAll = (context, type, data = {}) => {
-  try {
-    console.log(
-      `Sending Message to all websocket clients of type: ${type}`,
-    )
-
-    wss.clients.forEach(function each(client) {
-      if (client.readyState === WebSocket.OPEN) {
-        console.log('Sending Message to Client')
-        client.send(JSON.stringify({context, type, data}))
-      } else {
-        console.log('Client Not Ready')
-      }
-    })
-  } catch (error) {
-    console.error('Error Sending Message to All Clients')
-    throw error
-  }
-}
-
 //Handle inbound messages
 const messageHandler = async (ws, context, type, data = {}) => {
   try {
@@ -112,6 +109,27 @@ const messageHandler = async (ws, context, type, data = {}) => {
 
             sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts:[contact]})
 
+            break;
+          default:
+            console.error(`Unrecognized Message Type: ${type}`)
+            sendErrorMessage(ws, 1, 'Unrecognized Message Type')
+            break;
+        }
+        break
+      case 'DEMOGRAPHICS':
+        switch(type){
+          case 'UPDATE_OR_CREATE':
+            await Contacts.updateOrCreateDemographic(
+              data.contact_id,
+              data.first_name,
+              data.middle_name,
+              data.last_name,
+              data.date_of_birth,
+              data.gender,
+              data.mpid,
+              data.address,
+              data.phone
+            )
             break;
           default:
             console.error(`Unrecognized Message Type: ${type}`)
@@ -169,3 +187,8 @@ const messageHandler = async (ws, context, type, data = {}) => {
 module.exports = {
   sendMessageToAll,
 }
+
+const Invitations = require('./agentLogic/invitations')
+const Contacts = require('./agentLogic/contacts')
+const Credentials = require('./agentLogic/credentials')
+const Settings = require('./agentLogic/settings')

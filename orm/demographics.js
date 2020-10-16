@@ -3,7 +3,9 @@ const { Sequelize, DataTypes, Model } = require('sequelize')
 const init = require('./init.js')
 sequelize = init.connect()
 
-class Contact extends Model {}
+const { Connection, Contact }  = require('./contacts.js')
+
+/*class Contact extends Model {}
 
 Contact.init({
   contact_id: {
@@ -28,7 +30,7 @@ Contact.init({
   modelName: 'Contact',
   tableName: 'contacts', // Our table names don't follow the sequelize convention and thus must be explicitly declared
   timestamps: false,
-})
+})*/
 
 
 
@@ -163,6 +165,94 @@ exports.readDemographic = async function(contact_id) {
   }
 }
 
+exports.createOrUpdateConnection = async function(
+    contact_id,
+    mpid,
+    first_name,
+    middle_name,
+    last_name,
+    date_of_birth,
+    gender,
+    phone,
+    address,
+  ) {
+  try {
+    const contact = await sequelize.transaction({
+      isolationLevel: Sequelize.Transaction.SERIALIZABLE
+    },
+    async (t) => {
+
+      let demographic = await Demographic.findOne({
+        where: {
+          contact_id: contact_id
+        }
+      })
+
+      const timestamp = Date.now()
+
+      //(JamesKEbert)TODO: Change upsert for a better mechanism, such as locking potentially.
+      if(!demographic){
+        console.log("Creating Demographic");
+        const demographic = await Demographic.upsert({
+          contact_id: contact_id,
+          mpid: mpid,
+          first_name: first_name,
+          middle_name: middle_name,
+          last_name: last_name,
+          date_of_birth: date_of_birth,
+          gender: gender,
+          phone: phone,
+          address: address,
+          created_at: timestamp,
+          updated_at: timestamp,
+        })
+      }
+      else{
+        console.log("Updating Demographic");
+        await Demographic.update({
+          contact_id: contact_id,
+          mpid: mpid,
+          first_name: first_name,
+          middle_name: middle_name,
+          last_name: last_name,
+          date_of_birth: date_of_birth,
+          gender: gender,
+          phone: phone,
+          address: address,
+          updated_at: timestamp,
+        }, {
+          where: {
+            contact_id: contact_id
+          }
+        })
+      }
+      
+      const contact = await Contact.findAll({
+        where: {
+          contact_id: contact_id
+        },
+        include: [
+          {
+            model: Demographic,
+            required: false,
+          },
+          {
+            model: Connection,
+            required: true,
+          }
+        ]
+      })
+      
+      return contact
+    });
+
+    console.log('demographic saved successfully.')
+    return contact
+  } catch (error) {
+    console.error('Error saving demographic to the database: ', error)
+  }
+}
+
 exports.updateDemographic = async function(
     contact_id,
     mpid,
@@ -222,6 +312,10 @@ exports.readContactsDemographics = async function() {
       include: [{
         model: Demographic,
         required: false,
+      },
+      {
+        model: Connection,
+        required: true,
       }]
     })
     // console.log(contacts.every(contact => contact instanceof Contact)) // true
@@ -239,10 +333,16 @@ exports.readContactDemographic = async function(contact_id) {
       where: {
         contact_id: contact_id
       },
-      include: [{
-        model: Demographic,
-        required: false,
-      }]
+      include: [
+        {
+          model: Demographic,
+          required: false,
+        },
+        {
+          model: Connection,
+          required: true,
+        }
+      ]
     })
     //console.log(contact[0] instanceof Contact) // true
     
@@ -252,3 +352,29 @@ exports.readContactDemographic = async function(contact_id) {
     console.error('Could not find contact in the database: ', error)
   }
 }
+
+exports.readContactByConnection = async function(connection_id) {
+  try {
+    const contact = await Contact.findAll({
+      include: [
+        {
+          model: Connection,
+          where: {
+            connection_id: connection_id
+          }
+        },
+        {
+          model: Demographic,
+          required: false,
+        }
+      ]
+    })
+    //console.log(contact[0] instanceof Contact) // true
+    
+    console.log("Requested contact:", JSON.stringify(contact[0], null, 2))
+    return contact[0]
+  } catch (error) {
+    console.error('Could not find contact in the database: ', error)
+  }
+}
+
