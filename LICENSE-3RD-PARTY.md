@@ -52,7 +52,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-<<<<<<< HEAD
+
 ## BSD 2-Clause "Simplified" License
 
 Redistribution and use in source and binary forms, with or without
@@ -185,5 +185,3 @@ made available upon request from time to time. For the avoidance of doubt,
 this trademark restriction does not form part of the License.
 
 Creative Commons may be contacted at https://creativecommons.org/.
-=======
->>>>>>> 1e4535a... fix: updates to license; style check

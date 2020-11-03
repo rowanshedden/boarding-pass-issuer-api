@@ -227,155 +227,151 @@ Type: CREDENTIALS
 Data:
 ```
 {
-  credential_records:[
+  credential_records:
+  [
     {
-      [
+      credential_exchange_id: '2a96f2d5-e9c8-42c3-a297-83dda3e03595',  //Primary Key
+      credential_id: '2a96f2d5-e9c8-42c3-a297-83dda3e03595',
+      credential:
+      { 
+        schema_id: 'W1vtCQVTy1aMJAjsHt5UK4:2:Covid_19_Lab_Result:1.3',
+        cred_def_id: '9M4EmNFC3C1fSvMgbS9JXs:3:CL:125221:default',
+        rev_reg_id: null,
+        values:
         { 
-          credential_exchange_id: '2a96f2d5-e9c8-42c3-a297-83dda3e03595',  //Primary Key
-          credential_id: '2a96f2d5-e9c8-42c3-a297-83dda3e03595',
-          credential:
-          { 
-            schema_id: 'W1vtCQVTy1aMJAjsHt5UK4:2:Covid_19_Lab_Result:1.3',
-            cred_def_id: '9M4EmNFC3C1fSvMgbS9JXs:3:CL:125221:default',
-            rev_reg_id: null,
-            values:
-            { 
-              "lab_coding_qualifer": {
-                "raw": "345a55",
-                "encoded": "102987336249554097029535212322581322789799900648198034993379397001115665086549"
-              },
-              "patient_state": {
-                "raw": "",
-                "encoded": "102987336249554097029535212322581322789799900648198034993379397001115665086549"
-              },
-              "lab_description": {
-                "raw": "Covid-19 PCR Test",
-                "encoded": "99776853589627326085103034934332674993657236683641304316331345430176047275031"
-              },
-              ...
+          "lab_coding_qualifer": {
+            "raw": "345a55",
+            "encoded": "102987336249554097029535212322581322789799900648198034993379397001115665086549"
+          },
+          "patient_state": {
+            "raw": "",
+            "encoded": "102987336249554097029535212322581322789799900648198034993379397001115665086549"
+          },
+          "lab_description": {
+            "raw": "Covid-19 PCR Test",
+            "encoded": "99776853589627326085103034934332674993657236683641304316331345430176047275031"
+          },
+          ...
+        },
+        signature: { p_credential: [Object], r_credential: null },
+        signature_correctness_proof:
+         { 
+           se:
+            '16000596602764939287113930893068846104362....',
+           c:
+            '78194481618228153881845858179108710053202....' 
+          },
+        rev_reg: null,
+        witness: null 
+      },
+      raw_credential: 
+      {...},
+      revocation_id: "...",
+
+      connection_id: '27dd6bd1-653e-429b-8d01-c6282d3525be',
+      state: 'credential_issued',
+      role: 'issuer',
+       initiator: 'self',
+
+       thread_id: 'eb412c84-2751-4a1d-9f63-e26f17bc33c8',
+       parent_thread_id: 'eb312c84-653e-429b-8d01-c6282d3525be',
+
+      schema_id: 'W1vtCQVTy1aMJAjsHt5UK4:2:Covid_19_Lab_Result:1.3',
+       credential_definition_id: '9M4EmNFC3C1fSvMgbS9JXs:3:CL:125221:default' 
+       revoc_reg_id: "...",
+
+      auto_issue: true,
+      auto_offer: false,
+       auto_remove: false,
+
+       error_msg: "Error Message",
+      trace: false,
+
+       created_at: '2020-10-14 21:45:16.788803Z',
+       updated_at: '2020-10-14 21:47:45.993019Z',
+
+       credential_proposal_dict:
+      { 
+        '@type': 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/propose-credential',
+        '@id': '46276571-627b-4053-8f78-61acc3aca8a9',
+        schema_version: '1.3',
+        schema_issuer_did: 'W1vtCQVTy1aMJAjsHt5UK4',
+        schema_id: 'W1vtCQVTy1aMJAjsHt5UK4:2:Covid_19_Lab_Result:1.3',
+        comment: '',
+        cred_def_id: '9M4EmNFC3C1fSvMgbS9JXs:3:CL:125221:default',
+        credential_proposal:
+        { 
+           '@type': 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/credential-preview',
+          attributes:  [
+            {
+              "name": "result",
+              "mime-type": "string",
+              "value": "negative"
             },
-            signature: { p_credential: [Object], r_credential: null },
-            signature_correctness_proof:
-             { 
-               se:
-                '16000596602764939287113930893068846104362....',
-               c:
-                '78194481618228153881845858179108710053202....' 
-              },
-            rev_reg: null,
-            witness: null 
-          },
-          raw_credential: 
-          {...},
-          revocation_id: "...",
-
-          connection_id: '27dd6bd1-653e-429b-8d01-c6282d3525be',
-          state: 'credential_issued',
-          role: 'issuer',
-           initiator: 'self',
-
-           thread_id: 'eb412c84-2751-4a1d-9f63-e26f17bc33c8',
-           parent_thread_id: 'eb312c84-653e-429b-8d01-c6282d3525be',
-
-          schema_id: 'W1vtCQVTy1aMJAjsHt5UK4:2:Covid_19_Lab_Result:1.3',
-           credential_definition_id: '9M4EmNFC3C1fSvMgbS9JXs:3:CL:125221:default' 
-           revoc_reg_id: "...",
-
-          auto_issue: true,
-          auto_offer: false,
-           auto_remove: false,
-
-           error_msg: "Error Message",
-          trace: false,
-
-           created_at: '2020-10-14 21:45:16.788803Z',
-           updated_at: '2020-10-14 21:47:45.993019Z',
-
-           credential_proposal_dict:
-          { 
-            '@type': 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/propose-credential',
-            '@id': '46276571-627b-4053-8f78-61acc3aca8a9',
-            schema_version: '1.3',
-            schema_issuer_did: 'W1vtCQVTy1aMJAjsHt5UK4',
-            schema_id: 'W1vtCQVTy1aMJAjsHt5UK4:2:Covid_19_Lab_Result:1.3',
-            comment: '',
-            cred_def_id: '9M4EmNFC3C1fSvMgbS9JXs:3:CL:125221:default',
-            credential_proposal:
-            { 
-               '@type': 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/credential-preview',
-              attributes:  [
-                {
-                  "name": "result",
-                  "mime-type": "string",
-                  "value": "negative"
-                },
-                {
-                  "name": "sending_facility",
-                  "value": "Bronx RHIO"
-                },
-                {
-                  "name": "lab_specimen_collected_date",
-                  "mime-type": "image/jpeg",
-                  "value": ""
-                },
-                ...
-              ]
+            {
+              "name": "sending_facility",
+              "value": "Bronx RHIO"
             },
-            schema_name: 'Covid_19_Lab_Result',
-            issuer_did: '9M4EmNFC3C1fSvMgbS9JXs' 
-          },
+            {
+              "name": "lab_specimen_collected_date",
+              "mime-type": "image/jpeg",
+              "value": ""
+            },
+            ...
+          ]
+        },
+        schema_name: 'Covid_19_Lab_Result',
+        issuer_did: '9M4EmNFC3C1fSvMgbS9JXs' 
+      },
 
-          credential_offer:
-          { 
-            schema_id: 'W1vtCQVTy1aMJAjsHt5UK4:2:Covid_19_Lab_Result:1.3',
-            cred_def_id: '9M4EmNFC3C1fSvMgbS9JXs:3:CL:125221:default',
-            key_correctness_proof:
-             { c:
-                '14683981184184136....',
-               xz_cap:
-                '9739055328477192836400....',
-               xr_cap: [Array] },
-            nonce: '143813257708841485989378' 
-          },
+      credential_offer:
+      { 
+        schema_id: 'W1vtCQVTy1aMJAjsHt5UK4:2:Covid_19_Lab_Result:1.3',
+        cred_def_id: '9M4EmNFC3C1fSvMgbS9JXs:3:CL:125221:default',
+        key_correctness_proof:
+         { c:
+            '14683981184184136....',
+           xz_cap:
+            '9739055328477192836400....',
+           xr_cap: [Array] },
+        nonce: '143813257708841485989378' 
+      },
 
-          credential_offer_dict:
-          { 
-            '@type':
-            'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/offer-credential',
-            '@id': 'eb412c84-2751-4a1d-9f63-e26f17bc33c8',
-            '~thread': {},
-            comment: 'create automated credential exchange',
-            credential_preview:
-            { 
-               '@type':
-                'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/credential-preview',
-              attributes: [Array] 
-             },
-            'offers~attach': [ [Object] ] 
-          },
-
-           credential_request:
-          { 
-            prover_did: '7eLheqhzKKUx29obLrS5X3',
-            cred_def_id: '9M4EmNFC3C1fSvMgbS9JXs:3:CL:125221:default',
-            blinded_ms:
-             { u:
-                '772429144704113156916....',
-               ur: null,
-               hidden_attributes: [Array],
-               committed_attributes: {} },
-            blinded_ms_correctness_proof:
-             { c:
-                '55109999700574797196275...',
-               v_dash_cap:
-                '148223596114792115881228...',
-               m_caps: [Object],
-               r_caps: {} },
-            nonce: '1168035697582091317212130' 
-          }
+      credential_offer_dict:
+      { 
+        '@type':
+        'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/offer-credential',
+        '@id': 'eb412c84-2751-4a1d-9f63-e26f17bc33c8',
+        '~thread': {},
+        comment: 'create automated credential exchange',
+        credential_preview:
+        { 
+           '@type':
+            'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/credential-preview',
+          attributes: [Array] 
          },
-         ...
-      ]
+        'offers~attach': [ [Object] ] 
+      },
+
+       credential_request:
+      { 
+        prover_did: '7eLheqhzKKUx29obLrS5X3',
+        cred_def_id: '9M4EmNFC3C1fSvMgbS9JXs:3:CL:125221:default',
+        blinded_ms:
+         { u:
+            '772429144704113156916....',
+           ur: null,
+           hidden_attributes: [Array],
+           committed_attributes: {} },
+        blinded_ms_correctness_proof:
+         { c:
+            '55109999700574797196275...',
+           v_dash_cap:
+            '148223596114792115881228...',
+           m_caps: [Object],
+           r_caps: {} },
+        nonce: '1168035697582091317212130' 
+      }
     },
     ...
   ]
