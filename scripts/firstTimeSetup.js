@@ -6,6 +6,7 @@ dotenv.config()
 
 const CredDefs = require('../agentLogic/credDefs.js')
 const DIDs = require('../agentLogic/dids.js')
+const Invitations = require('../agentLogic/invitations.js')
 const Ledger = require('../agentLogic/ledger.js')
 
 console.log('Setting Up Enterprise Agent')
@@ -105,9 +106,12 @@ const setup = async () => {
 
     rlDID.on('close', async () => {
       //Create Cred Def
-      const credDefID = await CredDefs.createCredDef(
-        'default',
-        'W1vtCQVTy1aMJAjsHt5UK4:2:Covid_19_Lab_Result:1.3',
+      let credDefIDs = []
+      credDefIDs.push(
+        await CredDefs.createCredDef(
+          'default',
+          'XDfTygX4ZrbdSr1HiBqef1:2:Schema:1.0',
+        ),
       )
 
       const rlCred = readline.createInterface({
@@ -116,11 +120,34 @@ const setup = async () => {
       })
 
       rlCred.write(
-        `The following Credential Definition Has Been Generated For You: \n\n Credential ID: ${credDefID}\n\n`,
+        `The following Credential Definition(s) Have Been Generated For You:\n\n`,
       )
-      rlCred.question('Press enter to continue... \n', async (response) => {
-        rlCred.close()
-      })
+      let credDefs = await credDefIDs.join(', ')
+      rlCred.write(`${credDefs} \n\n`)
+
+      rlCred.write(
+        `Generating an Invitation for Use in Connection Reuse...\n\n`,
+      )
+
+      const invitation = await Invitations.createSingleUseInvitation(
+        '_CONNECTION_REUSE_INVITATION',
+        true,
+        true,
+        false,
+      )
+
+      rlCred.write(`Generated the Above Invitation..\n\n`)
+
+      rlCred.write(
+        `You should likely add the following key to the governance framework document: ${invitation.invitation.recipientKeys[0]}\n\n`,
+      )
+
+      rlCred.question(
+        'Completed. Press enter to continue... \n',
+        async (response) => {
+          rlCred.close()
+        },
+      )
 
       rlCred.on('close', async () => {
         console.log('Continuing...\n')
@@ -133,8 +160,14 @@ const setup = async () => {
 }
 
 process.on('uncaughtException', function (error) {
-  console.log(error)
-  process.exit(1)
+  if (error.code === 'EADDRINUSE') {
+    console.log(
+      'Script Tried to Start Websocket Server that was already running, continuing...',
+    )
+  } else {
+    console.log(error)
+    process.exit(1)
+  }
 })
 
 process.on('unhandledRejection', function (reason, promise) {

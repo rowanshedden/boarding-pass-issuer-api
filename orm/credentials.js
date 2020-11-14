@@ -175,7 +175,7 @@ const createCredential = async function (
       created_at: created_at,
       updated_at: updated_at,
     })
-    //console.log(createCredential instanceof Credential)
+    // console.log(createCredential instanceof Credential)
 
     console.log('Credential saved successfully.')
     return credentialRecord[0]
@@ -189,10 +189,10 @@ const readCredential = async function (credential_exchange_id) {
     const credential = await Credential.findAll({
       where: {
         credential_exchange_id: credential_exchange_id,
-        //credential
+        // credential
       },
     })
-    //console.log(credential[0] instanceof Credential) // true
+    // console.log(credential[0] instanceof Credential) // true
     console.log('Requested credential:', JSON.stringify(credential[0], null, 2))
     return credential[0]
   } catch (error) {
@@ -203,8 +203,8 @@ const readCredential = async function (credential_exchange_id) {
 const readCredentials = async function () {
   try {
     const credentials = await Credential.findAll()
-    //console.log(credentials.every(credential => credential instanceof Credential)) // true
-    console.log('All credentials:', JSON.stringify(credentials, null, 2))
+    // console.log(credentials.every(credential => credential instanceof Credential)) // true
+    // console.log('All credentials:', JSON.stringify(credentials, null, 2))
     return credentials
   } catch (error) {
     console.error('Could not find credentials in the database: ', error)
@@ -291,7 +291,8 @@ const updateCredential = async function (
       },
     )
     console.log('Credential Record:', credentialRecord[1])
-    return credentialRecord[1]
+    // Select results [1], select the first result [0]
+    return credentialRecord[1][0]
     console.log('Credential updated successfully.')
   } catch (error) {
     console.error('Error updating the Credential: ', error)

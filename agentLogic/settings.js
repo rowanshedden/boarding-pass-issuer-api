@@ -9,7 +9,6 @@ const Settings = require('../orm/settings')
 // Update the settings JSON
 const setTheme = async (data = {}) => {
   try {
-    // Something to do with settings
     await Settings.updateSetting('theme', data)
     const updatedTheme = await Settings.readSetting('theme')
     return updatedTheme
@@ -22,7 +21,6 @@ const setTheme = async (data = {}) => {
 // UI asked for the settings JSON
 const getTheme = async () => {
   try {
-    // Something to do with settings
     const currentTheme = await Settings.readSetting('theme')
     return currentTheme
   } catch (error) {

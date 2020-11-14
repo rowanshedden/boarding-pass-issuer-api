@@ -1,5 +1,5 @@
 {
-  "name": "sita-health-issuer-controller",
+  "name": "sita-government-controller-api",
   "version": "0.1.0",
   "private": true,
   "license": "Apache-2.0",
@@ -30,7 +30,7 @@
     "style-check": "prettier --check '**/*.js'",
     "style-format": "prettier --write '**/*.js'",
     "dev": "nodemon index.js",
-    "immeoid-setup": "node ./scripts/immeoIDSetup.js"
+    "first-time-setup": "node ./scripts/firstTimeSetup.js"
   },
   "husky": {
     "hooks": {

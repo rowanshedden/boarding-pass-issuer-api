@@ -6,7 +6,7 @@ const ControllerError = require('./errors.js')
 wss = new WebSocket.Server({server: server, path: '/api/ws'})
 console.log('Websockets Setup')
 
-//Send a message to all connected clients
+// Send a message to all connected clients
 const sendMessageToAll = (context, type, data = {}) => {
   try {
     console.log(`Sending Message to all websocket clients of type: ${type}`)
@@ -25,7 +25,7 @@ const sendMessageToAll = (context, type, data = {}) => {
   }
 }
 
-//(JamesKEbert)TODO: Add a connection timeout to gracefully exit versus nginx configuration closing abrubtly
+// (JamesKEbert)TODO: Add a connection timeout to gracefully exit versus nginx configuration closing abrubtly
 wss.on('connection', (ws) => {
   console.log('New Websocket Connection')
 
@@ -57,7 +57,7 @@ wss.on('connection', (ws) => {
   })
 })
 
-//Send an outbound message to a websocket client
+// Send an outbound message to a websocket client
 const sendMessage = (ws, context, type, data = {}) => {
   console.log(`Sending Message to websocket client of type: ${type}`)
   try {
@@ -68,7 +68,7 @@ const sendMessage = (ws, context, type, data = {}) => {
   }
 }
 
-//Send an Error Message to a websocket client
+// Send an Error Message to a websocket client
 const sendErrorMessage = (ws, errorCode, errorReason) => {
   try {
     console.log('Sending Error Message')
@@ -80,7 +80,7 @@ const sendErrorMessage = (ws, errorCode, errorReason) => {
   }
 }
 
-//Handle inbound messages
+// Handle inbound messages
 const messageHandler = async (ws, context, type, data = {}) => {
   try {
     console.log(`New Message with context: '${context}' and type: '${type}'`)
@@ -88,8 +88,14 @@ const messageHandler = async (ws, context, type, data = {}) => {
       case 'INVITATIONS':
         switch (type) {
           case 'CREATE_SINGLE_USE':
-            const invitation = await Invitations.createSingleUseInvitation()
-
+            var invitation
+            if (data.workflow) {
+              invitation = await Invitations.createPersistentSingleUseInvitation(
+                data.workflow,
+              )
+            } else {
+              invitation = await Invitations.createSingleUseInvitation()
+            }
             sendMessage(ws, 'INVITATIONS', 'INVITATION', {
               invitation_record: invitation,
             })

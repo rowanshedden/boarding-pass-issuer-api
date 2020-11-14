@@ -1,0 +1,37 @@
+{
+  "@context": ["https://github.com/hyperledger/aries-rfcs/blob/master/0430-machine-readable-governance-frameworks/context.jsonld"],
+  "name": "Indicio Tech High Five Exchange",
+  "version": "0.1",
+  "description": "Issuance and verification of High Five Credentials to demonstrate governance frameworks. Provides a source of truth of issuers and verifiers",
+  "last_updated": "2020-11-02",
+  "docs_uri": "",
+  "data_uri": "",
+  "schemas": ["4CLG5pU5v294VdkMWxSByu:2:Highfive:1.0"],
+  "roles": ["issuer", "verifier"],
+  "define": [
+    {
+      "name": "Indicio",
+      "id": "GwE4EzQx93PERwNhEGNgAUSccwez2MqW4RuDECTw1nUy",
+      "describe": {
+        "label": "Indicio Issuer",
+        "sublabel": "Indicio Tech",
+        "website": "indicio.tech",
+        "email": "james.ebert@indicio.tech"
+      }
+    },
+    {
+      "name": "Indicio_Verifier",
+      "id": "Es849T3x93PERwNhEGNgAU48euez2MqW4RuDECTw1nHr",
+      "describe": {
+        "label": "Indicio Verifier",
+        "sublabel": "Indicio Tech",
+        "website": "indicio.tech",
+        "email": "james.ebert@indicio.tech"
+      }
+    }
+  ], 
+  "rules": [
+    {"when": {"name": "Indicio"}, "thus": "issuer"},
+    {"when": {"name": "Indicio_Verifier"}, "thus": "verifier"}
+  ]
+}

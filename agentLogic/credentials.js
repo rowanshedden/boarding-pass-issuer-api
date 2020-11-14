@@ -9,7 +9,7 @@ const Schemas = require('./schemas.js')
 
 const Credentials = require('../orm/credentials.js')
 
-//Perform Agent Business Logic
+// Perform Agent Business Logic
 
 const getCredential = async (credential_exchange_id) => {
   try {
@@ -30,7 +30,7 @@ const getAll = async () => {
   try {
     const credentialRecords = await Credentials.readCredentials()
 
-    console.log('Credential Records:', credentialRecords)
+    console.log('Got all Credential Records')
 
     return credentialRecords
   } catch (error) {
@@ -121,7 +121,7 @@ const adminMessage = async (credentialIssuanceMessage) => {
   }
 }
 
-//Auto Credential Issuance
+// Auto Credential Issuance
 const autoIssueCredential = async (
   connectionID,
   issuerDID,
@@ -134,9 +134,9 @@ const autoIssueCredential = async (
   attributes = [],
 ) => {
   try {
-    //Perform Validations
+    // Perform Validations
 
-    //Validate Connection
+    // Validate Connection
     const connection = await Contacts.fetchConnection(connectionID)
 
     if (!connection) {
@@ -147,7 +147,7 @@ const autoIssueCredential = async (
       throw new ControllerError(3, 'Connection Not Active')
     }
 
-    //Validate Public DID
+    // Validate Public DID
     const publicDID = await DIDs.fetchPublicDID()
 
     if (!publicDID) {
@@ -155,7 +155,7 @@ const autoIssueCredential = async (
       throw new ControllerError(4, 'Public DID Not Set')
     }
 
-    //Validate Credential Definition
+    // Validate Credential Definition
     const credDefIDs = await CredDefs.createdCredDefIDs(
       credDefID,
       issuerDID,
@@ -170,17 +170,17 @@ const autoIssueCredential = async (
       throw new ControllerError(5, 'Credential Definition ID Invalid')
     }
 
-    //Fetch Credential Definition to check the schema utilized
+    // Fetch Credential Definition to check the schema utilized
     const credDef = await CredDefs.fetchCredDef(credDefIDs[0])
 
-    //Validate Schema
+    // Validate Schema
     const schema = await Schemas.fetchSchema(schemaID)
 
     if (!schema) {
       console.error('Schema ID Invalid')
       throw new ControllerError(6, 'Schema ID Invalid')
     }
-    //Check to see if the schema used in the cred def is the specified schema
+    // Check to see if the schema used in the cred def is the specified schema
     else if (schema.seqNo != credDef.schemaId) {
       console.error(
         "Credential Definition's Schema Doesn't Match The Supplied Schema",
@@ -191,8 +191,8 @@ const autoIssueCredential = async (
       )
     }
 
-    //Validate the Attributes
-    //Ensure all attributes based on the schema have been assigned a value
+    // Validate the Attributes
+    // Ensure all attributes based on the schema have been assigned a value
     for (var i = 0; i < schema.attrNames.length; i++) {
       const accounted = attributes.some((attribute) => {
         if (attribute.name === schema.attrNames[i]) {

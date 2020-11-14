@@ -33,7 +33,7 @@ exports.createSetting = async function (key, value) {
       key: key,
       value: value,
     })
-    //console.log(setting instanceof Setting) // true
+    // console.log(setting instanceof Setting) // true
 
     console.log('Setting saved successfully.')
     return setting
@@ -45,7 +45,7 @@ exports.createSetting = async function (key, value) {
 exports.readSettings = async function () {
   try {
     const settings = await Setting.findAll()
-    //console.log(settings.every(setting => setting instanceof Setting)) // true
+    // console.log(settings.every(setting => setting instanceof Setting)) // true
 
     console.log('All settings:', JSON.stringify(settings, null, 2))
     return settings
@@ -61,9 +61,9 @@ exports.readSetting = async function (key) {
         key: key,
       },
     })
-    //console.log(setting[0] instanceof Setting) // true
+    // console.log(setting[0] instanceof Setting) // true
 
-    console.log('Requested setting:', JSON.stringify(setting, null, 2))
+    // console.log('Requested setting:', JSON.stringify(setting, null, 2))
     return setting[0]
   } catch (error) {
     console.error('Could not find setting in the database: ', error)

@@ -25,7 +25,7 @@ const readContacts = async function (additionalTables = []) {
       ],
     })
 
-    console.log('All contacts:', JSON.stringify(contacts, null, 2))
+    // console.log('All contacts:', JSON.stringify(contacts, null, 2))
     return contacts
   } catch (error) {
     console.error('Could not find contacts in the database: ', error)

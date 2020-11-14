@@ -103,9 +103,11 @@ If you are a new contributor to the project, please read our [contribution guide
 
 ## License
 
-Copyright 2020 by SITA
+Copyright © SITA Information Networking Computing USA inc 2020. Confidential. All rights reserved. 
 
-License is TBD; Until further notice, all rights reserved to SITA. See https://help.github.com/en/github/creating-cloning-and-archiving-repositories/licensing-a-repository
+The use, republication or redistribution of this software is prohibited without the prior written consent of SITA Information Networking Computing USA or in accordance with a valid licence issued by SITA. 
+
+Other than as set out in any licence issued by SITA governing your use of this software, and to the extent allowed by law: (1) no warranty or representation (express or  implied), including but not limited to the suitability, accuracy or fitness of this software for any purpose, or in respect of non-infringement of third party rights, is given; and (2) under no circumstances shall SITA be liable in respect of any use of this software by you, or any losses caused or suffered as a result.
 
 ## Developer Certificate of Origin (DCO)
 

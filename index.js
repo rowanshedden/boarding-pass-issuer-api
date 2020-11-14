@@ -2,7 +2,7 @@ const express = require('express')
 const http = require('http')
 const bodyParser = require('body-parser')
 
-//Import Environment Variables for use via an .env file in a non-containerized context
+// Import environment variables for use via an .env file in a non-containerized context
 const dotenv = require('dotenv')
 dotenv.config()
 
@@ -26,14 +26,19 @@ server.listen(process.env.CONTROLLERPORT || 3100, () =>
 
 const agentWebhookRouter = require('./agentWebhook')
 
-//Send all Cloud Agent Webhooks posting to the agent webhook router
+// Send all cloud agent webhooks posting to the agent webhook router
 app.use('/api/controller-webhook', agentWebhookRouter)
 
-//Present only in development to catch the secondary agent webhooks for ease of development
+// Present only in development to catch the secondary agent webhooks for ease of development
 app.use('/api/second-controller', (req, res) => {
   console.log('Second ACA-Py Agent Webhook Message')
   res.status(200).send()
 })
+
+app.use(
+  '/api/governance-framework',
+  express.static('governance-framework.json'),
+)
 
 app.use('/', (req, res) => {
   console.log('Request outside of normal paths', req.url)

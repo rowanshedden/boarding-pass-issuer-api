@@ -6,12 +6,12 @@ let Contacts = require('../orm/contacts.js')
 let ContactsCompiled = require('../orm/contactsCompiled.js')
 let Demographics = require('../orm/demographics.js')
 
-//Perform Agent Business Logic
+// Perform Agent Business Logic
 
-//Fetch an existing connection
+// Fetch an existing connection
 const fetchConnection = async (connectionID) => {
   try {
-    //(JamesKEbert)TODO:Change to use Controller DB versus Admin API Call
+    // (JamesKEbert)TODO:Change to use Controller DB versus Admin API Call
     const connection = await AdminAPI.Connections.fetchConnection(connectionID)
 
     return connection
@@ -41,7 +41,7 @@ const getAll = async (additionalTables) => {
   try {
     const contacts = await ContactsCompiled.readContacts(additionalTables)
 
-    console.log('Contacts:', contacts)
+    console.log('Got All Contacts')
 
     return contacts
   } catch (error) {
@@ -76,7 +76,7 @@ const adminMessage = async (connectionMessage) => {
         connectionMessage.inbound_connection_id,
         connectionMessage.error_msg,
       )
-      //Broadcast the invitation in the invitation agent logic
+      // Broadcast the invitation in the invitation agent logic
       return
     }
 
@@ -115,9 +115,9 @@ const adminMessage = async (connectionMessage) => {
         contact.contact_id,
         connectionMessage.connection_id,
       )
-      Websockets.sendMessageToAll('INVITATIONS', 'SINGLE_USE_USED', {
+      /*Websockets.sendMessageToAll('INVITATIONS', 'SINGLE_USE_USED', {
         connection_id: connectionMessage.connection_id,
-      })
+      })*/
     } else {
       console.log('State - Response or later')
       await Connections.updateConnection(

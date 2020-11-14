@@ -16,7 +16,7 @@ exports.setup = function (options, seedLink) {
 
 exports.up = function (db) {
   return db.createTable('settings', {
-    key: {type: 'text', primaryKey: true, unique: true},
+    key: {type: 'string', primaryKey: true, unique: true},
     value: 'json',
   })
 }

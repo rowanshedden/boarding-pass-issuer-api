@@ -185,7 +185,7 @@ const createOrUpdateConnection = async function (
 
         const timestamp = Date.now()
 
-        //(JamesKEbert)TODO: Change upsert for a better mechanism, such as locking potentially.
+        // (JamesKEbert)TODO: Change upsert for a better mechanism, such as locking potentially.
         if (!connection) {
           console.log('Creating Connection')
           connection = await Connection.upsert({
@@ -318,6 +318,22 @@ const readInvitations = async function (connection_id) {
   }
 }
 
+const readInvitationByAlias = async function (alias) {
+  try {
+    const connection = await Connection.findAll({
+      where: {
+        state: 'invitation',
+        alias,
+      },
+    })
+
+    console.log('Requested Invitation:', JSON.stringify(connection[0], null, 2))
+    return connection[0]
+  } catch (error) {
+    console.error('Could not find invitation in the database: ', error)
+  }
+}
+
 const updateConnection = async function (
   connection_id,
   state,
@@ -396,6 +412,7 @@ module.exports = {
   linkContactAndConnection,
   readConnection,
   readConnections,
+  readInvitationByAlias,
   readInvitations,
   updateConnection,
   deleteConnection,

@@ -9,7 +9,9 @@ Context: INVITATIONS
 Type: CREATE_SINGLE_USE
 Data: 
 ```
-{}
+{
+  workflow: 'immunization'  // Can be null or undefined
+}
 ```
 
 ### Receive a Single-Use Invitation
@@ -45,6 +47,7 @@ Type: SINGLE_USE_USED
 Data: 
 ```
 {
+  workflow: 'immunization',  // Can be null or undefined
   connection_id: '18a5b7a0-9380-4422-b930-efd2c9363492',
 }
 ```
@@ -417,6 +420,22 @@ Data:
     },
     ...
   ]
+}
+```
+
+## Presentations
+
+### Presentation Occurred
+
+(JamesKEbert) TODO: Alter Presentations Messaging format. Likely want to add additional fields in the data to genericize presentations.
+
+Controller -> SPA
+Context: PRESENTATIONS
+Type: EMPLOYEE_VERIFIED
+Data:
+```
+'PRESENTATIONS', 'EMPLOYEE_VERIFIED', {
+  'connection_id': '2a5db91d-0ae9-4d83-a1f0-236c6f7ed879'
 }
 ```
 

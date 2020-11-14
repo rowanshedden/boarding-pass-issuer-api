@@ -1,8 +1,8 @@
 const sendAdminMessage = require('./transport')
 
-//Generate operations and requests to be sent to the Cloud Agent Adminstration API
+// Generate operations and requests to be sent to the Cloud Agent Adminstration API
 
-//Create an invitation request message to be sent to the Cloud Agent Adminstration API
+// Create an invitation request message to be sent to the Cloud Agent Adminstration API
 const createInvitation = async (
   alias = 'Single-Use Invitation',
   autoAccept = false,
@@ -31,7 +31,7 @@ const createInvitation = async (
   }
 }
 
-//Fetch a Connection request message to be sent to the Cloud Agent Adminstration API
+// Fetch a Connection request message to be sent to the Cloud Agent Adminstration API
 const fetchConnection = async (connectionID) => {
   try {
     console.log(`Fetching a Connection with connectionID: ${connectionID}`)
@@ -56,7 +56,58 @@ const fetchConnection = async (connectionID) => {
   }
 }
 
+// Query Connection requests message to be sent to the Cloud Agent Adminstration API
+const queryConnections = async (
+  initiator = 'self',
+  state = 'active',
+  alias,
+  invitationKey = null,
+  myDID = null,
+  theirDID = null,
+  theirRole = null,
+) => {
+  try {
+    console.log(
+      `Fetching Connections with the parameters:`,
+      alias,
+      initiator,
+      invitationKey,
+      myDID,
+      state,
+      theirDID,
+      theirRole,
+    )
+
+    const connections = await sendAdminMessage(
+      'get',
+      `/connections`,
+      {
+        alias: alias,
+        initiator: initiator,
+        invitation_key: invitationKey,
+        my_did: myDID,
+        state: state,
+        their_did: theirDID,
+        their_role: theirRole,
+      },
+      {},
+    )
+
+    return connections
+  } catch (error) {
+    if (error.response.status === 404) {
+      console.log('No Connections Found')
+
+      return null
+    }
+
+    console.error('Error Fetching Connections')
+    throw error
+  }
+}
+
 module.exports = {
   createInvitation,
   fetchConnection,
+  queryConnections,
 }
