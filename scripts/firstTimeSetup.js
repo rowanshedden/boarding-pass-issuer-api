@@ -12,149 +12,167 @@ const Ledger = require('../agentLogic/ledger.js')
 console.log('Setting Up Enterprise Agent')
 
 const setup = async () => {
-  //Perform TAA Agreement
-  const TAA = await Ledger.fetchTAA()
-
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   })
 
-  let agreement = false
+  //Perform TAA Agreement
+  const TAA = await Ledger.fetchTAA()
 
-  rl.write(
-    `Read the following Transaction Author Agreement:, \n ${TAA.taa_record.text} \n\n\n\n`,
-  )
-  rl.question(
-    'Do you agree to the above Transaction Author Agreement? y/n: ',
-    (response) => {
-      if (
-        response === 'y' ||
-        response === 'Y' ||
-        response === 'yes' ||
-        response === 'Yes'
-      ) {
-        rl.write("You've Agreed to the Transaction Author Agreement")
-        agreement = true
+  if (TAA.taa_record) {
+    let agreement = false
 
-        rl.close()
-      } else if (response === 'n' || response === 'N') {
-        rl.write(
-          'You have not agreed to the Transaction Author Agreement, please cease use of the Enterprise Application\n',
-        )
-        agreement = false
-        rl.close()
-      } else {
-        rl.write(
-          'Unrecognized Answer, you have not agreed to the Transaction Author Agreement, please cease use of the Enterprise Application\n',
-        )
-        agreement = false
-        rl.close()
-      }
-    },
-  )
-
-  //Continue taking actions after acceptance
-  rl.on('close', async () => {
-    if (!agreement) {
-      throw new Error('TAA Not Accepted')
-    }
-
-    //Perform TAA Agreement
-    await Ledger.acceptTAA(
-      TAA.taa_record.version,
-      TAA.taa_record.text,
-      'wallet_agreement',
+    rl.write(
+      `Read the following Transaction Author Agreement:, \n ${TAA.taa_record.text} \n\n\n\n`,
     )
-
-    //Create a Public DID
-    const did = await DIDs.createDID()
-
-    const rlDID = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    })
-
-    rlDID.write(
-      `The following DID Has Been Generated For You: \n\n DID: ${did.did} \n\n Verkey: ${did.verkey}\n\n`,
-    )
-    rlDID.question(
-      'Have you anchored the above DID (such as via the selfserve.sovrin.org)? y/n: ',
-      async (response) => {
+    rl.question(
+      'Do you agree to the above Transaction Author Agreement? y/n: ',
+      (response) => {
         if (
           response === 'y' ||
           response === 'Y' ||
           response === 'yes' ||
           response === 'Yes'
         ) {
-          rlDID.write('Continuing...\n')
+          rl.write("You've Agreed to the Transaction Author Agreement")
+          agreement = true
 
-          await DIDs.setPublicDID(did.did)
-
-          rlDID.close()
+          rl.close()
         } else if (response === 'n' || response === 'N') {
-          rlDID.write('Aborting...\n')
-          throw new Error('DID Not Anchored')
-          rlDID.close()
+          rl.write(
+            'You have not agreed to the Transaction Author Agreement, please cease use of the Enterprise Application\n',
+          )
+          agreement = false
+          rl.close()
         } else {
-          rlDID.write('Unrecognized Answer, Aborting...\n')
-          throw new Error('DID Not Anchored')
-          rlDID.close()
+          rl.write(
+            'Unrecognized Answer, you have not agreed to the Transaction Author Agreement, please cease use of the Enterprise Application\n',
+          )
+          agreement = false
+          rl.close()
         }
       },
     )
 
-    rlDID.on('close', async () => {
-      //Create Cred Def
-      let credDefIDs = []
-      credDefIDs.push(
-        await CredDefs.createCredDef(
-          'default',
-          'XDfTygX4ZrbdSr1HiBqef1:2:Schema:1.0',
-        ),
+    rl.on('close', async () => {
+      if (!agreement) {
+        throw new Error('TAA Not Accepted')
+      }
+
+      //Perform TAA Agreement
+      await Ledger.acceptTAA(
+        TAA.taa_record.version,
+        TAA.taa_record.text,
+        'wallet_agreement',
       )
 
-      const rlCred = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-      })
+      await ledgerWrites()
+    })
+  } else {
+    rl.write('No Transaction Author Agreement present on network\n\n')
+    await ledgerWrites()
+  }
+}
 
-      rlCred.write(
-        `The following Credential Definition(s) Have Been Generated For You:\n\n`,
-      )
-      let credDefs = await credDefIDs.join(', ')
-      rlCred.write(`${credDefs} \n\n`)
+const ledgerWrites = async () => {
+  //Create a Public DID
+  const did = await DIDs.createDID()
 
-      rlCred.write(
-        `Generating an Invitation for Use in Connection Reuse...\n\n`,
-      )
+  const rlDID = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  })
 
-      const invitation = await Invitations.createSingleUseInvitation(
-        '_CONNECTION_REUSE_INVITATION',
-        true,
-        true,
-        false,
-      )
+  rlDID.write(
+    `The following DID Has Been Generated For You: \n\n DID: ${did.did} \n\n Verkey: ${did.verkey}\n\n`,
+  )
+  rlDID.question(
+    'Have you anchored the above DID (such as via the selfserve.indiciotech.io or selfserve.sovrin.org)? y/n: ',
+    async (response) => {
+      if (
+        response === 'y' ||
+        response === 'Y' ||
+        response === 'yes' ||
+        response === 'Yes'
+      ) {
+        rlDID.write('Continuing...\n')
 
-      rlCred.write(`Generated the Above Invitation..\n\n`)
+        await DIDs.setPublicDID(did.did)
 
-      rlCred.write(
-        `You should likely add the following key to the governance framework document: ${invitation.invitation.recipientKeys[0]}\n\n`,
-      )
+        rlDID.close()
+      } else if (response === 'n' || response === 'N') {
+        rlDID.write('Aborting...\n')
+        throw new Error('DID Not Anchored')
+        rlDID.close()
+      } else {
+        rlDID.write('Unrecognized Answer, Aborting...\n')
+        throw new Error('DID Not Anchored')
+        rlDID.close()
+      }
+    },
+  )
 
-      rlCred.question(
-        'Completed. Press enter to continue... \n',
-        async (response) => {
-          rlCred.close()
-        },
-      )
+  rlDID.on('close', async () => {
+    //Create Cred Def
+    let credDefIDs = []
+    credDefIDs.push(
+      await CredDefs.createCredDef(
+        'default',
+        'X2JpGAqC7ZFY4hwKG6kLw9:2:Test_ID:1.1',
+      ),
+    )
+    credDefIDs.push(
+      await CredDefs.createCredDef(
+        'default',
+        'X2JpGAqC7ZFY4hwKG6kLw9:2:Covid_19_Lab_Result:1.3',
+      ),
+    )
+    credDefIDs.push(
+      await CredDefs.createCredDef(
+        'default',
+        'X2JpGAqC7ZFY4hwKG6kLw9:2:Trusted_Traveler:1.0',
+      ),
+    )
 
-      rlCred.on('close', async () => {
-        console.log('Continuing...\n')
+    const rlCred = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    })
 
-        console.log('Finished Setup')
-        process.exit(0)
-      })
+    rlCred.write(
+      `The following Credential Definition(s) Have Been Generated For You:\n\n`,
+    )
+    let credDefs = await credDefIDs.join(', ')
+    rlCred.write(`${credDefs} \n\n`)
+
+    rlCred.write(`Generating an Invitation for Use in Connection Reuse...\n\n`)
+
+    const invitation = await Invitations.createSingleUseInvitation(
+      '_CONNECTION_REUSE_INVITATION',
+      true,
+      true,
+      false,
+    )
+
+    rlCred.write(`Generated the Above Invitation..\n\n`)
+
+    rlCred.write(
+      `You should likely add the following key to the governance framework document: ${invitation.invitation.recipientKeys[0]}\n\n`,
+    )
+
+    rlCred.question(
+      'Completed. Press enter to continue... \n',
+      async (response) => {
+        rlCred.close()
+      },
+    )
+
+    rlCred.on('close', async () => {
+      console.log('Continuing...\n')
+
+      console.log('Finished Setup')
+      process.exit(0)
     })
   })
 }
