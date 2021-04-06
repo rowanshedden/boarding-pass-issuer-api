@@ -1,6 +1,6 @@
 const readline = require('readline')
 
-//Import Environment Variables for use via an .env file in a non-containerized context
+// Import Environment Variables for use via an .env file in a non-containerized context
 const dotenv = require('dotenv')
 dotenv.config()
 
@@ -17,7 +17,7 @@ const setup = async () => {
     output: process.stdout,
   })
 
-  //Perform TAA Agreement
+  // Perform TAA Agreement
   const TAA = await Ledger.fetchTAA()
 
   if (TAA.taa_record) {
@@ -60,7 +60,7 @@ const setup = async () => {
         throw new Error('TAA Not Accepted')
       }
 
-      //Perform TAA Agreement
+      // Perform TAA Agreement
       await Ledger.acceptTAA(
         TAA.taa_record.version,
         TAA.taa_record.text,
@@ -76,7 +76,7 @@ const setup = async () => {
 }
 
 const ledgerWrites = async () => {
-  //Create a Public DID
+  // Create a Public DID
   const did = await DIDs.createDID()
 
   const rlDID = readline.createInterface({
@@ -114,18 +114,12 @@ const ledgerWrites = async () => {
   )
 
   rlDID.on('close', async () => {
-    //Create Cred Def
+    // Create Cred Def
     let credDefIDs = []
     credDefIDs.push(
       await CredDefs.createCredDef(
         'default',
-        'X2JpGAqC7ZFY4hwKG6kLw9:2:Test_ID:1.1',
-      ),
-    )
-    credDefIDs.push(
-      await CredDefs.createCredDef(
-        'default',
-        'X2JpGAqC7ZFY4hwKG6kLw9:2:Covid_19_Lab_Result:1.3',
+        'X2JpGAqC7ZFY4hwKG6kLw9:2:Covid_19_Lab_Result:1.5',
       ),
     )
     credDefIDs.push(

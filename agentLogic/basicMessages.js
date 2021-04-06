@@ -7,27 +7,18 @@ const adminMessage = async (message) => {
 
   // Connection Reuse Method
   switch (message.content) {
-    case 'credential_1':
-      console.log('Connection Request Employee Workflow')
+    // case 'trusted_traveler':
+    //   console.log('Connection Request Immunization Workflow')
 
-      Websockets.sendMessageToAll('INVITATIONS', 'SINGLE_USE_USED', {
-        workflow: message.content,
-        connection_id: message.connection_id,
-      })
+    //   await Websockets.sendMessageToAll('INVITATIONS', 'SINGLE_USE_USED', {
+    //     workflow: message.content,
+    //     connection_id: message.connection_id,
+    //   })
 
-      break
-    case 'credential_2':
-      console.log('Connection Request Immunization Workflow')
+    //   // Send Presentation Request
+    //   await Presentations.requestPresentation(message.connection_id)
 
-      await Websockets.sendMessageToAll('INVITATIONS', 'SINGLE_USE_USED', {
-        workflow: message.content,
-        connection_id: message.connection_id,
-      })
-
-      //Send Presentation Request
-      await Presentations.requestPresentation(message.connection_id)
-
-      break
+    //   break
     default:
       console.warn('Regular Basic Message:', message.content)
       return

@@ -3,6 +3,9 @@ const {Sequelize, DataTypes, Model} = require('sequelize')
 const {Contact} = require('./contacts.js')
 const {Connection} = require('./connections.js')
 const {Demographic} = require('./demographics.js')
+const {Passport} = require('./passports.js')
+const fs = require('fs')
+const {decodeBase64} = require('../util.js')
 
 const readContacts = async function (additionalTables = []) {
   try {
@@ -11,6 +14,12 @@ const readContacts = async function (additionalTables = []) {
     if (additionalTables.includes('Demographic')) {
       models.push({
         model: Demographic,
+        required: false,
+      })
+    }
+    if (additionalTables.includes('Passport')) {
+      models.push({
+        model: Passport,
         required: false,
       })
     }
@@ -24,8 +33,7 @@ const readContacts = async function (additionalTables = []) {
         ...models,
       ],
     })
-
-    // console.log('All contacts:', JSON.stringify(contacts, null, 2))
+    console.log('All contacts:', JSON.stringify(contacts, null, 2))
     return contacts
   } catch (error) {
     console.error('Could not find contacts in the database: ', error)
@@ -39,6 +47,12 @@ const readContact = async function (contact_id, additionalTables = []) {
     if (additionalTables.includes('Demographic')) {
       models.push({
         model: Demographic,
+        required: false,
+      })
+    }
+    if (additionalTables.includes('Passport')) {
+      models.push({
+        model: Passport,
         required: false,
       })
     }
@@ -73,6 +87,12 @@ const readContactByConnection = async function (
     if (additionalTables.includes('Demographic')) {
       models.push({
         model: Demographic,
+        required: false,
+      })
+    }
+    if (additionalTables.includes('Passport')) {
+      models.push({
+        model: Passport,
         required: false,
       })
     }

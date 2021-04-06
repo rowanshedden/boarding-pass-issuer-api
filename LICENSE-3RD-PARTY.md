@@ -15,6 +15,7 @@ See also: https://mit-license.org/
 * [nodemon](https://github.com/remy/nodemon/)
 * [Prettier](https://github.com/prettier/prettier)
 * [Sequelize](https://sequelize.org/master/)
+* [UUID](https://github.com/uuidjs/uuid)
 * [wait-for-it](https://github.com/vishnubob/wait-for-it)
 * [ws](https://github.com/websockets/ws)
 

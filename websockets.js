@@ -135,16 +135,12 @@ const messageHandler = async (ws, context, type, data = {}) => {
           case 'UPDATE_OR_CREATE':
             await Demographics.updateOrCreateDemographic(
               data.contact_id,
-              data.mpid,
-              data.first_name,
-              data.middle_name,
-              data.last_name,
-              data.date_of_birth,
-              data.gender,
+              data.email,
               data.phone,
               data.address,
             )
             break
+
           default:
             console.error(`Unrecognized Message Type: ${type}`)
             sendErrorMessage(ws, 1, 'Unrecognized Message Type')
@@ -202,6 +198,17 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break
         }
         break
+      case 'PRESENTATIONS':
+        switch (type) {
+          case 'REQUEST':
+            await Presentations.requestPresentation(data.connectionID)
+            break
+          default:
+            console.error(`Unrecognized Message Type: ${type}`)
+            sendErrorMessage(ws, 1, 'Unrecognized Message Type')
+            break
+        }
+        break
       default:
         console.error(`Unrecognized Message Context: ${context}`)
         sendErrorMessage(ws, 1, 'Unrecognized Message Context')
@@ -226,4 +233,5 @@ const Invitations = require('./agentLogic/invitations')
 const Demographics = require('./agentLogic/demographics')
 const Contacts = require('./agentLogic/contacts')
 const Credentials = require('./agentLogic/credentials')
+const Presentations = require('./agentLogic/presentations')
 const Settings = require('./agentLogic/settings')

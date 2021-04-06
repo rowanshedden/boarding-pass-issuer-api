@@ -7,24 +7,14 @@ let Demographics = require('../orm/demographics.js')
 
 const updateOrCreateDemographic = async function (
   contactID,
-  mpid,
-  firstName,
-  middleName,
-  lastName,
-  dateOfBirth,
-  gender,
+  email,
   phone,
   address,
 ) {
   try {
     await Demographics.createOrUpdateDemographic(
       contactID,
-      mpid,
-      firstName,
-      middleName,
-      lastName,
-      dateOfBirth,
-      gender,
+      email,
       phone,
       address,
     )

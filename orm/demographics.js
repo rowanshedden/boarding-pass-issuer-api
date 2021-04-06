@@ -13,24 +13,9 @@ Demographic.init(
     contact_id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
-      //allowNull: false,
+      // allowNull: false,
     },
-    mpid: {
-      type: DataTypes.TEXT,
-    },
-    first_name: {
-      type: DataTypes.TEXT,
-    },
-    middle_name: {
-      type: DataTypes.TEXT,
-    },
-    last_name: {
-      type: DataTypes.TEXT,
-    },
-    date_of_birth: {
-      type: DataTypes.DATEONLY,
-    },
-    gender: {
+    email: {
       type: DataTypes.TEXT,
     },
     phone: {
@@ -65,28 +50,13 @@ Demographic.belongsTo(Contact, {
   },
 })
 
-const createDemographic = async function (
-  contact_id,
-  mpid,
-  first_name,
-  middle_name,
-  last_name,
-  date_of_birth,
-  gender,
-  phone,
-  address,
-) {
+const createDemographic = async function (contact_id, email, phone, address) {
   try {
     const timestamp = Date.now()
 
     const demographic = await Demographic.create({
       contact_id: contact_id,
-      mpid: mpid,
-      first_name: first_name,
-      middle_name: middle_name,
-      last_name: last_name,
-      date_of_birth: date_of_birth,
-      gender: gender,
+      email: email,
       phone: phone,
       address: address,
       created_at: timestamp,
@@ -103,12 +73,7 @@ const createDemographic = async function (
 
 const createOrUpdateDemographic = async function (
   contact_id,
-  mpid,
-  first_name,
-  middle_name,
-  last_name,
-  date_of_birth,
-  gender,
+  email,
   phone,
   address,
 ) {
@@ -131,12 +96,7 @@ const createOrUpdateDemographic = async function (
           console.log('Creating Demographic')
           const demographic = await Demographic.upsert({
             contact_id: contact_id,
-            mpid: mpid,
-            first_name: first_name,
-            middle_name: middle_name,
-            last_name: last_name,
-            date_of_birth: date_of_birth,
-            gender: gender,
+            email: email,
             phone: phone,
             address: address,
             created_at: timestamp,
@@ -147,12 +107,7 @@ const createOrUpdateDemographic = async function (
           await Demographic.update(
             {
               contact_id: contact_id,
-              mpid: mpid,
-              first_name: first_name,
-              middle_name: middle_name,
-              last_name: last_name,
-              date_of_birth: date_of_birth,
-              gender: gender,
+              email: email,
               phone: phone,
               address: address,
               updated_at: timestamp,
@@ -216,29 +171,14 @@ const readDemographic = async function (contact_id) {
   }
 }
 
-const updateDemographic = async function (
-  contact_id,
-  mpid,
-  first_name,
-  middle_name,
-  last_name,
-  date_of_birth,
-  gender,
-  phone,
-  address,
-) {
+const updateDemographic = async function (contact_id, email, phone, address) {
   try {
     const timestamp = Date.now()
 
     await Demographic.update(
       {
         contact_id: contact_id,
-        mpid: mpid,
-        first_name: first_name,
-        middle_name: middle_name,
-        last_name: last_name,
-        date_of_birth: date_of_birth,
-        gender: gender,
+        email: email,
         phone: phone,
         address: address,
         updated_at: timestamp,

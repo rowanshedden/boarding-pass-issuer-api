@@ -11,7 +11,7 @@ const fetchTAA = async () => {
 
     return TAA.result
   } catch (error) {
-    console.error('Ldeger TAA Fetching Error')
+    console.error('Ledger TAA Fetching Error')
     throw error
   }
 }
