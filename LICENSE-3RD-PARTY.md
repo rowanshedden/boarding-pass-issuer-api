@@ -18,6 +18,12 @@ See also: https://mit-license.org/
 * [UUID](https://github.com/uuidjs/uuid)
 * [wait-for-it](https://github.com/vishnubob/wait-for-it)
 * [ws](https://github.com/websockets/ws)
+* [bcryptjs](https://github.com/kelektiv/node.bcrypt.js)
+* [express-session](https://github.com/expressjs/session)
+* [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken)
+* [nodemailer](https://github.com/nodemailer/nodemailer)
+* [passport](https://github.com/jaredhanson/passport)
+* [passport-local](https://github.com/jaredhanson/passport-local)
 
 ### BSD 2-Clause "Simplified" License
 

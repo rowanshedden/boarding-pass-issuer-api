@@ -1,6 +1,6 @@
 const sendAdminMessage = require('./transport')
 
-//Admin API Call to fetch a schema
+// Admin API Call to fetch a schema
 const fetchSchema = async (schema_id) => {
   try {
     console.log('Fetching Schema')

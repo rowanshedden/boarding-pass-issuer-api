@@ -1,8 +1,8 @@
 const sendAdminMessage = require('./transport')
 
-//Generate operations and requests to be sent to the Cloud Agent Adminstration API
+// Generate operations and requests to be sent to the Cloud Agent Adminstration API
 
-//Set the Agent's public DID
+// Set the Agent's public DID
 const setPublicDID = async (did) => {
   try {
     console.log('Setting Public DID')
@@ -21,7 +21,7 @@ const setPublicDID = async (did) => {
   }
 }
 
-//Fetch the set public DID message to be sent to the Cloud Agent Adminstration API
+// Fetch the set public DID message to be sent to the Cloud Agent Adminstration API
 const fetchPublicDID = async () => {
   try {
     console.log('Fetching Public DID from AdminAPI')
@@ -40,7 +40,7 @@ const fetchPublicDID = async () => {
   }
 }
 
-//Create a DID message to be sent to the Cloud Agent Adminstration API
+// Create a DID message to be sent to the Cloud Agent Adminstration API
 const createDID = async () => {
   try {
     console.log('Creating DID')

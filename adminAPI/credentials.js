@@ -1,8 +1,8 @@
 const sendAdminMessage = require('./transport')
 
-//Generate operations and requests to be sent to the Cloud Agent Adminstration API
+// Generate operations and requests to be sent to the Cloud Agent Adminstration API
 
-//Auto issue a credential to a connection via the admin API
+// Auto issue a credential to a connection via the admin API
 const autoIssueCred = async (
   connectionID,
   issuerDID,

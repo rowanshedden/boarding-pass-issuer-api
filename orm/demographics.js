@@ -1,10 +1,7 @@
 const {Sequelize, DataTypes, Model} = require('sequelize')
-
 const init = require('./init.js')
 sequelize = init.connect()
-
 const {Contact} = require('./contacts.js')
-const {Connection} = require('./connections.js')
 
 class Demographic extends Model {}
 
@@ -62,7 +59,6 @@ const createDemographic = async function (contact_id, email, phone, address) {
       created_at: timestamp,
       updated_at: timestamp,
     })
-    console.log(demographic instanceof Demographic) // true
 
     console.log('Demographic data saved successfully.')
     return demographic
@@ -91,7 +87,7 @@ const createOrUpdateDemographic = async function (
 
         const timestamp = Date.now()
 
-        //(JamesKEbert)TODO: Change upsert for a better mechanism, such as locking potentially.
+        // (JamesKEbert) TODO: Change upsert for a better mechanism, such as locking potentially.
         if (!demographic) {
           console.log('Creating Demographic')
           const demographic = await Demographic.upsert({
@@ -122,7 +118,7 @@ const createOrUpdateDemographic = async function (
       },
     )
 
-    console.log('demographic saved successfully.')
+    console.log('Demographic saved successfully.')
     return
   } catch (error) {
     console.error('Error saving demographic to the database: ', error)
@@ -140,7 +136,6 @@ const readDemographics = async function () {
       ],
     })
 
-    console.log('All demographics:', JSON.stringify(demographics, null, 2))
     return demographics
   } catch (error) {
     console.error('Could not find demographics in the database: ', error)
@@ -161,10 +156,6 @@ const readDemographic = async function (contact_id) {
       ],
     })
 
-    console.log(
-      'Requested demographic:',
-      JSON.stringify(demographic[0], null, 2),
-    )
     return demographic[0]
   } catch (error) {
     console.error('Could not find demographic in the database: ', error)

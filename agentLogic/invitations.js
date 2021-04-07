@@ -1,6 +1,5 @@
 const Util = require('../util')
 const AdminAPI = require('../adminAPI')
-const Websockets = require('../websockets.js')
 
 let Connections = require('../orm/connections.js')
 
@@ -42,7 +41,7 @@ const createSingleUseInvitation = async (
       null,
     )
 
-    // (JamesKEbert)TODO: Strategy of invitations, specifically broadcasting to users
+    // (JamesKEbert) TODO: Strategy of invitations, specifically broadcasting to users
     const invitation = await Connections.readConnection(
       invitationMessage.connection_id,
     )
@@ -56,27 +55,12 @@ const createSingleUseInvitation = async (
 }
 
 // Create Single Use Invitation that supports Connection reuse
-// (JamesKEbert)TODO: We've created a function for connection reuse, some stop gaps specific to overall project. Should move to using Public DIDs for this purpose, or build the capability in ACA-Py to generate invitations from a specific local-DID to allow key recognition from a client for connection reuse
+// (JamesKEbert) TODO: We've created a function for connection reuse, some stop gaps specific to overall project. Should move to using Public DIDs for this purpose, or build the capability in ACA-Py to generate invitations from a specific local-DID to allow key recognition from a client for connection reuse
 const createPersistentSingleUseInvitation = async (workflow = 'moderator') => {
   try {
     console.log(
       `Creating/fetching reusable invitation with workflow ${workflow}`,
     )
-
-    /*let connections = await AdminAPI.Connections.queryConnections(
-      'self', 
-      'invitation', 
-      '_CONNECTION_REUSE_INVITATION', 
-      null, 
-      null, 
-      null, 
-      null
-    )
-
-    const reuseInvite = connections.results[0];
-
-    console.log(reuseInvite);
-    */
 
     let reuseInvite = await Connections.readInvitationByAlias(
       '_CONNECTION_REUSE_INVITATION',

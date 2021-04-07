@@ -1,8 +1,8 @@
 const sendAdminMessage = require('./transport')
 
-//Generate operations and requests to be sent to the Cloud Agent Adminstration API
+// Generate operations and requests to be sent to the Cloud Agent Adminstration API
 
-//Fetch the Ledger TAA
+// Fetch the Ledger TAA
 const fetchTAA = async () => {
   try {
     console.log('Fetching Ledger TAA')

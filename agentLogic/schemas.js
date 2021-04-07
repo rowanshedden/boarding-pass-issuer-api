@@ -1,8 +1,8 @@
 const AdminAPI = require('../adminAPI')
 
-//Perform Agent Business Logic
+// Perform Agent Business Logic
 
-//Fetch a schema by schemaID
+// Fetch a schema by schemaID
 const fetchSchema = async (schemaID) => {
   try {
     const schema = await AdminAPI.Schemas.fetchSchema(schemaID)

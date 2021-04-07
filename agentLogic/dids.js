@@ -1,8 +1,8 @@
 const AdminAPI = require('../adminAPI')
 
-//Perform Agent Business Logic
+// Perform Agent Business Logic
 
-//Set the public DID
+// Set the public DID
 const setPublicDID = async (did) => {
   try {
     const response = await AdminAPI.DIDs.setPublicDID(did)
@@ -15,7 +15,7 @@ const setPublicDID = async (did) => {
   }
 }
 
-//Fetch current public DID. (JamesKEbert)Note:Discuss possibilities around db caching of this public did
+// Fetch current public DID. (JamesKEbert)Note:Discuss possibilities around db caching of this public did
 const fetchPublicDID = async () => {
   try {
     const publicDID = await AdminAPI.DIDs.fetchPublicDID()
@@ -28,7 +28,7 @@ const fetchPublicDID = async () => {
   }
 }
 
-//Generate a new DID
+// Generate a new DID
 const createDID = async () => {
   try {
     const did = await AdminAPI.DIDs.createDID()

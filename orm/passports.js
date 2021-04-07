@@ -78,26 +78,6 @@ Passport.belongsTo(Contact, {
   },
 })
 
-// const createBlob = function (photo) {
-//   try {
-//     contentType = 'image/jpeg'
-//     const BASE64_MARKER = ';base64,'
-//     base64Index = photo.indexOf(BASE64_MARKER) + BASE64_MARKER.length
-//     base64 = photo.substring(base64Index)
-//     let buf = Buffer.from(base64, 'base64')
-//     return buf
-//   } catch (error) {
-//     console.error('Error creating blob: ', error)
-//   }
-// }
-
-// const blobToBase64 = function (blob) {
-//   const photo = blob.toString('base64')
-//   const new_photo = 'data:image/jpeg;base64,' + photo
-//   console.log(photo)
-//   return new_photo
-// }
-
 const createPassport = async function (
   contact_id,
   passport_number,
@@ -112,7 +92,7 @@ const createPassport = async function (
   type,
   code,
   authority,
-  blob,
+  photo,
 ) {
   try {
     const timestamp = Date.now()
@@ -131,11 +111,10 @@ const createPassport = async function (
       type: type,
       code: code,
       authority: authority,
-      photo: blob,
+      photo: photo,
       created_at: timestamp,
       updated_at: timestamp,
     })
-    console.log(passport instanceof Passport)
     console.log('Passport data saved successfully.')
     return passport
   } catch (error) {
@@ -156,7 +135,7 @@ const createOrUpdatePassport = async function (
   type,
   code,
   authority,
-  blob,
+  photo,
 ) {
   try {
     await sequelize.transaction(
@@ -187,7 +166,7 @@ const createOrUpdatePassport = async function (
             type: type,
             code: code,
             authority: authority,
-            photo: blob,
+            photo: photo,
             created_at: timestamp,
             updated_at: timestamp,
           })
@@ -208,7 +187,7 @@ const createOrUpdatePassport = async function (
               type: type,
               code: code,
               authority: authority,
-              photo: blob,
+              photo: photo,
               created_at: timestamp,
               updated_at: timestamp,
             },
@@ -221,7 +200,7 @@ const createOrUpdatePassport = async function (
         }
       },
     )
-    console.log('passport saved successfully')
+    console.log('Passport saved successfully')
     return
   } catch (error) {
     console.error('Error saving passport to database: ', error)
@@ -238,7 +217,6 @@ const readPassports = async function () {
         },
       ],
     })
-    console.log('All passorts: ', JSON.stringify(passports, null, 2))
     return passports
   } catch (error) {
     console.error('Could not find passports in the database: ', error)
@@ -258,8 +236,6 @@ const readPassport = async function (contact_id) {
         },
       ],
     })
-    passport[0].photo = blobToBase64(passport[0].photo.data)
-    console.log('Requested passport: ', JSON.stringify(passport[0], null, 2))
     return passport[0]
   } catch (error) {
     console.error('Could not find passport in database: ', error)
@@ -280,7 +256,7 @@ const updatePassport = async function (
   type,
   code,
   authority,
-  blob,
+  photo,
 ) {
   try {
     const timestamp = Date.now()
@@ -300,7 +276,7 @@ const updatePassport = async function (
         type: type,
         code: code,
         authority: authority,
-        photo: blob,
+        photo: photo,
         created_at: timestamp,
         updated_at: timestamp,
       },
@@ -331,8 +307,6 @@ const deletePassport = async function (contact_id) {
 
 module.exports = {
   Passport,
-  // createBlob,
-  // blobToBase64,
   createPassport,
   createOrUpdatePassport,
   readPassports,

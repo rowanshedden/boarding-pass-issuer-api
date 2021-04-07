@@ -27,93 +27,101 @@ Setting.init(
   },
 )
 
-exports.createSetting = async function (key, value) {
+// Theme
+readTheme = async function () {
   try {
-    const setting = await Setting.create({
-      key: key,
-      value: value,
-    })
-    // console.log(setting instanceof Setting) // true
-
-    console.log('Setting saved successfully.')
-    return setting
-  } catch (error) {
-    console.error('Error saving setting to the database: ', error)
-  }
-}
-
-exports.readSettings = async function () {
-  try {
-    const settings = await Setting.findAll()
-    // console.log(settings.every(setting => setting instanceof Setting)) // true
-
-    console.log('All settings:', JSON.stringify(settings, null, 2))
-    return settings
-  } catch (error) {
-    console.error('Could not find setting in the database: ', error)
-  }
-}
-
-exports.readSetting = async function (key) {
-  try {
-    const setting = await Setting.findAll({
+    const settings = await Setting.findAll({
       where: {
-        key: key,
+        key: 'theme',
       },
     })
-    // console.log(setting[0] instanceof Setting) // true
-
-    // console.log('Requested setting:', JSON.stringify(setting, null, 2))
-    return setting[0]
+    return settings[0]
   } catch (error) {
-    console.error('Could not find setting in the database: ', error)
+    console.error('Could not find theme in the database: ', error)
   }
 }
 
-exports.updateSettingKey = async function (key, new_key) {
+updateTheme = async function (value) {
   try {
     await Setting.update(
-      {key: new_key},
+      {value},
       {
         where: {
-          key: key,
+          key: 'theme',
         },
       },
     )
-
-    console.log('Setting key updated successfully.')
+    console.log('Theme updated successfully.')
   } catch (error) {
-    console.error('Error updating the setting key: ', error)
+    console.error('Error updating the theme: ', error)
   }
 }
 
-exports.updateSetting = async function (key, value) {
+// SMTP
+readSMTP = async function () {
+  try {
+    const smtp = await Setting.findAll({
+      where: {
+        key: 'smtp',
+      },
+    })
+    return smtp[0]
+  } catch (error) {
+    console.error('Could not find organization name in the database: ', error)
+  }
+}
+
+updateSMTP = async function (value) {
   try {
     await Setting.update(
-      {key: key, value: value},
+      {value},
       {
         where: {
-          key: key,
+          key: 'smtp',
         },
       },
     )
-
-    console.log('Setting updated successfully.')
+    console.log('SMTP updated successfully.')
   } catch (error) {
-    console.error('Error updating the setting: ', error)
+    console.error('Error updating the SMTP: ', error)
   }
 }
 
-exports.deleteSetting = async function (key) {
+// Organization
+readOrganization = async function () {
   try {
-    await Setting.destroy({
+    const organization = await Setting.findAll({
       where: {
-        key: key,
+        key: 'organization',
       },
     })
-
-    console.log('Successfully deleted setting')
+    return organization[0]
   } catch (error) {
-    console.error('Error while deleting setting: ', error)
+    console.error('Could not find organization name in the database: ', error)
   }
+}
+
+updateOrganization = async function (value) {
+  try {
+    await Setting.update(
+      {value},
+      {
+        where: {
+          key: 'organization',
+        },
+      },
+    )
+    console.log('Organization name updated successfully.')
+  } catch (error) {
+    console.error('Error updating the organization name: ', error)
+  }
+}
+
+module.exports = {
+  readTheme,
+  updateTheme,
+  readSMTP,
+  updateSMTP,
+  readOrganization,
+  updateOrganization,
 }

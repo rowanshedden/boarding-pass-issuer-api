@@ -1,11 +1,7 @@
-const {Sequelize, DataTypes, Model} = require('sequelize')
-
 const {Contact} = require('./contacts.js')
 const {Connection} = require('./connections.js')
 const {Demographic} = require('./demographics.js')
 const {Passport} = require('./passports.js')
-const fs = require('fs')
-const {decodeBase64} = require('../util.js')
 
 const readContacts = async function (additionalTables = []) {
   try {
@@ -33,7 +29,6 @@ const readContacts = async function (additionalTables = []) {
         ...models,
       ],
     })
-    console.log('All contacts:', JSON.stringify(contacts, null, 2))
     return contacts
   } catch (error) {
     console.error('Could not find contacts in the database: ', error)
@@ -70,7 +65,6 @@ const readContact = async function (contact_id, additionalTables = []) {
       ],
     })
 
-    console.log('Requested contact:', JSON.stringify(contact[0], null, 2))
     return contact[0]
   } catch (error) {
     console.error('Could not find contact in the database: ', error)
@@ -110,7 +104,6 @@ const readContactByConnection = async function (
       ],
     })
 
-    console.log('Requested contact:', JSON.stringify(contact[0], null, 2))
     return contact[0]
   } catch (error) {
     console.error('Could not find contact in the database: ', error)

@@ -1,6 +1,6 @@
 const sendAdminMessage = require('./transport')
 
-//Fetch existing Credential Definitions IDs request message to be sent to the Cloud Agent Adminstration API
+// Fetch existing Credential Definitions IDs request message to be sent to the Cloud Agent Adminstration API
 const createdCredDefIDs = async (
   cred_def_id,
   issuer_did,
@@ -33,7 +33,7 @@ const createdCredDefIDs = async (
   }
 }
 
-//Fetch a Credential Definition via the Admin API
+// Fetch a Credential Definition via the Admin API
 const fetchCredDef = async (cred_def_id) => {
   try {
     console.log('Fetching Credential Definition')
@@ -52,7 +52,7 @@ const fetchCredDef = async (cred_def_id) => {
   }
 }
 
-//Create a Credential Definition based off a schema via the Admin API
+// Create a Credential Definition based off a schema via the Admin API
 const createCredDef = async (
   tag,
   schema_id,

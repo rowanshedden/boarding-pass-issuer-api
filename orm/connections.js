@@ -143,7 +143,6 @@ const createConnection = async function (
       created_at: timestamp,
       updated_at: timestamp,
     })
-    //console.log(connection instanceof Connection) // true
 
     console.log('Connection saved successfully.')
     return connection
@@ -185,7 +184,7 @@ const createOrUpdateConnection = async function (
 
         const timestamp = Date.now()
 
-        // (JamesKEbert)TODO: Change upsert for a better mechanism, such as locking potentially.
+        // (JamesKEbert) TODO: Change upsert for a better mechanism, such as locking potentially.
         if (!connection) {
           console.log('Creating Connection')
           connection = await Connection.upsert({
@@ -255,7 +254,6 @@ const linkContactAndConnection = async function (contact_id, connection_id) {
   try {
     const contact = await readBaseContact(contact_id)
     const connection = await readConnection(connection_id)
-    console.log(contact, connection)
     await contact.addConnection(connection, {})
 
     console.log('Successfully linked contact and connection')
@@ -278,7 +276,6 @@ const readConnection = async function (connection_id) {
       ],
     })
 
-    console.log('Requested connection:', JSON.stringify(connection[0], null, 2))
     return connection[0]
   } catch (error) {
     console.error('Could not find connection in the database: ', error)
@@ -296,7 +293,6 @@ const readConnections = async function () {
       ],
     })
 
-    console.log('All connections:', JSON.stringify(connections, null, 2))
     return connections
   } catch (error) {
     console.error('Could not find connections in the database: ', error)

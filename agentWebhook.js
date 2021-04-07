@@ -5,6 +5,8 @@ const router = express.Router()
 
 const Contacts = require('./agentLogic/contacts.js')
 const Credentials = require('./agentLogic/credentials.js')
+const Demographics = require('./agentLogic/demographics.js')
+const Passports = require('./agentLogic/passports.js')
 const BasicMessages = require('./agentLogic/basicMessages.js')
 const Presentations = require('./agentLogic/presentations.js')
 
@@ -53,6 +55,56 @@ router.post('/topic/basicmessages', async (req, res, next) => {
   res.status(200).send('Ok')
 
   BasicMessages.adminMessage(basicMessage)
+})
+
+router.post('/topic/data-transfer', async (req, res, next) => {
+  console.log('Aries Cloud Agent Webhook Message----Data Transfer------')
+
+  console.warn('No Goal Code Found')
+
+  res.status(200).send('Ok')
+})
+
+router.post('/topic/data-transfer/:goalCode', async (req, res, next) => {
+  console.log(
+    'Aries Cloud Agent Webhook Message----Data Transfer goalCode------',
+  )
+
+  console.log('Message Details:', req.params.goalCode)
+  if (req.params.goalCode === 'transfer.demographicdata') {
+    let data = req.body.data[0].data.json
+
+    Demographics.updateOrCreateDemographic(
+      data.contact_id,
+      data.email,
+      data.phone,
+      data.address,
+    )
+    console.log(req.body.data[0].data.json)
+  } else if (req.params.goalCode === 'transfer.passportdata') {
+    let data = req.body.data[0].data.json
+
+    Passports.updateOrCreatePassport(
+      data.contact_id,
+      data.passport_number,
+      data.surname,
+      data.given_names,
+      data.sex,
+      data.date_of_birth,
+      data.place_of_birth,
+      data.nationality,
+      data.date_of_issue,
+      data.date_of_expiration,
+      data.type,
+      data.code,
+      data.authority,
+      data.photo,
+    )
+    console.log(req.body.data[0].data.json)
+  } else {
+  }
+
+  res.status(200).send('Ok')
 })
 
 module.exports = router

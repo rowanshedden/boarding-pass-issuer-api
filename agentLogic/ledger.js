@@ -1,8 +1,8 @@
 const AdminAPI = require('../adminAPI')
 
-//Perform Agent Business Logic
+// Perform Agent Business Logic
 
-//Fetch the Transaction Author Agreement (TAA) from the ledger
+// Fetch the Transaction Author Agreement (TAA) from the ledger
 const fetchTAA = async () => {
   try {
     const TAA = await AdminAPI.Ledger.fetchTAA()
@@ -14,7 +14,7 @@ const fetchTAA = async () => {
   }
 }
 
-//Accept the Transaction Author Agreement (TAA) from the ledger
+// Accept the Transaction Author Agreement (TAA) from the ledger
 const acceptTAA = async (version, text, mechanism = 'wallet_agreement') => {
   try {
     const response = await AdminAPI.Ledger.acceptTAA(version, text, mechanism)

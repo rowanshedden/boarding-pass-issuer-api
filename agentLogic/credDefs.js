@@ -1,8 +1,8 @@
 const AdminAPI = require('../adminAPI')
 
-//Perform Agent Business Logic
+// Perform Agent Business Logic
 
-//Retrieve Credential Definition IDs
+// Retrieve Credential Definition IDs
 const createdCredDefIDs = async (
   credDefID,
   issuerDID,
@@ -30,13 +30,11 @@ const createdCredDefIDs = async (
   }
 }
 
-//Fetch Credential Definition by Credential Definition ID (JamesKEbert)TODO: how to differentiate between personally generated versus fetched cred defs in DB
+// Fetch Credential Definition by Credential Definition ID (JamesKEbert)TODO: how to differentiate between personally generated versus fetched cred defs in DB
 const fetchCredDef = async (credDefID) => {
   try {
-    //(JamesKEbert)TODO: Query in DB before attempting to fetch via admin api
+    // (JamesKEbert) TODO: Query in DB before attempting to fetch via admin api
     const credDef = await AdminAPI.CredDefs.fetchCredDef(credDefID)
-
-    //console.log(credDef);
 
     return credDef
   } catch (error) {
@@ -45,7 +43,7 @@ const fetchCredDef = async (credDefID) => {
   }
 }
 
-//Create a new credential from a given schema.
+// Create a new credential from a given schema.
 const createCredDef = async (tag = 'default', schema_id) => {
   try {
     const credDefID = await AdminAPI.CredDefs.createCredDef(

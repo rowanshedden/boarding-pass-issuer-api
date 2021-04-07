@@ -11,7 +11,7 @@ Contact.init(
     contact_id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
-      //allowNull: false,
+      // allowNull: false,
     },
     label: {
       type: DataTypes.TEXT,
@@ -34,7 +34,7 @@ Contact.init(
   },
 )
 
-const {Connection} = require('./connections.js')
+// const {Connection} = require('./connections.js')
 
 const createContact = async function (
   // contact_id, // Auto-issued
@@ -50,7 +50,6 @@ const createContact = async function (
       created_at: timestamp,
       updated_at: timestamp,
     })
-    // console.log(contact instanceof Contact) // true
 
     console.log('Contact saved successfully.')
     return contact
@@ -67,7 +66,6 @@ const readBaseContact = async function (contact_id) {
       },
     })
 
-    console.log('Requested contact:', JSON.stringify(contact[0], null, 2))
     return contact[0]
   } catch (error) {
     console.error('Could not find contact in the database: ', error)
@@ -78,7 +76,6 @@ const readBaseContacts = async function () {
   try {
     const contacts = await Contact.findAll()
 
-    // console.log('All contacts:', JSON.stringify(contacts, null, 2))
     return contacts
   } catch (error) {
     console.error('Could not find contacts in the database: ', error)
