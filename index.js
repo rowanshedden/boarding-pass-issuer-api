@@ -110,7 +110,6 @@ app.post('/api/user/log-in', (req, res, next) => {
           username: req.user.username,
           roles: userRoles,
         })
-        console.log(req.user)
       })
     }
   })(req, res, next)
@@ -136,7 +135,6 @@ app.post('/api/user/log-out', (req, res) => {
 app.post('/api/user/token/validate', async (req, res) => {
   try {
     const verify = jwt.verify(req.body.token, process.env.JWT_SECRET)
-    console.log(verify)
     res.status(200).json({status: 'The link is valid.'})
   } catch (err) {
     console.error(err)
@@ -188,7 +186,6 @@ app.post('/api/user/update', async (req, res) => {
     // Check for the valid token
     try {
       const verify = jwt.verify(req.body.token, process.env.JWT_SECRET)
-      console.log('The token is valid.')
     } catch (error) {
       res.json({error: 'The link has expired.'})
       throw error
@@ -259,7 +256,6 @@ app.get('/api/logo', async (req, res) => {
   try {
     const logo = await Images.getImagesByType('logo')
     if (!logo) res.json({error: 'The logo was not found.'})
-    console.log(logo)
     res.send(logo)
   } catch (err) {
     console.error(err)

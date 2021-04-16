@@ -9,21 +9,21 @@ This software project includes the following third-party or open-source tools, c
 See also: https://mit-license.org/
 
 * [Axios](https://github.com/axios/axios)
+* [bcryptjs](https://github.com/kelektiv/node.bcrypt.js)
 * [body-parser](https://github.com/expressjs/body-parser)
 * [db-migrate](https://github.com/db-migrate/node-db-migrate)
 * [db-migrate-pg](https://github.com/db-migrate/pg)
+* [express-session](https://github.com/expressjs/session)
+* [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken)
+* [nodemailer](https://github.com/nodemailer/nodemailer)
 * [nodemon](https://github.com/remy/nodemon/)
+* [passport](https://github.com/jaredhanson/passport)
+* [passport-local](https://github.com/jaredhanson/passport-local)
 * [Prettier](https://github.com/prettier/prettier)
 * [Sequelize](https://sequelize.org/master/)
 * [UUID](https://github.com/uuidjs/uuid)
 * [wait-for-it](https://github.com/vishnubob/wait-for-it)
 * [ws](https://github.com/websockets/ws)
-* [bcryptjs](https://github.com/kelektiv/node.bcrypt.js)
-* [express-session](https://github.com/expressjs/session)
-* [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken)
-* [nodemailer](https://github.com/nodemailer/nodemailer)
-* [passport](https://github.com/jaredhanson/passport)
-* [passport-local](https://github.com/jaredhanson/passport-local)
 
 ### BSD 2-Clause "Simplified" License
 

@@ -38,6 +38,22 @@ const getContact = async (contactID, additionalTables) => {
   }
 }
 
+const getContactByConnection = async (connectionID, additionalTables) => {
+  try {
+    const contact = await ContactsCompiled.readContactByConnection(
+      connectionID,
+      additionalTables,
+    )
+
+    console.log('Contact:', contact)
+
+    return contact
+  } catch (error) {
+    console.error('Error Fetching Contact')
+    throw error
+  }
+}
+
 const getAll = async (additionalTables) => {
   try {
     const contacts = await ContactsCompiled.readContacts(additionalTables)
@@ -156,4 +172,5 @@ module.exports = {
   fetchConnection,
   getContact,
   getAll,
+  getContactByConnection,
 }
