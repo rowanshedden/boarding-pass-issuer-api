@@ -178,7 +178,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
             }
             break
 
-          case 'PASSWORD-UPDATE':
+          case 'PASSWORD_UPDATE':
             if (check(rules, userCookieParsed, 'users:updatePassword')) {
               const updatedUserPassword = await Users.updatePassword(
                 data.id,

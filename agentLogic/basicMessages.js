@@ -1,24 +1,36 @@
 const Websockets = require('../websockets.js')
 
+const AdminAPI = require('../adminAPI')
+
 const Presentations = require('./presentations.js')
+
+const sendBasicMessage = async (connectionId, body) => {
+  try {
+    const response = await AdminAPI.Connections.sendBasicMessage(
+      connectionId,
+      body,
+    )
+    return response
+  } catch (error) {
+    console.error('Error sending basic message:' + error)
+    throw error
+  }
+}
 
 const adminMessage = async (message) => {
   console.log('New Basic Message')
 
   // Connection Reuse Method
   switch (message.content) {
-    // case 'trusted_traveler':
-    //   console.log('Connection Request Immunization Workflow')
+    case 'patient_registration':
+      console.log('Connection Request patient_registration')
 
-    //   await Websockets.sendMessageToAll('INVITATIONS', 'SINGLE_USE_USED', {
-    //     workflow: message.content,
-    //     connection_id: message.connection_id,
-    //   })
+      await Websockets.sendMessageToAll('INVITATIONS', 'SINGLE_USE_USED', {
+        workflow: message.content,
+        connection_id: message.connection_id,
+      })
 
-    //   // Send Presentation Request
-    //   await Presentations.requestPresentation(message.connection_id)
-
-    //   break
+      break
     default:
       console.warn('Regular Basic Message:', message.content)
       return
@@ -27,4 +39,5 @@ const adminMessage = async (message) => {
 
 module.exports = {
   adminMessage,
+  sendBasicMessage,
 }
