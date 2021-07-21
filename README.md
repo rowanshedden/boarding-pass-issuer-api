@@ -1,5 +1,6 @@
-# Sita Health Issuer Controller
-SITA Aries Enterprise Controller - An Aries Cloud Agent - Python (ACA-Py) Controller and server for SITA to issue self-sovereign identity (SSI) health credentials via ACA-Py (https://github.com/hyperledger/aries-cloudagent-python). 
+# SITA Government Controller API
+
+The SITA Government Controller API is an Aries Cloud Agent - Python (ACA-Py) controller and server for SITA to issue self-sovereign identity (SSI) health credentials via ACA-Py (https://github.com/hyperledger/aries-cloudagent-python). 
 
 For an introduction to self-sovereign identity (SSI), please see [Phil Windley's article](https://www.windley.com/archives/2018/09/multi-source_and_self-sovereign_identity.shtml) on the topic.
 
