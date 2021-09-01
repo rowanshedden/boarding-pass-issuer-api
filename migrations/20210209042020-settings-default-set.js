@@ -64,7 +64,7 @@ exports.up = function (db) {
         [
           'organization',
           JSON.stringify({
-            companyName: 'Aruba Department of Public Health',
+            organizationName: 'Aruba Department of Public Health',
           }),
         ],
       )

@@ -142,7 +142,7 @@ const adminMessage = async (message) => {
         },
         {
           name: 'credential_issuer_name',
-          value: issuerName.dataValues.value.companyName,
+          value: issuerName.dataValues.value.organizationName,
         },
         {
           name: 'credential_issue_date',
