@@ -134,7 +134,9 @@ const adminMessage = async (message) => {
         },
         {
           name: 'trusted_traveler_expiration_date_time',
-          value: Math.round(DateTime.local().plus({days: 30}).ts / 1000).toString(),
+          value: Math.round(
+            DateTime.local().plus({days: 30}).ts / 1000,
+          ).toString(),
         },
         {
           name: 'governance_applied',
