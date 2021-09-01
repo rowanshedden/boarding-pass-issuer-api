@@ -98,23 +98,23 @@ const adminMessage = async (message) => {
       let attributes = [
         {
           name: 'traveler_surnames',
-          value: values.patient_surnames.raw,
+          value: values.patient_surnames.raw || '',
         },
         {
           name: 'traveler_given_names',
-          value: values.patient_given_names.raw,
+          value: values.patient_given_names.raw || '',
         },
         {
           name: 'traveler_date_of_birth',
-          value: values.patient_date_of_birth.raw,
+          value: values.patient_date_of_birth.raw || '',
         },
         {
           name: 'traveler_gender_legal',
-          value: values.patient_gender_legal.raw,
+          value: values.patient_gender_legal.raw || '',
         },
         {
           name: 'traveler_country',
-          value: values.patient_country.raw,
+          value: values.patient_country.raw || '',
         },
         {
           name: 'traveler_origin_country',
@@ -122,7 +122,7 @@ const adminMessage = async (message) => {
         },
         {
           name: 'traveler_email',
-          value: values.patient_email.raw,
+          value: values.patient_email.raw || '',
         },
         {
           name: 'trusted_traveler_id',
@@ -134,7 +134,7 @@ const adminMessage = async (message) => {
         },
         {
           name: 'trusted_traveler_expiration_date_time',
-          value: DateTime.local().plus({days: 30}).ts.toString(),
+          value: Math.round(DateTime.local().plus({days: 30}).ts / 1000).toString(),
         },
         {
           name: 'governance_applied',
@@ -142,7 +142,7 @@ const adminMessage = async (message) => {
         },
         {
           name: 'credential_issuer_name',
-          value: issuerName.dataValues.value.organizationName,
+          value: issuerName.dataValues.value.organizationName || '',
         },
         {
           name: 'credential_issue_date',
@@ -151,13 +151,15 @@ const adminMessage = async (message) => {
       ]
 
       if (values.lab_result && values.lab_specimen_collected_date) {
+        console.log(values.lab_specimen_collected_date.raw * 1000)
+        console.log(DateTime.local().plus({days: -3}).ts)
         if (
           ((values.lab_result.raw === 'Negative' ||
             values.lab_result.raw === 'Weakly positive') &&
-            values.lab_specimen_collected_date.raw >
+            values.lab_specimen_collected_date.raw * 1000 >
               DateTime.local().plus({days: -3}).ts) ||
           (values.lab_result.raw === 'Positive' &&
-            values.lab_specimen_collected_date.raw <
+            values.lab_specimen_collected_date.raw * 1000 <
               DateTime.local().plus({days: -28}).ts)
         ) {
           verifiedAttributes = attributes
@@ -168,13 +170,13 @@ const adminMessage = async (message) => {
       ) {
         if (
           values.vaccine_series_complete.raw === 'true' &&
-          values.vaccine_administration_date.raw <
+          values.vaccine_administration_date.raw * 1000 <
             DateTime.local().plus({days: -14}).ts
         ) {
           verifiedAttributes = attributes
         }
       } else if (values.exemption_expiration_date) {
-        if (values.exemption_expiration_date > DateTime.local().ts) {
+        if (values.exemption_expiration_date.raw * 1000 > DateTime.local().ts) {
           verifiedAttributes = attributes
         }
       } else {
