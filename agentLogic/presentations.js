@@ -4,9 +4,35 @@ const {v4: uuid} = require('uuid')
 const ControllerError = require('../errors.js')
 
 const AdminAPI = require('../adminAPI')
-const Credentials = require('./credentials.js')
-const {getOrganization} = require('./settings.js')
 const Websockets = require('../websockets.js')
+const Contacts = require('./contacts.js')
+const Credentials = require('./credentials.js')
+const Passports = require('./passports.js')
+const Demographics = require('./demographics.js')
+const {getOrganization} = require('./settings.js')
+
+
+
+
+// (eldersonar) Request identity proof
+const requestIdentityPresentation = async (connectionID) => {
+  console.log(`Requesting Presentation from Connection: ${connectionID}`)
+
+  const result = AdminAPI.Presentations.requestProof(
+      connectionID,
+      // (eldersonar) Add remaining fields when the holder is fixed.
+      [
+        "email",
+         "phone",
+         "address",
+         "surname",
+         "given_names",
+         "sex",
+         "date_of_birth"
+      ]
+  )
+  return result
+}
 
 const requestPresentation = async (connectionID, type) => {
   console.log(`Requesting Presentation from Connection: ${connectionID}`)
@@ -68,18 +94,20 @@ const requestPresentation = async (connectionID, type) => {
         'Requesting Presentation',
         false,
       )
-
       break
     default:
       break
   }
+
+  return result
 }
+
 const adminMessage = async (message) => {
   console.log('Received Presentations Message', message)
 
   if (message.state === 'verified') {
+	  if ( message.verified === 'true') {
     let values = ''
-
     // (mikekebert) Check the data format to see if the presentation requires the referrant pattern
     if (message.presentation.requested_proof.revealed_attr_groups) {
       values =
@@ -215,6 +243,40 @@ const adminMessage = async (message) => {
         content: 'INVALID_PROOF',
       })
     }
+	  }
+	  else {
+
+	// (eldersonar) Get contact id
+	let contact = await Contacts.getContactByConnection(message.connection_id, [])
+	  console.log("----this is the contact_id ----")
+	  console.log("contact id is: " + contact.contact_id)
+	  
+	// (edersonar) Create demographics
+	  await Demographics.updateOrCreateDemographic(
+     	    contact.contact_id,
+            message.presentation.requested_proof.self_attested_attrs.email,
+            message.presentation.requested_proof.self_attested_attrs.phone,
+      	    JSON.parse(message.presentation.requested_proof.self_attested_attrs.address),
+    	  )
+
+	// (eldersonar) Create passport
+	  await Passports.updateOrCreatePassport(
+      	    contact.contact_id,
+      	    message.presentation.requested_proof.self_attested_attrs.passport_number,
+      	    message.presentation.requested_proof.self_attested_attrs.surname,
+      	    message.presentation.requested_proof.self_attested_attrs.given_names,
+      	    message.presentation.requested_proof.self_attested_attrs.sex,
+      	    message.presentation.requested_proof.self_attested_attrs.date_of_birth,
+      	    message.presentation.requested_proof.self_attested_attrs.place_of_birth,
+      	    message.presentation.requested_proof.self_attested_attrs.nationality,
+      	    message.presentation.requested_proof.self_attested_attrs.date_of_issue,
+      	    message.presentation.requested_proof.self_attested_attrs.date_of_expiration,
+      	    message.presentation.requested_proof.self_attested_attrs.type,
+      	    message.presentation.requested_proof.self_attested_attrs.code,
+      	    message.presentation.requested_proof.self_attested_attrs.authority,
+      	    message.presentation.requested_proof.self_attested_attrs.photo,
+    	  )
+	  }
   } else if (message.state === null) {
     // (mikekebert) Send a basic message saying the verification failed for technical reasons
     console.log('Validation failed for technical reasons')
@@ -228,4 +290,5 @@ const adminMessage = async (message) => {
 module.exports = {
   adminMessage,
   requestPresentation,
+  requestIdentityPresentation,
 }
