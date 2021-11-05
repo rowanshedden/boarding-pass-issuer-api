@@ -1,11 +1,7 @@
 const AdminAPI = require('../adminAPI')
 const Websockets = require('../websockets.js')
-
 let Connections = require('../orm/connections.js')
-let Contacts = require('../orm/contacts.js')
 let ContactsCompiled = require('../orm/contactsCompiled.js')
-let Demographics = require('../orm/demographics.js')
-let Passports = require('../orm/passports.js')
 
 // Perform Agent Business Logic
 
@@ -103,11 +99,6 @@ const adminMessage = async (connectionMessage) => {
       console.log('State - Request')
       console.log('Creating Contact')
 
-      contact = await Contacts.createContact(
-        connectionMessage.their_label, // label
-        {}, // meta_data
-      )
-
       await Connections.updateConnection(
         connectionMessage.connection_id,
         connectionMessage.state,
@@ -157,7 +148,7 @@ const adminMessage = async (connectionMessage) => {
 
     contact = await ContactsCompiled.readContactByConnection(
       connectionMessage.connection_id,
-      ['Demographic', 'Passport'],
+      ['Traveler', 'Passport'],
     )
 
     Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: [contact]})

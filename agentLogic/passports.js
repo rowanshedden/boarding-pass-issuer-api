@@ -6,43 +6,47 @@ let Passports = require('../orm/passports.js')
 const updateOrCreatePassport = async function (
   contact_id,
   passport_number,
-  surname,
-  given_names,
-  sex,
-  date_of_birth,
-  place_of_birth,
-  nationality,
-  date_of_issue,
-  date_of_expiration,
-  type,
-  code,
-  authority,
-  photo,
+  passport_surnames,
+  passport_given_names,
+  passport_gender_legal,
+  passport_date_of_birth,
+  passport_place_of_birth,
+  passport_nationality,
+  passport_date_of_issue,
+  passport_date_of_expiration,
+  passport_type,
+  passport_code,
+  passport_authority,
 ) {
+  const dateOfIssue = new Date(passport_date_of_issue).getTime()
+  const datOfExpiration = new Date(passport_date_of_expiration).getTime()
+  const date_of_birth = new Date(passport_date_of_birth).getTime()
+
   try {
-    await Passports.createOrUpdatePassport(
+    const passport = await Passports.createOrUpdatePassport(
       contact_id,
       passport_number,
-      surname,
-      given_names,
-      sex,
+      passport_surnames,
+      passport_given_names,
+      passport_gender_legal,
       date_of_birth,
-      place_of_birth,
-      nationality,
-      date_of_issue,
-      date_of_expiration,
-      type,
-      code,
-      authority,
-      photo,
+      passport_place_of_birth,
+      passport_nationality,
+      dateOfIssue,
+      datOfExpiration,
+      passport_type,
+      passport_code,
+      passport_authority,
     )
 
     const contact = await ContactsCompiled.readContact(contact_id, [
-      'Demographic',
+      'Traveler',
       'Passport',
     ])
 
     Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: [contact]})
+
+    return passport
   } catch (error) {
     console.error('Error Fetching Contacts')
     throw error

@@ -1,15 +1,15 @@
 const {Contact} = require('./contacts.js')
 const {Connection} = require('./connections.js')
-const {Demographic} = require('./demographics.js')
+const {Traveler} = require('./travelers.js')
 const {Passport} = require('./passports.js')
 
 const readContacts = async function (additionalTables = []) {
   try {
     let models = []
 
-    if (additionalTables.includes('Demographic')) {
+    if (additionalTables.includes('Traveler')) {
       models.push({
-        model: Demographic,
+        model: Traveler,
         required: false,
       })
     }
@@ -29,6 +29,9 @@ const readContacts = async function (additionalTables = []) {
         ...models,
       ],
     })
+
+    console.log(contacts)
+
     return contacts
   } catch (error) {
     console.error('Could not find contacts in the database: ', error)
@@ -39,9 +42,9 @@ const readContact = async function (contact_id, additionalTables = []) {
   try {
     let models = []
 
-    if (additionalTables.includes('Demographic')) {
+    if (additionalTables.includes('Traveler')) {
       models.push({
-        model: Demographic,
+        model: Traveler,
         required: false,
       })
     }
@@ -78,9 +81,9 @@ const readContactByConnection = async function (
   try {
     let models = []
 
-    if (additionalTables.includes('Demographic')) {
+    if (additionalTables.includes('Traveler')) {
       models.push({
-        model: Demographic,
+        model: Traveler,
         required: false,
       })
     }

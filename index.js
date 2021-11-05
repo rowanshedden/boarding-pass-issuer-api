@@ -1,4 +1,5 @@
 require('dotenv').config()
+const axios = require('axios')
 const bodyParser = require('body-parser')
 const express = require('express')
 const http = require('http')
@@ -7,6 +8,8 @@ const passport = require('passport')
 const session = require('express-session')
 const Util = require('./util')
 
+const Contacts = require('./orm/contacts')
+const ContactsCompiled = require('./orm/contactsCompiled')
 const Images = require('./agentLogic/images')
 
 // Import environment variables for use via an .env file in a non-containerized context
@@ -21,6 +24,7 @@ module.exports.server = server
 // Websockets required to make APIs work and avoid circular dependency
 let Websocket = require('./websockets.js')
 const Users = require('./agentLogic/users')
+const Passenger = require('./agentLogic/passenger')
 
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
@@ -52,6 +56,201 @@ app.use(
   '/api/governance-framework',
   express.static('governance-framework.json'),
 )
+
+// Invitation request API
+const Invitations = require('./agentLogic/invitations')
+const Connections = require('./orm/connections')
+
+const checkApiKey = function (req, res, next) {
+  if (req.header('x-apikey') != process.env.APIKEY) {
+    res.sendStatus(401)
+  } else {
+    next()
+  }
+}
+
+// Invitation request API
+app.post('/api/invitations', checkApiKey, async (req, res) => {
+  console.log(req.body)
+  const data = req.body
+  try {
+    // (eldersonar) Create invitation
+    const invitation = await Invitations.createSingleUseInvitation()
+
+    if (!invitation) {
+      res.json({error: 'There was a problem creating an invitation'})
+    }
+
+    const fullName = data.passport_surnames + ' ' + data.passport_given_names
+
+    let contact = null
+
+    // (eldersonar) Create contact
+    if (invitation) {
+      contact = await Contacts.createContact(
+        fullName, // label
+        {}, // meta_data
+      )
+    }
+
+    // (eldersonar) Link contact to connection
+    const connections = await Connections.linkContactAndConnection(
+      contact.contact_id,
+      invitation.connection_id,
+    )
+
+    if (!connections) {
+      res.json({error: "Couldn't link contacts to connections"})
+    }
+
+    // (eldersonar) Write traveler and passport to the database
+    const passenger = await Passenger.addTravelerAndPassport(
+      contact.contact_id,
+      data,
+    )
+
+    if (!passenger) {
+      res.json({
+        error:
+          "Couldn't write passenger information to the government database",
+      })
+    }
+
+    // (eldersonar) Assamble response object for SITA Health Hub database
+    const SITAHubTraveler = {
+      xid: invitation.connection_id,
+      travellerDetails: {
+        dateOfBirth: data.passport_date_of_birth,
+        familyName: data.passport_surnames,
+        givenNames: data.passport_given_names,
+        nationality: data.passport_nationality,
+        sex: data.passport_gender_legal,
+        travelDocumentDetails: [
+          {
+            issuingState: data.passport_authority,
+            number: data.passport_number,
+            type: data.passport_type,
+          },
+        ],
+      },
+      travelItinerary: {
+        carrierCode: '',
+        carrierType: 'A',
+        pnrNumber: '',
+        routeDetails: [
+          {
+            arrival: {
+              countryCode: data.arrival_destination_country_code,
+              dateTime: data.arrival_date,
+              portCode: data.arrival_destination_port_code,
+            },
+            departure: {
+              countryCode: data.departure_destination_country_code,
+              dateTime: data.departure_date,
+              portCode: data.departure_destination_port_code,
+            },
+          },
+        ],
+        serviceNumber: '',
+      },
+    }
+
+    // (eldersonar) Posting to the SITA HEALTH HUB database
+    await axios({
+      method: 'POST',
+      url: 'https://health-provider.sitalab.io/api/v1.0/provider/xid',
+      headers: {'x-apikey': process.env.SITA_APIKEY},
+      data: SITAHubTraveler,
+    })
+      .then((response) => {
+        // (eldersonar) Success
+        res.status(200).json({
+          connection_id: invitation.connection_id,
+          invitation_url: invitation.invitation_url,
+        })
+      })
+      .catch(function (error) {
+        // (eldersonar) Wait for 30 seconds and try again
+        setTimeout(async () => {
+          const secondResponse = await axios({
+            method: 'POST',
+            url: 'https://health-provider.sitalab.io/api/v1.0/provider/xid',
+            headers: {'x-apikey': process.env.SITA_APIKEY},
+            data: SITAHubTraveler,
+          })
+            .then((response2) => {
+              // (eldersonar) Success
+              res.status(200).json({
+                connection_id: invitation.connection_id,
+                invitation_url: invitation.invitation_url,
+              })
+            })
+            .catch(function (error) {
+              res.send({error: "Couldn't write to the SITA HUB database"})
+            })
+        }, 30000)
+      })
+  } catch (error) {
+    console.error(error)
+    res.json({error: 'Unexpected error occurred'})
+  }
+})
+
+// Get verification status by connection_id
+app.get('/api/verification/:id', async (req, res) => {
+  try {
+    console.log(req.params.id)
+
+    const contact = await ContactsCompiled.readContactByConnection(
+      req.params.id,
+      ['Traveler'],
+    )
+
+    if (!contact) {
+      res.json({error: "Couldn't find contact by connection id"})
+    }
+
+    let complete = null
+    let result = contact.Traveler.dataValues.verification_status
+    let result_string = null
+    let error = null
+
+    // Set complete status, error and result string
+    if (result === false || result === true) {
+      complete = true
+
+      if (result) {
+        result_string = 'Traveler was approved.'
+      } else {
+        result_string = 'Traveler was not approved.'
+      }
+    } else {
+      complete = false
+
+      if (contact.Connections[0].error_msg)
+        error = contact.Connections[0].error_msg
+    }
+
+    const response = {
+      id: contact.Traveler.dataValues.contact_id,
+      schema_id: process.env.SCHEMA_TRUSTED_TRAVELER,
+      complete,
+      result,
+      result_string,
+      data: {},
+      connection_status: contact.Connections[0].state,
+      connection_id: contact.Connections[0].connection_id,
+      proof_status: contact.Traveler.dataValues.proof_status,
+      rule: '',
+      error,
+    }
+
+    res.status(200).send(response)
+  } catch (err) {
+    console.error(err)
+    res.json({error: "Passenger couldn't be verified"})
+  }
+})
 
 app.use(
   session({

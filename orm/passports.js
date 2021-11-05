@@ -16,42 +16,42 @@ Passport.init(
     passport_number: {
       type: DataTypes.TEXT,
     },
-    surname: {
+    passport_surnames: {
       type: DataTypes.TEXT,
     },
-    given_names: {
+    passport_given_names: {
       type: DataTypes.TEXT,
     },
-    sex: {
+    passport_gender_legal: {
       type: DataTypes.TEXT,
     },
-    date_of_birth: {
+    passport_date_of_birth: {
+      type: DataTypes.DATE,
+    },
+    passport_place_of_birth: {
       type: DataTypes.TEXT,
     },
-    place_of_birth: {
+    passport_nationality: {
       type: DataTypes.TEXT,
     },
-    nationality: {
+    passport_date_of_issue: {
+      type: DataTypes.DATE,
+    },
+    passport_date_of_expiration: {
+      type: DataTypes.DATE,
+    },
+    passport_type: {
       type: DataTypes.TEXT,
     },
-    date_of_issue: {
+    passport_code: {
       type: DataTypes.TEXT,
     },
-    date_of_expiration: {
+    passport_authority: {
       type: DataTypes.TEXT,
     },
-    type: {
-      type: DataTypes.TEXT,
-    },
-    code: {
-      type: DataTypes.TEXT,
-    },
-    authority: {
-      type: DataTypes.TEXT,
-    },
-    photo: {
-      type: DataTypes.BLOB,
-    },
+    // photo: {
+    //   type: DataTypes.BLOB,
+    // },
     created_at: {
       type: DataTypes.DATE,
     },
@@ -81,18 +81,18 @@ Passport.belongsTo(Contact, {
 const createPassport = async function (
   contact_id,
   passport_number,
-  surname,
-  given_names,
-  sex,
-  date_of_birth,
-  place_of_birth,
-  nationality,
-  date_of_issue,
-  date_of_expiration,
-  type,
-  code,
-  authority,
-  photo,
+  passport_surnames,
+  passport_given_names,
+  passport_gender_legal,
+  passport_date_of_birth,
+  passport_place_of_birth,
+  passport_nationality,
+  passport_date_of_issue,
+  passport_date_of_expiration,
+  passport_type,
+  passport_code,
+  passport_authority,
+  // photo,
 ) {
   try {
     const timestamp = Date.now()
@@ -100,18 +100,18 @@ const createPassport = async function (
     const passport = await Passport.create({
       contact_id: contact_id,
       passport_number: passport_number,
-      surname: surname,
-      given_names: given_names,
-      sex: sex,
-      date_of_birth: date_of_birth,
-      place_of_birth: place_of_birth,
-      nationality: nationality,
-      date_of_issue: date_of_issue,
-      date_of_expiration: date_of_expiration,
-      type: type,
-      code: code,
-      authority: authority,
-      photo: photo,
+      passport_surnames: passport_surnames,
+      passport_given_names: passport_given_names,
+      passport_gender_legal: passport_gender_legal,
+      passport_date_of_birth: passport_date_of_birth,
+      passport_place_of_birth: passport_place_of_birth,
+      passport_nationality: passport_nationality,
+      passport_date_of_issue: passport_date_of_issue,
+      passport_date_of_expiration: passport_date_of_expiration,
+      passport_type: passport_type,
+      passport_code: passport_code,
+      passport_authority: passport_authority,
+      // photo: photo,
       created_at: timestamp,
       updated_at: timestamp,
     })
@@ -124,18 +124,18 @@ const createPassport = async function (
 const createOrUpdatePassport = async function (
   contact_id,
   passport_number,
-  surname,
-  given_names,
-  sex,
-  date_of_birth,
-  place_of_birth,
-  nationality,
-  date_of_issue,
-  date_of_expiration,
-  type,
-  code,
-  authority,
-  photo,
+  passport_surnames,
+  passport_given_names,
+  passport_gender_legal,
+  passport_date_of_birth,
+  passport_place_of_birth,
+  passport_nationality,
+  passport_date_of_issue,
+  passport_date_of_expiration,
+  passport_type,
+  passport_code,
+  passport_authority,
+  // photo,
 ) {
   try {
     await sequelize.transaction(
@@ -155,18 +155,18 @@ const createOrUpdatePassport = async function (
           const passport = await Passport.upsert({
             contact_id: contact_id,
             passport_number: passport_number,
-            surname: surname,
-            given_names: given_names,
-            sex: sex,
-            date_of_birth: date_of_birth,
-            place_of_birth: place_of_birth,
-            nationality: nationality,
-            date_of_issue: date_of_issue,
-            date_of_expiration: date_of_expiration,
-            type: type,
-            code: code,
-            authority: authority,
-            photo: photo,
+            passport_surnames: passport_surnames,
+            passport_given_names: passport_given_names,
+            passport_gender_legal: passport_gender_legal,
+            passport_date_of_birth: passport_date_of_birth,
+            passport_place_of_birth: passport_place_of_birth,
+            passport_nationality: passport_nationality,
+            passport_date_of_issue: passport_date_of_issue,
+            passport_date_of_expiration: passport_date_of_expiration,
+            passport_type: passport_type,
+            passport_code: passport_code,
+            passport_authority: passport_authority,
+            // photo: photo,
             created_at: timestamp,
             updated_at: timestamp,
           })
@@ -176,18 +176,18 @@ const createOrUpdatePassport = async function (
             {
               contact_id: contact_id,
               passport_number: passport_number,
-              surname: surname,
-              given_names: given_names,
-              sex: sex,
-              date_of_birth: date_of_birth,
-              place_of_birth: place_of_birth,
-              nationality: nationality,
-              date_of_issue: date_of_issue,
-              date_of_expiration: date_of_expiration,
-              type: type,
-              code: code,
-              authority: authority,
-              photo: photo,
+              passport_surnames: passport_surnames,
+              passport_given_names: passport_given_names,
+              passport_gender_legal: passport_gender_legal,
+              passport_date_of_birth: passport_date_of_birth,
+              passport_place_of_birth: passport_place_of_birth,
+              passport_nationality: passport_nationality,
+              passport_date_of_issue: passport_date_of_issue,
+              passport_date_of_expiration: passport_date_of_expiration,
+              passport_type: passport_type,
+              passport_code: passport_code,
+              passport_authority: passport_authority,
+              // photo: photo,
               created_at: timestamp,
               updated_at: timestamp,
             },
@@ -201,7 +201,7 @@ const createOrUpdatePassport = async function (
       },
     )
     console.log('Passport saved successfully')
-    return
+    return true
   } catch (error) {
     console.error('Error saving passport to database: ', error)
   }
@@ -245,18 +245,18 @@ const readPassport = async function (contact_id) {
 const updatePassport = async function (
   contact_id,
   passport_number,
-  surname,
-  given_names,
-  sex,
-  date_of_birth,
-  place_of_birth,
-  nationality,
-  date_of_issue,
-  date_of_expiration,
-  type,
-  code,
-  authority,
-  photo,
+  passport_surnames,
+  passport_given_names,
+  passport_gender_legal,
+  passport_date_of_birth,
+  passport_place_of_birth,
+  passport_nationality,
+  passport_date_of_issue,
+  passport_date_of_expiration,
+  passport_type,
+  passport_code,
+  passport_authority,
+  // photo,
 ) {
   try {
     const timestamp = Date.now()
@@ -265,18 +265,18 @@ const updatePassport = async function (
       {
         contact_id: contact_id,
         passport_number: passport_number,
-        surname: surname,
-        given_names: given_names,
-        sex: sex,
-        date_of_birth: date_of_birth,
-        place_of_birth: place_of_birth,
-        nationality: nationality,
-        date_of_issue: date_of_issue,
-        date_of_expiration: date_of_expiration,
-        type: type,
-        code: code,
-        authority: authority,
-        photo: photo,
+        passport_surnames: passport_surnames,
+        passport_given_names: passport_given_names,
+        passport_gender_legal: passport_gender_legal,
+        passport_date_of_birth: passport_date_of_birth,
+        passport_place_of_birth: passport_place_of_birth,
+        passport_nationality: passport_nationality,
+        passport_date_of_issue: passport_date_of_issue,
+        passport_date_of_expiration: passport_date_of_expiration,
+        passport_type: passport_type,
+        passport_code: passport_code,
+        passport_authority: passport_authority,
+        // photo: photo,
         created_at: timestamp,
         updated_at: timestamp,
       },

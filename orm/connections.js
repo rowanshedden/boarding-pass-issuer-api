@@ -254,9 +254,10 @@ const linkContactAndConnection = async function (contact_id, connection_id) {
   try {
     const contact = await readBaseContact(contact_id)
     const connection = await readConnection(connection_id)
-    await contact.addConnection(connection, {})
+    const addedConnection = await contact.addConnection(connection, {})
 
     console.log('Successfully linked contact and connection')
+    return addedConnection
   } catch (error) {
     console.error('Error linking contact and connection', error)
   }
@@ -282,6 +283,26 @@ const readConnection = async function (connection_id) {
   }
 }
 
+// const linkConnectionToUserId = async function (user_id, connection_id) {
+//   try {
+//     const timestamp = Date.now()
+
+//     const connection = await Connection.update(
+//       {
+//         user_id,
+//         updated_at: timestamp,
+//       },
+//       {
+//         where: {
+//           connection_id,
+//         },
+//       },
+//     )
+//   } catch (error) {
+//     console.error('Could not link connection to userId: ', error)
+//   }
+// }
+
 const readConnections = async function () {
   try {
     const connections = await Connection.findAll({
@@ -298,6 +319,30 @@ const readConnections = async function () {
     console.error('Could not find connections in the database: ', error)
   }
 }
+
+// const readConnectionsByUserId = async function (user_id) {
+//   try {
+//     const connections = await Connection.findAll({
+//       include: [
+//         {
+//           model: Contact,
+//           required: false,
+//         },
+//       ],
+//       where: {
+//         user_id,
+//       },
+//     })
+
+//     console.log(
+//       'All connections with userId: ' + user_id,
+//       JSON.stringify(connections, null, 2),
+//     )
+//     return connections
+//   } catch (error) {
+//     console.error('Could not find connections in the database: ', error)
+//   }
+// }
 
 const readInvitations = async function (connection_id) {
   try {
@@ -406,9 +451,11 @@ module.exports = {
   createConnection,
   createOrUpdateConnection,
   linkContactAndConnection,
+  // linkConnectionToUserId,
   readConnection,
   readConnections,
   readInvitationByAlias,
+  // readConnectionsByUserId,
   readInvitations,
   updateConnection,
   deleteConnection,

@@ -328,26 +328,37 @@ const messageHandler = async (ws, context, type, data = {}) => {
         }
         break
 
-      case 'DEMOGRAPHICS':
+      case 'TRAVELERS':
         switch (type) {
           case 'UPDATE_OR_CREATE':
             if (
               check(
                 rules,
                 userCookieParsed,
-                'demographics:create, demographics:update',
+                'travelers:create, travelers:update',
               )
             ) {
-              await Demographics.updateOrCreateDemographic(
+              await Travelers.updateOrCreateTraveler(
                 data.contact_id,
-                data.email,
-                data.phone,
-                data.address,
+                data.traveler_email,
+                data.traveler_phone,
+                data.traveler_country,
+                data.traveler_country_of_origin,
+                data.arrival_airline,
+                data.arrival_flight_number,
+                data.arrival_date,
+                data.arrival_destination_port_code,
+                data.arrival_destination_country_code,
+                data.departure_airline,
+                data.departure_flight_number,
+                data.departure_date,
+                data.departure_destination_port_code,
+                data.departure_destination_country_code,
               )
             } else {
-              sendMessage(ws, 'DEMOGRAPHICS', 'DEMOGRAPHICS_ERROR', {
+              sendMessage(ws, 'TRAVELERS', 'TRAVELERS_ERROR', {
                 error:
-                  'ERROR: You are not authorized to create or update demographics.',
+                  'ERROR: You are not authorized to create or update travelers.',
               })
             }
             break
@@ -365,18 +376,18 @@ const messageHandler = async (ws, context, type, data = {}) => {
             await Passports.updateOrCreatePassport(
               data.contact_id,
               data.passport_number,
-              data.surname,
-              data.given_names,
-              data.sex,
-              data.date_of_birth,
-              data.place_of_birth,
-              data.nationality,
-              data.date_of_issue,
-              data.date_of_expiration,
-              data.type,
-              data.code,
-              data.authority,
-              data.photo,
+              data.passport_surnames,
+              data.passport_given_names,
+              data.passport_gender_legal,
+              data.passport_date_of_birth,
+              data.passport_place_of_birth,
+              data.passport_nationality,
+              data.passport_date_of_issue,
+              data.passport_date_of_expiration,
+              data.passport_type,
+              data.passport_code,
+              data.passport_authority,
+              // data.photo,
             )
             break
 
@@ -615,7 +626,7 @@ module.exports = {
 }
 
 const Invitations = require('./agentLogic/invitations')
-const Demographics = require('./agentLogic/demographics')
+const Travelers = require('./agentLogic/travelers')
 const Passports = require('./agentLogic/passports')
 const Contacts = require('./agentLogic/contacts')
 const Credentials = require('./agentLogic/credentials')
