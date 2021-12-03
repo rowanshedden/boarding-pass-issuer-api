@@ -1,14 +1,15 @@
-const Websockets = require('./websockets.js')
+const Websockets = require('./websockets')
 
 const express = require('express')
 const router = express.Router()
 
-const Contacts = require('./agentLogic/contacts.js')
-const Credentials = require('./agentLogic/credentials.js')
-// const Demographics = require('./agentLogic/demographics.js')
-const Passports = require('./agentLogic/passports.js')
-const BasicMessages = require('./agentLogic/basicMessages.js')
-const Presentations = require('./agentLogic/presentations.js')
+const Contacts = require('./agentLogic/contacts')
+const Credentials = require('./agentLogic/credentials')
+// const Demographics = require('./agentLogic/demographics')
+const Passports = require('./agentLogic/passports')
+const BasicMessages = require('./agentLogic/basicMessages')
+const Presentations = require('./agentLogic/presentations')
+const QuestionAnswer = require('./agentLogic/questionAnswer')
 
 router.post('/topic/connections', async (req, res, next) => {
   console.log('Aries Cloud Agent Webhook Message----Connection------')
@@ -20,9 +21,17 @@ router.post('/topic/connections', async (req, res, next) => {
   res.status(200).send('Ok')
 
   // (eldersonar) Send a proof request to the established connection
-  // if (connectionMessage.state === 'active') {
-  //   Presentations.requestPresentation(connectionMessage.connection_id, 'Result')
-  // }
+  if (connectionMessage.state === 'active') {
+    QuestionAnswer.askQuestion(
+      connectionMessage.connection_id,
+      "How would you like to share your health status?",
+      "Please select a credential option below:",
+      [
+        { "text": "Vaccination + PCR Test" },
+        { "text": "PCR Test Only" }
+      ]
+    )
+  }
 
   await Contacts.adminMessage(connectionMessage)
 })
@@ -116,5 +125,20 @@ router.post('/topic/data-transfer', async (req, res, next) => {
 
 //   res.status(200).send('Ok')
 // })
+
+router.post('/topic/questionanswer', async (req, res, next) => {
+  console.log('Aries Cloud Agent Webhook Message----Q&A Answer------')
+
+  console.log('Message Details:')
+  const answer = req.body
+  console.log(answer)
+
+  res.status(200).send('Ok')
+
+  if (answer.state === "answered") {
+    await QuestionAnswer.adminMessage(answer)
+  }
+
+})
 
 module.exports = router

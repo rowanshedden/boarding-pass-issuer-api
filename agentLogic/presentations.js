@@ -8,13 +8,11 @@ const Websockets = require('../websockets.js')
 const Contacts = require('./contacts.js')
 const Credentials = require('./credentials.js')
 const Passports = require('./passports.js')
-const Demographics = require('./travelers.js')
+const Travelers = require('./travelers.js')
 const {getOrganization} = require('./settings.js')
 
 const requestPresentation = async (connectionID, type) => {
   console.log(`Requesting Presentation from Connection: ${connectionID}`)
-
-  console.log("I'm on presentation level.......................")
 
   let result = null
 
@@ -88,7 +86,7 @@ const adminMessage = async (message) => {
     message.connection_id,
     [],
   )
-  Demographics.updateProofStatus(contact.contact_id, message.state)
+  Travelers.updateProofStatus(contact.contact_id, message.state)
 
   if (message.state === 'verified') {
     if (message.verified === 'true') {
@@ -230,7 +228,7 @@ const adminMessage = async (message) => {
         )
 
         // Update traveler's verification status
-        Demographics.updateVerificationStatus(contact.contact_id, true)
+        Travelers.updateVerificationStatus(contact.contact_id, true)
       } else {
         // (mikekebert) Send a basic message saying the verification was rejected because of business logic
         console.log('Presentation rejected: 2019-nCoV Detected')
@@ -239,7 +237,7 @@ const adminMessage = async (message) => {
         })
 
         // Update traveler's verification status
-        Demographics.updateVerificationStatus(contact.contact_id, false)
+        Travelers.updateVerificationStatus(contact.contact_id, false)
       }
     }
   } else if (message.state === null) {

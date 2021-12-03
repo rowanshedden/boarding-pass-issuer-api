@@ -134,6 +134,7 @@ const adminMessage = async (connectionMessage) => {
         contact.contact_id,
         connectionMessage.connection_id,
       )
+
     } else {
       console.log('State - Response or later')
       await Connections.updateConnection(
