@@ -1,6 +1,7 @@
 const AdminAPI = require('../adminAPI')
 const Websockets = require('../websockets.js')
 let Connections = require('../orm/connections.js')
+let Contacts = require('../orm/contacts.js')
 let ContactsCompiled = require('../orm/contactsCompiled.js')
 
 // Perform Agent Business Logic
@@ -98,6 +99,16 @@ const adminMessage = async (connectionMessage) => {
     if (connectionMessage.state === 'request') {
       console.log('State - Request')
       console.log('Creating Contact')
+
+      // (mikekebert) We need to check and see if a contact has already been created by the API;
+      // If so, use it; if not, create a new contact
+      contact = await ContactsCompiled.readContactByConnection(connectionMessage.connection_id, {})
+      if (!contact) {
+        contact = await Contacts.createContact(
+          connectionMessage.their_label, // label
+          {}, // meta_data
+        )
+      }
 
       await Connections.updateConnection(
         connectionMessage.connection_id,

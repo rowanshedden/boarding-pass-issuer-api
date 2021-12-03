@@ -81,17 +81,19 @@ const readContactByConnection = async function (
   try {
     let models = []
 
-    if (additionalTables.includes('Traveler')) {
-      models.push({
-        model: Traveler,
-        required: false,
-      })
-    }
-    if (additionalTables.includes('Passport')) {
-      models.push({
-        model: Passport,
-        required: false,
-      })
+    if (additionalTables.length > 0) {
+      if (additionalTables.includes('Traveler')) {
+        models.push({
+          model: Traveler,
+          required: false,
+        })
+      }
+      if (additionalTables.includes('Passport')) {
+        models.push({
+          model: Passport,
+          required: false,
+        })
+      }
     }
 
     const contact = await Contact.findAll({
