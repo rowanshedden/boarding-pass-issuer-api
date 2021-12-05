@@ -2,12 +2,15 @@ const server = require('./index.js').server
 const ControllerError = require('./errors.js')
 const WebSocket = require('ws')
 
+const axios = require('axios')
+
 // All you need for CanUser to work
 const check = require('./canUser')
 const rules = require('./rbac-rules')
 const cookie = require('cookie')
 const cookieParser = require('cookie-parser')
-let userCookieParsed = undefined
+
+let userRoles = []
 
 wss = new WebSocket.Server({server: server, path: '/api/ws'})
 console.log('Websockets Setup')
@@ -32,17 +35,92 @@ const sendMessageToAll = (context, type, data = {}) => {
 }
 
 // (JamesKEbert)TODO: Add a connection timeout to gracefully exit versus nginx configuration closing abrubtly
-wss.on('connection', (ws, req) => {
+wss.on('connection', async (ws, req) => {
   console.log('New Websocket Connection')
 
+  const cookies = cookie.parse(req.headers.cookie)
   // Getting the user data from the cookie
   try {
-    const cookies = cookie.parse(req.headers.cookie)
-    const userCookie = cookieParser.signedCookie(cookies['user'])
-    userCookieParsed = JSON.parse(userCookie.substring(2))
+    //console.log("Getting session cookie from headers")
+    const sid = cookieParser.signedCookie(
+      cookies['sessionId'],
+      process.env.SESSION_SECRET,
+    )
+    const DBSession = await Sessions.getSessionById(sid)
+    const clientOrigin = req.headers.origin
+
+    // (eldersonar) When in a live environment, we check to make sure the client origin matches our server
+    // and we ensure the connection has a valid session ID
+    if (process.env.NODE_ENV !== 'development') {
+      if (process.env.WEB_ROOT === clientOrigin) {
+        const check_sid = cookieParser.signedCookie(
+          cookies['sessionId'],
+          process.env.SESSION_SECRET,
+        )
+        const check_sid_in_db = await Sessions.getSessionById(check_sid)
+
+        if (!check_sid_in_db) {
+          ws.terminate()
+        }
+      } else {
+        //sendMessage(ws, 'ERROR', 'WEBSOCKET_ERROR', { error: "Origin validation failed" })
+        ws.terminate()
+      }
+    } else {
+      const check_sid = cookieParser.signedCookie(
+        cookies['sessionId'],
+        process.env.SESSION_SECRET,
+      )
+      const check_sid_in_db = await Sessions.getSessionById(check_sid)
+
+      if (!check_sid_in_db) {
+        ws.terminate()
+      }
+    }
+
+    const parsedSession = JSON.parse(DBSession.dataValues.data)
+    const userBySession = await Users.getUser(parsedSession.passport.user)
+
+    userRoles = []
+    userBySession.dataValues.Roles.forEach((element) =>
+      userRoles.push(element.role_name),
+    )
   } catch (error) {}
 
-  ws.on('message', (message) => {
+  ws.on('message', async (message) => {
+    const clientOrigin = req.headers.origin
+
+    if (ws.readyState === 1) {
+      // (eldersonar) When in a live environment, we check to make sure the client origin matches our server
+      // and we ensure the connection has a valid session ID
+      if (process.env.NODE_ENV !== 'development') {
+        if (process.env.WEB_ROOT === clientOrigin) {
+          const check_sid = cookieParser.signedCookie(
+            cookies['sessionId'],
+            process.env.SESSION_SECRET,
+          )
+          const check_sid_in_db = await Sessions.getSessionById(check_sid)
+
+          if (!check_sid_in_db) {
+            ws.terminate()
+          }
+        } else {
+          //sendMessage(ws, 'ERROR', 'WEBSOCKET_ERROR', { error: "Origin validation failed" })
+          ws.terminate()
+        }
+      } else {
+        const check_sid = cookieParser.signedCookie(
+          cookies['sessionId'],
+          process.env.SESSION_SECRET,
+        )
+        const check_sid_in_db = await Sessions.getSessionById(check_sid)
+
+        if (!check_sid_in_db) {
+          ws.terminate()
+        }
+      }
+    }
+
     try {
       const parsedMessage = JSON.parse(message)
       console.log('New Websocket Message:', parsedMessage)
@@ -101,7 +179,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
       case 'USERS':
         switch (type) {
           case 'GET_ALL':
-            if (check(rules, userCookieParsed, 'users:read')) {
+            if (check(rules, userRoles, 'users:read')) {
               const users = await Users.getAll()
               sendMessage(ws, 'USERS', 'USERS', {users})
             } else {
@@ -127,10 +205,10 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break
 
           case 'CREATE':
-            if (check(rules, userCookieParsed, 'users:create')) {
+            if (check(rules, userRoles, 'users:create')) {
               const newUser = await Users.createUser(data.email, data.roles)
               if (newUser.error) {
-                console.log(newUser.error)
+                // console.log(newUser.error)
                 sendMessage(ws, 'USERS', 'USER_ERROR', newUser)
               } else if (newUser === true) {
                 sendMessage(
@@ -148,10 +226,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break
 
           case 'UPDATE':
-            if (
-              check(rules, userCookieParsed, 'users:update, users:updateRoles')
-            ) {
-              console.log(data)
+            if (check(rules, userRoles, 'users:update, users:updateRoles')) {
               const updatedUser = await Users.updateUser(
                 data.user_id,
                 data.username,
@@ -179,7 +254,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break
 
           case 'PASSWORD_UPDATE':
-            if (check(rules, userCookieParsed, 'users:updatePassword')) {
+            if (check(rules, userRoles, 'users:updatePassword')) {
               const updatedUserPassword = await Users.updatePassword(
                 data.id,
                 data.password,
@@ -196,10 +271,9 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break
 
           case 'DELETE':
-            if (check(rules, userCookieParsed, 'users:delete')) {
+            if (check(rules, userRoles, 'users:delete')) {
               const deletedUser = await Users.deleteUser(data)
               if (deletedUser === true) {
-                console.log('user was deleted WS')
                 sendMessage(
                   ws,
                   'USERS',
@@ -218,10 +292,9 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break
 
           case 'RESEND_CONFIRMATION':
-            if (check(rules, userCookieParsed, 'users:create')) {
+            if (check(rules, userRoles, 'users:create')) {
               const email = await Users.resendAccountConfirmation(data)
               if (email.error) {
-                console.log(email.error)
                 sendMessage(ws, 'USERS', 'USER_ERROR', email)
               } else if (email === true) {
                 sendMessage(
@@ -249,7 +322,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
       case 'ROLES':
         switch (type) {
           case 'GET_ALL':
-            if (check(rules, userCookieParsed, 'roles:read')) {
+            if (check(rules, userRoles, 'roles:read')) {
               const roles = await Roles.getAll()
               sendMessage(ws, 'ROLES', 'ROLES', {roles})
             } else {
@@ -274,8 +347,8 @@ const messageHandler = async (ws, context, type, data = {}) => {
       case 'INVITATIONS':
         switch (type) {
           case 'CREATE_SINGLE_USE':
-            if (check(rules, userCookieParsed, 'invitations:create')) {
-              var invitation
+            if (check(rules, userRoles, 'invitations:create')) {
+              let invitation
               if (data.workflow) {
                 invitation = await Invitations.createPersistentSingleUseInvitation(
                   data.workflow,
@@ -303,7 +376,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
       case 'CONTACTS':
         switch (type) {
           case 'GET_ALL':
-            if (check(rules, userCookieParsed, 'contacts:read')) {
+            if (check(rules, userRoles, 'contacts:read')) {
               const contacts = await Contacts.getAll(data.additional_tables)
               sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts})
             } else {
@@ -334,8 +407,8 @@ const messageHandler = async (ws, context, type, data = {}) => {
             if (
               check(
                 rules,
-                userCookieParsed,
-                'travelers:create, travelers:update',
+                userRoles,
+                'demographics:create, demographics:update',
               )
             ) {
               await Travelers.updateOrCreateTraveler(
@@ -401,8 +474,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
       case 'SETTINGS':
         switch (type) {
           case 'SET_THEME':
-            if (check(rules, userCookieParsed, 'settings:update')) {
-              console.log('SET_THEME')
+            if (check(rules, userRoles, 'settings:update')) {
               const updatedTheme = await Settings.setTheme(data)
               if (updatedTheme) {
                 sendMessage(ws, 'SETTINGS', 'SETTINGS_THEME', updatedTheme)
@@ -424,7 +496,6 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break
 
           case 'GET_THEME':
-            console.log('GET_THEME')
             const currentTheme = await Settings.getTheme()
             if (currentTheme)
               sendMessage(ws, 'SETTINGS', 'SETTINGS_THEME', currentTheme)
@@ -435,8 +506,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break
 
           case 'SET_SMTP':
-            if (check(rules, userCookieParsed, 'settings:update')) {
-              console.log('SET_SMTP')
+            if (check(rules, userRoles, 'settings:update')) {
               const updatedSMTP = await Settings.setSMTP(data)
               if (updatedSMTP)
                 sendMessage(
@@ -458,8 +528,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break
 
           case 'SET_ORGANIZATION_NAME':
-            if (check(rules, userCookieParsed, 'settings:update')) {
-              console.log('SET_ORGANIZATION_NAME')
+            if (check(rules, userRoles, 'settings:update')) {
               const updatedOrganization = await Settings.setOrganization(data)
               if (updatedOrganization) {
                 sendMessage(
@@ -487,7 +556,6 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break
 
           case 'GET_ORGANIZATION_NAME':
-            console.log('GET_ORGANIZATION_NAME')
             const currentOrganization = await Settings.getOrganization()
             if (currentOrganization)
               sendMessage(
@@ -507,9 +575,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
       case 'IMAGES':
         switch (type) {
           case 'SET_LOGO':
-            if (check(rules, userCookieParsed, 'settings:update')) {
-              console.log('SET_LOGO')
-              // console.log(data)
+            if (check(rules, userRoles, 'settings:update')) {
               const newImage = await Images.setImage(
                 data.name,
                 data.type,
@@ -534,7 +600,6 @@ const messageHandler = async (ws, context, type, data = {}) => {
             break
 
           default:
-            console.log('GET_IMAGES')
             const images = await Images.getAll()
             if (images) sendMessage(ws, 'SETTINGS', 'LOGO', images[0])
             else
@@ -548,7 +613,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
       case 'CREDENTIALS':
         switch (type) {
           case 'ISSUE_USING_SCHEMA':
-            if (check(rules, userCookieParsed, 'credentials:issue')) {
+            if (check(rules, userRoles, 'credentials:issue')) {
               await Credentials.autoIssueCredential(
                 data.connectionID,
                 data.issuerDID,
@@ -633,5 +698,6 @@ const Credentials = require('./agentLogic/credentials')
 const Images = require('./agentLogic/images')
 const Presentations = require('./agentLogic/presentations')
 const Settings = require('./agentLogic/settings')
+const Sessions = require('./agentLogic/sessions')
 const Users = require('./agentLogic/users')
 const Roles = require('./agentLogic/roles')

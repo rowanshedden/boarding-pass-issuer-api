@@ -15,6 +15,7 @@ const rules = {
     'travelers:update',
     'travelers:delete',
     'invitations:create',
+    'invitations:read',
     'invitations:delete',
     'roles:read',
     'settings:read',
@@ -40,7 +41,8 @@ const rules = {
     'travelers:read',
     'travelers:update',
     'invitations:create',
+    'invitations:read',
   ],
 }
 
-module.exports = rules
+export default rules
