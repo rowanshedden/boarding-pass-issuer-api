@@ -30,7 +30,6 @@ module.exports.server = server
 let Websocket = require('./websockets.js')
 
 const Passenger = require('./agentLogic/passenger')
-const Sessions = require('./agentLogic/sessions')
 const Users = require('./agentLogic/users')
 
 app.use(bodyParser.urlencoded({extended: false}))
@@ -537,16 +536,3 @@ app.use('/', (req, res) => {
   console.log(req.body)
   res.status(404).send()
 })
-
-// (eldersonar) TODO: remove after testing.
-const getSession = async () => {
-  try {
-    const s = await Sessions.getSessions()
-
-    console.log(s)
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-getSession()

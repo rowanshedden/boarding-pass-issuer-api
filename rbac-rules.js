@@ -45,4 +45,4 @@ const rules = {
   ],
 }
 
-export default rules
+module.exports = rules
