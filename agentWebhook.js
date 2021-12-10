@@ -61,12 +61,9 @@ router.post('/topic/connections', async (req, res, next) => {
   if (connectionMessage.state === 'active') {
     QuestionAnswer.askQuestion(
       connectionMessage.connection_id,
-      "How would you like to share your health status?",
-      "Please select a credential option below:",
-      [
-        { "text": "Vaccination + PCR Test" },
-        { "text": "PCR Test Only" }
-      ]
+      'How would you like to share your health status?',
+      'Please select a credential option below:',
+      [{text: 'Vaccination + PCR Test'}, {text: 'PCR Test Only'}],
       // answers
     )
 
@@ -176,10 +173,9 @@ router.post('/topic/questionanswer', async (req, res, next) => {
 
   res.status(200).send('Ok')
 
-  if (answer.state === "answered") {
+  if (answer.state === 'answered') {
     await QuestionAnswer.adminMessage(answer)
   }
-
 })
 
 module.exports = router

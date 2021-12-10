@@ -102,7 +102,10 @@ const adminMessage = async (connectionMessage) => {
 
       // (mikekebert) We need to check and see if a contact has already been created by the API;
       // If so, use it; if not, create a new contact
-      contact = await ContactsCompiled.readContactByConnection(connectionMessage.connection_id, {})
+      contact = await ContactsCompiled.readContactByConnection(
+        connectionMessage.connection_id,
+        {},
+      )
       if (!contact) {
         contact = await Contacts.createContact(
           connectionMessage.their_label, // label
@@ -134,7 +137,6 @@ const adminMessage = async (connectionMessage) => {
         contact.contact_id,
         connectionMessage.connection_id,
       )
-
     } else {
       console.log('State - Response or later')
       await Connections.updateConnection(

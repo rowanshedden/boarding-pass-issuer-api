@@ -1,5 +1,5 @@
-const { DateTime } = require('luxon')
-const { v4: uuid } = require('uuid')
+const {DateTime} = require('luxon')
+const {v4: uuid} = require('uuid')
 const axios = require('axios')
 
 const ControllerError = require('../errors')
@@ -11,9 +11,9 @@ const Credentials = require('./credentials')
 const Governance = require('./governance')
 const Passports = require('./passports')
 const Travelers = require('./travelers')
-const { getOrganization } = require('./settings')
+const {getOrganization} = require('./settings')
 const Util = require('../util')
-const { Traveler } = require('../orm/travelers')
+const {Traveler} = require('../orm/travelers')
 
 // // (eldersonar) Get Presentation Definition file
 // const getPresentationDefinition = async () => {
@@ -37,7 +37,7 @@ const { Traveler } = require('../orm/travelers')
 //     console.log(error)
 
 //     // (eldersonar) Do we handle specific codes or handle all errors as one?
-//     // if (error.response.status) 
+//     // if (error.response.status)
 //     return undefined
 
 //     // throw error
@@ -52,14 +52,14 @@ const requestIdentityPresentation = async (connectionID) => {
     connectionID,
     // (eldersonar) Add remaining fields when the holder is fixed.
     [
-      "email",
-      "phone",
-      "address",
-      "surname",
-      "given_names",
-      "sex",
-      "date_of_birth"
-    ]
+      'email',
+      'phone',
+      'address',
+      'surname',
+      'given_names',
+      'sex',
+      'date_of_birth',
+    ],
   )
   return result
 }
@@ -67,7 +67,8 @@ const requestIdentityPresentation = async (connectionID) => {
 // (Eldersonar) This function takes an array of arrays and returns the cartesian product
 // (Eldersonar) Spread (...args) if want to send multiple arrays instead of array of arrays
 function cartesian(args) {
-  let result = [], max = args.length - 1
+  let result = [],
+    max = args.length - 1
 
   // Recursive helper function
   function helper(arr, i) {
@@ -76,9 +77,7 @@ function cartesian(args) {
       a.push(args[i][j])
       if (i == max) {
         result.push(a)
-      }
-      else
-        helper(a, i + 1)
+      } else helper(a, i + 1)
     }
   }
   helper([], 0)
@@ -88,26 +87,32 @@ function cartesian(args) {
 // TODO: remove after development
 let counter = 0
 
-const createPresentationRequest = async (connectionID, predicates, attributes, name, comment) => {
+const createPresentationRequest = async (
+  connectionID,
+  predicates,
+  attributes,
+  name,
+  comment,
+) => {
   // counter++
 
-  let list = { "presentations": [] }
+  let list = {presentations: []}
 
   // Get contact
-  const contact = await Contacts.getContactByConnection(
-    connectionID,
-    ["Traveler"],
-  )
+  const contact = await Contacts.getContactByConnection(connectionID, [
+    'Traveler',
+  ])
+  console.log(contact)
 
   // Create a proof element
   const listElement = {
     [name]: {
-      "result": null,
-      presentation: {}
-    }
+      result: null,
+      presentation: {},
+    },
   }
 
-  // Rearange data
+  // Rearrange data
   let presentationArray = []
   presentationArray.push(listElement)
   list.presentations = presentationArray
@@ -115,19 +120,23 @@ const createPresentationRequest = async (connectionID, predicates, attributes, n
   let oldProofList = []
 
   // Check if proof result list is empty
-  if (!contact.Traveler.dataValues.proof_result_list || Object.keys(contact.Traveler.dataValues.proof_result_list.presentations).length === 0) {
-    console.log("empty object")
+  if (
+    !contact.Traveler.dataValues.proof_result_list ||
+    Object.keys(contact.Traveler.dataValues.proof_result_list.presentations)
+      .length === 0
+  ) {
+    console.log('empty object')
 
     // Update traveler's proof result list
     await Travelers.updateProofResultList(contact.contact_id, list)
 
     list = []
     presentationArray = []
-
   } else {
-    console.log("NOT empty object")
+    console.log('NOT empty object')
     // Add new proof result element to the old list
-    oldProofList = contact.Traveler.dataValues.proof_result_list.presentations[0]
+    oldProofList =
+      contact.Traveler.dataValues.proof_result_list.presentations[0]
     list.presentations.push(oldProofList)
 
     // Update traveler's proof result list
@@ -158,120 +167,157 @@ const createPresentationRequest = async (connectionID, predicates, attributes, n
 }
 
 // (eldersonar) Complex input descriptors handler (one or multiple in-field conditions)
-const handleCartesianProductSet = async (descriptor, cartesianSet, connectionID) => {
+const handleCartesianProductSet = async (
+  descriptor,
+  cartesianSet,
+  connectionID,
+) => {
   try {
-
-    const date = Math.floor((Date.now() / 1000))
+    const date = Math.floor(Date.now() / 1000)
     const schema_id = descriptor.schema[0].uri
     const name = descriptor.name
     const comment = `Requesting Presentation for ${descriptor.name}`
 
     // (eldersonar) For each cartesian product of sets
     for (let i = 0; i < cartesianSet.length; i++) {
-
       let attributes = {}
       let predicates = {}
 
       // Cartesian product descriptor handler loop
       for (let j = 0; j < cartesianSet[i].length; j++) {
-
-        const dependentPath = cartesianSet[i][j].dependent_fields[0].path.join('').split('$.')[1] // (eldersonar) will be not valid if have more than 1 path in the array
+        const dependentPath = cartesianSet[i][j].dependent_fields[0].path
+          .join('')
+          .split('$.')[1] // (eldersonar) will be not valid if have more than 1 path in the array
 
         // (eldersonar) Push descriptors into array from cartesion set (in-field dependent fields)
         if (cartesianSet[i][j].dependent_fields[0].filter.exclusiveMinimum) {
-          if (cartesianSet[i][j].dependent_fields[0].filter.exclusiveMinimum.includes("today:")) {
+          if (
+            cartesianSet[i][
+              j
+            ].dependent_fields[0].filter.exclusiveMinimum.includes('today:')
+          ) {
             predicates[dependentPath] = {
-              p_type: ">",
-              p_value: date - cartesianSet[i][j].dependent_fields[0].filter.exclusiveMinimum.split(':')[2],
+              p_type: '>',
+              p_value:
+                date -
+                cartesianSet[i][
+                  j
+                ].dependent_fields[0].filter.exclusiveMinimum.split(':')[2],
               name: dependentPath,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           } else {
             predicates[dependentPath] = {
-              p_type: ">",
+              p_type: '>',
               p_value: date,
               name: dependentPath,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           }
         } else if (cartesianSet[i][j].dependent_fields[0].filter.minimum) {
-          if (cartesianSet[i][j].dependent_fields[0].filter.minimum.includes("today:")) {
+          if (
+            cartesianSet[i][j].dependent_fields[0].filter.minimum.includes(
+              'today:',
+            )
+          ) {
             predicates[dependentPath] = {
-              p_type: ">=",
-              p_value: date - cartesianSet[i][j].dependent_fields[0].filter.minimum.split(':')[2],
+              p_type: '>=',
+              p_value:
+                date -
+                cartesianSet[i][j].dependent_fields[0].filter.minimum.split(
+                  ':',
+                )[2],
               name: dependentPath,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           } else {
             predicates[dependentPath] = {
-              p_type: ">=",
+              p_type: '>=',
               p_value: date,
               name: dependentPath,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           }
-        } else if (cartesianSet[i][j].dependent_fields[0].filter.exclusiveMaximum) {
-          if (cartesianSet[i][j].dependent_fields[0].filter.exclusiveMaximum.includes("today:")) {
+        } else if (
+          cartesianSet[i][j].dependent_fields[0].filter.exclusiveMaximum
+        ) {
+          if (
+            cartesianSet[i][
+              j
+            ].dependent_fields[0].filter.exclusiveMaximum.includes('today:')
+          ) {
             predicates[dependentPath] = {
-              p_type: "<",
-              p_value: date - cartesianSet[i][j].dependent_fields[0].filter.exclusiveMaximum.split(':')[2],
+              p_type: '<',
+              p_value:
+                date -
+                cartesianSet[i][
+                  j
+                ].dependent_fields[0].filter.exclusiveMaximum.split(':')[2],
               name: dependentPath,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           } else {
             predicates[dependentPath] = {
-              p_type: "<",
+              p_type: '<',
               p_value: date,
               name: dependentPath,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           }
         } else if (cartesianSet[i][j].dependent_fields[0].filter.maximum) {
-          if (cartesianSet[i][j].dependent_fields[0].filter.maximum.includes("today:")) {
+          if (
+            cartesianSet[i][j].dependent_fields[0].filter.maximum.includes(
+              'today:',
+            )
+          ) {
             predicates[dependentPath] = {
-              p_type: "<=",
-              p_value: date - cartesianSet[i][j].dependent_fields[0].filter.maximum.split(':')[2],
+              p_type: '<=',
+              p_value:
+                date -
+                cartesianSet[i][j].dependent_fields[0].filter.maximum.split(
+                  ':',
+                )[2],
               name: dependentPath,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           } else {
             predicates[dependentPath] = {
-              p_type: "<=",
+              p_type: '<=',
               p_value: date,
               name: dependentPath,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           }
         }
@@ -279,104 +325,129 @@ const handleCartesianProductSet = async (descriptor, cartesianSet, connectionID)
 
       // (eldersonar) Regular descriptors handler loop
       for (let k = 0; k < descriptor.constraints.fields.length; k++) {
-
-        const path = descriptor.constraints.fields[k].path.join('').split('$.')[1] // (eldersonar) will be not valid if have more than 1 path in the array
+        const path = descriptor.constraints.fields[k].path
+          .join('')
+          .split('$.')[1] // (eldersonar) will be not valid if have more than 1 path in the array
 
         // (eldersonar) Push regular descriptors into array
         if (descriptor.constraints.fields[k].filter.exclusiveMinimum) {
-          if (descriptor.constraints.fields[k].filter.exclusiveMinimum.includes("today:")) {
+          if (
+            descriptor.constraints.fields[k].filter.exclusiveMinimum.includes(
+              'today:',
+            )
+          ) {
             predicates[path] = {
-              p_type: ">",
-              p_value: date - descriptor.constraints.fields[k].filter.exclusiveMinimum.split(':')[2],
+              p_type: '>',
+              p_value:
+                date -
+                descriptor.constraints.fields[k].filter.exclusiveMinimum.split(
+                  ':',
+                )[2],
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           } else {
             predicates[path] = {
-              p_type: ">",
+              p_type: '>',
               p_value: date,
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           }
         } else if (descriptor.constraints.fields[k].filter.minimum) {
-          if (descriptor.constraints.fields[k].filter.minimum.includes("today:")) {
+          if (
+            descriptor.constraints.fields[k].filter.minimum.includes('today:')
+          ) {
             predicates[path] = {
-              p_type: ">=",
-              p_value: date - descriptor.constraints.fields[k].filter.minimum.split(':')[2],
+              p_type: '>=',
+              p_value:
+                date -
+                descriptor.constraints.fields[k].filter.minimum.split(':')[2],
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           } else {
             predicates[path] = {
-              p_type: ">=",
+              p_type: '>=',
               p_value: date,
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           }
         } else if (descriptor.constraints.fields[k].filter.exclusiveMaximum) {
-          if (descriptor.constraints.fields[k].filter.exclusiveMaximum.includes("today:")) {
+          if (
+            descriptor.constraints.fields[k].filter.exclusiveMaximum.includes(
+              'today:',
+            )
+          ) {
             predicates[path] = {
-              p_type: "<",
-              p_value: date - descriptor.constraints.fields[k].filter.exclusiveMaximum.split(':')[2],
+              p_type: '<',
+              p_value:
+                date -
+                descriptor.constraints.fields[k].filter.exclusiveMaximum.split(
+                  ':',
+                )[2],
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           } else {
             predicates[path] = {
-              p_type: "<",
+              p_type: '<',
               p_value: date,
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           }
         } else if (descriptor.constraints.fields[k].filter.maximum) {
-          if (descriptor.constraints.fields[k].filter.maximum.includes("today:")) {
+          if (
+            descriptor.constraints.fields[k].filter.maximum.includes('today:')
+          ) {
             predicates[path] = {
-              p_type: "<=",
-              p_value: date - descriptor.constraints.fields[k].filter.maximum.split(':')[2],
+              p_type: '<=',
+              p_value:
+                date -
+                descriptor.constraints.fields[k].filter.maximum.split(':')[2],
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           } else {
             predicates[path] = {
-              p_type: "<=",
+              p_type: '<=',
               p_value: date,
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           }
           // (eldersonar) Assemble the list of attributes
@@ -385,13 +456,19 @@ const handleCartesianProductSet = async (descriptor, cartesianSet, connectionID)
 
           attributes[path] = {
             name: path,
-            restrictions: [{ schema_id }],
+            restrictions: [{schema_id}],
           }
         }
       }
 
       // (eldersonar) Assemble presentation request
-      await createPresentationRequest(connectionID, predicates, attributes, name, comment)
+      await createPresentationRequest(
+        connectionID,
+        predicates,
+        attributes,
+        name,
+        comment,
+      )
     }
   } catch (error) {
     console.log(error)
@@ -401,7 +478,6 @@ const handleCartesianProductSet = async (descriptor, cartesianSet, connectionID)
 // (eldersonar) Simple input descriptors handler (no in-field conditions)
 const handleSimpleDescriptors = async (descriptors, connectionID) => {
   try {
-
     for (let i = 0; i < descriptors.length; i++) {
       let attributes = {}
       let predicates = {}
@@ -409,122 +485,162 @@ const handleSimpleDescriptors = async (descriptors, connectionID) => {
       const schema_id = descriptors[i].schema[0].uri
       const name = descriptors[i].name
       const comment = `Requesting Presentation for ${descriptors[i].name}`
-      const date = Math.floor((Date.now() / 1000))
+      const date = Math.floor(Date.now() / 1000)
 
       for (let j = 0; j < descriptors[i].constraints.fields.length; j++) {
-
-        const path = descriptors[i].constraints.fields[j].path.join('').split('$.')[1] // (eldersonar) TODO: turn into a loop. This ill be not valid if have more than 1 path in the array
+        const path = descriptors[i].constraints.fields[j].path
+          .join('')
+          .split('$.')[1] // (eldersonar) TODO: turn into a loop. This ill be not valid if have more than 1 path in the array
 
         // Push descriptors into array
         if (descriptors[i].constraints.fields[j].filter.exclusiveMinimum) {
-          if (descriptors[i].constraints.fields[j].filter.exclusiveMinimum.includes("today:")) {
+          if (
+            descriptors[i].constraints.fields[
+              j
+            ].filter.exclusiveMinimum.includes('today:')
+          ) {
             predicates[path] = {
-              p_type: ">",
-              p_value: date - descriptors[i].constraints.fields[j].filter.exclusiveMinimum.split(':')[2],
+              p_type: '>',
+              p_value:
+                date -
+                descriptors[i].constraints.fields[
+                  j
+                ].filter.exclusiveMinimum.split(':')[2],
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           } else {
             predicates[path] = {
-              p_type: ">",
+              p_type: '>',
               p_value: date,
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           }
         } else if (descriptors[i].constraints.fields[j].filter.minimum) {
-          if (descriptors[i].constraints.fields[j].filter.minimum.includes("today:")) {
+          if (
+            descriptors[i].constraints.fields[j].filter.minimum.includes(
+              'today:',
+            )
+          ) {
             predicates[path] = {
-              p_type: ">=",
-              p_value: date - descriptors[i].constraints.fields[j].filter.minimum.split(':')[2],
+              p_type: '>=',
+              p_value:
+                date -
+                descriptors[i].constraints.fields[j].filter.minimum.split(
+                  ':',
+                )[2],
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           } else {
             predicates[path] = {
-              p_type: ">=",
+              p_type: '>=',
               p_value: date,
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           }
-        } else if (descriptors[i].constraints.fields[j].filter.exclusiveMaximum) {
-          if (descriptors[i].constraints.fields[j].filter.exclusiveMaximum.includes("today:")) {
+        } else if (
+          descriptors[i].constraints.fields[j].filter.exclusiveMaximum
+        ) {
+          if (
+            descriptors[i].constraints.fields[
+              j
+            ].filter.exclusiveMaximum.includes('today:')
+          ) {
             predicates[path] = {
-              p_type: "<",
-              p_value: date - descriptors[i].constraints.fields[j].filter.exclusiveMaximum.split(':')[2],
+              p_type: '<',
+              p_value:
+                date -
+                descriptors[i].constraints.fields[
+                  j
+                ].filter.exclusiveMaximum.split(':')[2],
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           } else {
             predicates[path] = {
-              p_type: "<",
+              p_type: '<',
               p_value: date,
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           }
         } else if (descriptors[i].constraints.fields[j].filter.maximum) {
-          if (descriptors[i].constraints.fields[j].filter.maximum.includes("today:")) {
+          if (
+            descriptors[i].constraints.fields[j].filter.maximum.includes(
+              'today:',
+            )
+          ) {
             predicates[path] = {
-              p_type: "<=",
-              p_value: date - descriptors[i].constraints.fields[j].filter.maximum.split(':')[2],
+              p_type: '<=',
+              p_value:
+                date -
+                descriptors[i].constraints.fields[j].filter.maximum.split(
+                  ':',
+                )[2],
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           } else {
             predicates[path] = {
-              p_type: "<=",
+              p_type: '<=',
               p_value: date,
               name: path,
               restrictions: [
                 {
-                  schema_id
-                }
-              ]
+                  schema_id,
+                },
+              ],
             }
           }
-        }
-        else {
+        } else {
           attributes[path] = {
             name: path,
-            restrictions: [{ schema_id }],
+            restrictions: [{schema_id}],
           }
         }
       }
 
-      // (eldersonar) TODO: Comment in to create presentation requests from "regular" input descriptors 
+      // (eldersonar) TODO: Comment in to create presentation requests from "regular" input descriptors
 
       // (eldersonar) Assemble presentation request
-      await createPresentationRequest(connectionID, predicates, attributes, name, comment)
+      await createPresentationRequest(
+        connectionID,
+        predicates,
+        attributes,
+        name,
+        comment,
+      )
 
       // (eldersonar) Clear variables at the end of each iteration
       attributes = {}
@@ -544,18 +660,15 @@ const requestPresentation = async (connectionID, type) => {
 
   //------------ (eldersonar) TODO: remove after trial-------------
 
-  const contact = await Contacts.getContactByConnection(
-    connectionID,
-    [],
-  )
+  const contact = await Contacts.getContactByConnection(connectionID, [])
 
   // Update traveler's answer to the question
   await Travelers.updateProofType(contact.contact_id, type)
 
   let pdf = {}
-  if (type === "Lab+Vaccine") {
+  if (type === 'Lab+Vaccine') {
     pdf = await Governance.getLabVaccinePresentationDefinition()
-  } else if (type === "Lab") {
+  } else if (type === 'Lab') {
     pdf = await Governance.getLabPresentationDefinition()
   }
   //------------ (eldersonar) TODO: remove after trial-------------
@@ -566,41 +679,50 @@ const requestPresentation = async (connectionID, type) => {
     // let result = null
     // let proofCheckResult = []
 
-    const date = Math.floor((Date.now() / 1000))
+    const date = Math.floor(Date.now() / 1000)
 
     // (eldersonar) Check if we have submission requirments
     if (pdf.presentation_definition.submission_requirements) {
-      if (!pdf.presentation_definition.submission_requirements[0].hasOwnProperty('from_nested')) {
-
+      if (
+        !pdf.presentation_definition.submission_requirements[0].hasOwnProperty(
+          'from_nested',
+        )
+      ) {
         // Loop through the input descriptors
         let i = inputDescriptors.length
 
         // (Eldersonar) Loop through all input descriptors
         while (i--) {
-
           // (eldersonar) Execute if there are any of input descriptors match the submission requirements group value
-          if (inputDescriptors[i].group.includes(pdf.presentation_definition.submission_requirements[0].from)) {
-
+          if (
+            inputDescriptors[i].group.includes(
+              pdf.presentation_definition.submission_requirements[0].from,
+            )
+          ) {
             let predicateArray = []
             let descriptor = {}
 
             descriptor = inputDescriptors[i]
 
-            console.log("")
-            console.log("array of inputDescriptors")
+            console.log('')
+            console.log('array of inputDescriptors')
             console.log(inputDescriptors)
 
             // (Eldersonar) This flag allows to track which input descriptors needs to be removed from the list
             let remove = false
 
-            // Loop through all descriptor fields 
-            for (let j = 0; j < inputDescriptors[i].constraints.fields.length; j++) {
-
-              // (Eldersonar) If an input descriptor has some in-field conditional logic 
+            // Loop through all descriptor fields
+            for (
+              let j = 0;
+              j < inputDescriptors[i].constraints.fields.length;
+              j++
+            ) {
+              // (Eldersonar) If an input descriptor has some in-field conditional logic
               if (inputDescriptors[i].constraints.fields[j].filter.oneOf) {
-
                 // (Eldersonar) Get fields with in-field conditional logic
-                predicateArray.push(inputDescriptors[i].constraints.fields[j].filter.oneOf)
+                predicateArray.push(
+                  inputDescriptors[i].constraints.fields[j].filter.oneOf,
+                )
 
                 // (Eldersonar) Mark this input descriptor for deletion
                 remove = true
@@ -610,19 +732,23 @@ const requestPresentation = async (connectionID, type) => {
             // (Eldersonar) Get cartesian sets here
             if (predicateArray.length) {
               console.log('')
-              console.log("this is ready to become cartesian set: ")
+              console.log('this is ready to become cartesian set: ')
               console.log(predicateArray)
 
               // (Eldersonar) Assign the result of cartesian product of sets to a variable
               let cartesianProduct = cartesian(predicateArray, descriptor)
 
-              await handleCartesianProductSet(descriptor, cartesianProduct, connectionID)
+              await handleCartesianProductSet(
+                descriptor,
+                cartesianProduct,
+                connectionID,
+              )
               // (Eldersonar) Clear the predicate array before new iteration
               predicateArray = []
               descriptor = {}
 
               console.log('')
-              console.log("cartesian product of an array set")
+              console.log('cartesian product of an array set')
               console.log(cartesianProduct)
             }
 
@@ -631,9 +757,11 @@ const requestPresentation = async (connectionID, type) => {
             if (i > -1 && remove) {
               inputDescriptors.splice(i, 1)
             }
-
           } else {
-            console.log("There are no credentials of group " + pdf.presentation_definition.submission_requirements[0].from)
+            console.log(
+              'There are no credentials of group ' +
+                pdf.presentation_definition.submission_requirements[0].from,
+            )
           }
         }
 
@@ -642,14 +770,26 @@ const requestPresentation = async (connectionID, type) => {
 
         // (eldersonar) Handle nested submission requirments
       } else {
-        console.log("...........Handling creating proof requests from the nested submission requirements...........")
+        console.log(
+          '...........Handling creating proof requests from the nested submission requirements...........',
+        )
 
-        for (let g = 0; g < pdf.presentation_definition.submission_requirements[0].from_nested.length; g++) {
-
+        for (
+          let g = 0;
+          g <
+          pdf.presentation_definition.submission_requirements[0].from_nested
+            .length;
+          g++
+        ) {
           let chosenDescriptors = []
 
           for (let f = 0; f < inputDescriptors.length; f++) {
-            if (inputDescriptors[f].group.includes(pdf.presentation_definition.submission_requirements[0].from_nested[g].from)) {
+            if (
+              inputDescriptors[f].group.includes(
+                pdf.presentation_definition.submission_requirements[0]
+                  .from_nested[g].from,
+              )
+            ) {
               chosenDescriptors.push(inputDescriptors[f])
             }
           }
@@ -659,11 +799,13 @@ const requestPresentation = async (connectionID, type) => {
 
           // (Eldersonar) Loop through all input descriptors
           while (i--) {
-
             // (eldersonar) Execute if there are any of input descriptors match the submission requirements group value
-            if (chosenDescriptors[i].group.includes(pdf.presentation_definition.submission_requirements[0].from_nested[g].from)) {
-
-
+            if (
+              chosenDescriptors[i].group.includes(
+                pdf.presentation_definition.submission_requirements[0]
+                  .from_nested[g].from,
+              )
+            ) {
               let predicateArray = []
               let descriptor = {}
 
@@ -672,14 +814,18 @@ const requestPresentation = async (connectionID, type) => {
               // (Eldersonar) This flag allows to track which input descriptors needs to be removed from the list
               let remove = false
 
-              // Loop through all descriptor fields 
-              for (let j = 0; j < chosenDescriptors[i].constraints.fields.length; j++) {
-
-                // (Eldersonar) If an input descriptor has some in-field conditional logic 
+              // Loop through all descriptor fields
+              for (
+                let j = 0;
+                j < chosenDescriptors[i].constraints.fields.length;
+                j++
+              ) {
+                // (Eldersonar) If an input descriptor has some in-field conditional logic
                 if (chosenDescriptors[i].constraints.fields[j].filter.oneOf) {
-
                   // (Eldersonar) Get fields with in-field conditional logic
-                  predicateArray.push(chosenDescriptors[i].constraints.fields[j].filter.oneOf)
+                  predicateArray.push(
+                    chosenDescriptors[i].constraints.fields[j].filter.oneOf,
+                  )
 
                   // (Eldersonar) Mark this input descriptor for deletion
                   remove = true
@@ -689,19 +835,23 @@ const requestPresentation = async (connectionID, type) => {
               // (Eldersonar) Get cartesian sets here
               if (predicateArray.length) {
                 console.log('')
-                console.log("this is ready to become cartesian set: ")
+                console.log('this is ready to become cartesian set: ')
                 console.log(predicateArray)
 
                 // (Eldersonar) Assign the result of cartesian product of sets to a variable
                 let cartesianProduct = cartesian(predicateArray, descriptor)
 
-                handleCartesianProductSet(descriptor, cartesianProduct, connectionID)
+                handleCartesianProductSet(
+                  descriptor,
+                  cartesianProduct,
+                  connectionID,
+                )
                 // (Eldersonar) Clear the predicate array before new iteration
                 predicateArray = []
                 descriptor = {}
 
                 console.log('')
-                console.log("cartesian product of an array set")
+                console.log('cartesian product of an array set')
                 console.log(cartesianProduct)
               }
 
@@ -710,9 +860,11 @@ const requestPresentation = async (connectionID, type) => {
               if (i > -1 && remove) {
                 chosenDescriptors.splice(i, 1)
               }
-
             } else {
-              console.log("There are no credentials of group " + pdf.presentation_definition.submission_requirements[0].from)
+              console.log(
+                'There are no credentials of group ' +
+                  pdf.presentation_definition.submission_requirements[0].from,
+              )
             }
           }
 
@@ -727,7 +879,6 @@ const requestPresentation = async (connectionID, type) => {
   }
 }
 
-
 const validateFieldByField = (attributes, inputDescriptor) => {
   // (eldersonar) Value validation happens here
 
@@ -738,10 +889,9 @@ const validateFieldByField = (attributes, inputDescriptor) => {
   let patternPass = false
 
   for (let key in attributes) {
-
     if (attributes.hasOwnProperty(key)) {
-      console.log("")
-      console.log(key + " -> " + attributes[key].raw)
+      console.log('')
+      console.log(key + ' -> ' + attributes[key].raw)
 
       // Create prefixed attribute key
       const prefix = '$.'
@@ -750,55 +900,55 @@ const validateFieldByField = (attributes, inputDescriptor) => {
       prefixedKey += key
 
       for (let p = 0; p < inputDescriptor.constraints.fields.length; p++) {
-
-        // (eldersonar) Validate if field can be found 
+        // (eldersonar) Validate if field can be found
         if (inputDescriptor.constraints.fields[p].path.includes(prefixedKey)) {
-
           // (eldersonar) Type validation
           if (inputDescriptor.constraints.fields[p].filter.type) {
             switch (inputDescriptor.constraints.fields[p].filter.type) {
-              case "string":
-
+              case 'string':
                 // Support empty string && attributes[key].raw !== ""
-                if (typeof attributes[key].raw === "string") {
-                  console.log("the type check (STRING) have passed")
+                if (typeof attributes[key].raw === 'string') {
+                  console.log('the type check (STRING) have passed')
                   typePass = true
                 } else {
-                  console.log("this is NOT A STRING or STRING IS EMPTY")
+                  console.log('this is NOT A STRING or STRING IS EMPTY')
                   typePass = false
                   break
                 }
                 break
 
-              case "number":
+              case 'number':
                 if (!isNaN(attributes[key].raw)) {
-                  console.log("the type check (NUMBER) have passed")
+                  console.log('the type check (NUMBER) have passed')
                   typePass = true
                 } else {
-                  console.log("this is NOT A NUMBER")
+                  console.log('this is NOT A NUMBER')
                   typePass = false
                   break
                 }
                 break
 
-              case "boolean":
-                if (attributes[key].raw === "true" || attributes[key].raw === "false") {
-                  console.log("the type check (BOOLEAN) have passed")
+              case 'boolean':
+                if (
+                  attributes[key].raw === 'true' ||
+                  attributes[key].raw === 'false'
+                ) {
+                  console.log('the type check (BOOLEAN) have passed')
                   typePass = true
                 } else {
-                  console.log("this is NOT A BOOLEAN")
+                  console.log('this is NOT A BOOLEAN')
                   typePass = false
                   break
                 }
                 break
 
               default:
-                console.log("Error: The type check failed")
+                console.log('Error: The type check failed')
                 typePass = false
                 break
             }
           } else {
-            console.log("no type was found for this attribute")
+            console.log('no type was found for this attribute')
             typePass = true
           }
 
@@ -808,103 +958,111 @@ const validateFieldByField = (attributes, inputDescriptor) => {
 
             // (eldersonar) Check if the value can be transformed to a valid number
             if (!isNaN(dateNumber)) {
-              console.log("the date check (NUMBER) have passed")
+              console.log('the date check (NUMBER) have passed')
               let luxonDate = DateTime.fromMillis(dateNumber).toISO()
               let date = new DateTime(luxonDate).isValid
 
               // (eldersonar) Check if the valid Luxon datetime format
               if (date) {
-                console.log("format passed")
+                console.log('format passed')
                 typePass = true
               } else {
-                console.log("this is NOT A DATE")
-                console.log("format failed")
+                console.log('this is NOT A DATE')
+                console.log('format failed')
                 typePass = false
                 break
               }
             } else {
-              console.log("this is NOT A DATE")
-              console.log("format failed")
+              console.log('this is NOT A DATE')
+              console.log('format failed')
               typePass = false
               break
             }
           } else {
-            console.log("no format was found for this attribute")
+            console.log('no format was found for this attribute')
             formatPass = true
           }
 
           // (eldersonar) Value validation
           if (inputDescriptor.constraints.fields[p].filter.const) {
-
             // (eldersonar) Check if the value is a number datatype
             if (!isNaN(inputDescriptor.constraints.fields[p].filter.const)) {
-
-              const stringNumber = '' + inputDescriptor.constraints.fields[p].filter.const
+              const stringNumber =
+                '' + inputDescriptor.constraints.fields[p].filter.const
 
               if (attributes[key].raw === stringNumber) {
-                console.log("value passed")
+                console.log('value passed')
                 valuePass = true
               } else {
-                console.log("value failed")
+                console.log('value failed')
                 valuePass = false
                 break
               }
             } else {
-              if (attributes[key].raw === inputDescriptor.constraints.fields[p].filter.const) {
-                console.log("value passed")
+              if (
+                attributes[key].raw ===
+                inputDescriptor.constraints.fields[p].filter.const
+              ) {
+                console.log('value passed')
                 valuePass = true
               } else {
-                console.log("value failed")
+                console.log('value failed')
                 valuePass = false
                 break
               }
             }
           } else {
-            console.log("no value was found for this attribute")
+            console.log('no value was found for this attribute')
             valuePass = true
           }
 
           // (eldersonar) Pattern validation
           if (inputDescriptor.constraints.fields[p].filter.pattern) {
-
             // Check if it's base64 encoded
-            if (Buffer.from(inputDescriptor.constraints.fields[p].filter.pattern, 'base64').toString('base64') === inputDescriptor.constraints.fields[p].filter.pattern) {
+            if (
+              Buffer.from(
+                inputDescriptor.constraints.fields[p].filter.pattern,
+                'base64',
+              ).toString('base64') ===
+              inputDescriptor.constraints.fields[p].filter.pattern
+            ) {
+              console.log('decoding....')
 
-              console.log("decoding....")
-
-              const decodedPattern = Util.decodeBase64(inputDescriptor.constraints.fields[p].filter.pattern)
+              const decodedPattern = Util.decodeBase64(
+                inputDescriptor.constraints.fields[p].filter.pattern,
+              )
 
               const re = new RegExp(decodedPattern)
 
               // (eldersonar) Test pattern
               if (re.test(attributes[key].raw)) {
-                console.log("pattern passed")
+                console.log('pattern passed')
                 patternPass = true
               } else {
-                console.log("pattern failed")
+                console.log('pattern failed')
                 patternPass = false
                 break
               }
               // If not base64 encoded
             } else {
-              const re = new RegExp(inputDescriptor.constraints.fields[p].filter.pattern)
+              const re = new RegExp(
+                inputDescriptor.constraints.fields[p].filter.pattern,
+              )
 
               // (eldersonar) Test pattern
               if (re.test(attributes[key].raw)) {
-                console.log("pattern passed")
+                console.log('pattern passed')
                 patternPass = true
               } else {
-                console.log("pattern failed")
+                console.log('pattern failed')
                 patternPass = false
                 break
               }
             }
           } else {
-            console.log("no pattern was found for this attribute")
+            console.log('no pattern was found for this attribute')
             patternPass = true
           }
-
-
         }
       }
     }
@@ -927,27 +1085,25 @@ const adminMessage = async (message) => {
   const privileges = await Governance.getPrivilegesByRoles()
 
   // Update traveler's proof status
-  const contact = await Contacts.getContactByConnection(
-    message.connection_id,
-    ["Traveler"],
-  )
+  const contact = await Contacts.getContactByConnection(message.connection_id, [
+    'Traveler',
+  ])
 
   // const pdf = await Governance.getPresentationDefinition()
 
   //------------ (eldersonar) TODO: remove after trial-------------
   let pdf = {}
-  if (contact.Traveler.dataValues.proof_type === "Lab+Vaccine") {
+  if (contact.Traveler.dataValues.proof_type === 'Lab+Vaccine') {
     pdf = await Governance.getLabVaccinePresentationDefinition()
-  } else if (contact.Traveler.dataValues.proof_type === "Lab") {
+  } else if (contact.Traveler.dataValues.proof_type === 'Lab') {
     pdf = await Governance.getLabPresentationDefinition()
   } else {
-    console.log("are we here?")
+    console.log('are we here?')
     console.log(contact.Traveler.dataValues.proof_type)
   }
   //------------ (eldersonar) TODO: remove after trial-------------
 
   const inputDescriptors = pdf.presentation_definition.input_descriptors
-
 
   await Travelers.updateProofStatus(contact.contact_id, message.state)
 
@@ -1008,17 +1164,19 @@ const adminMessage = async (message) => {
           },
           {
             name: 'trusted_traveler_issue_date_time',
-            value: Math.round(DateTime.fromISO(new Date()).ts / 1000).toString(),
+            value: Math.round(
+              DateTime.fromISO(new Date()).ts / 1000,
+            ).toString(),
           },
           {
             name: 'trusted_traveler_expiration_date_time',
             value: Math.round(
-              DateTime.local().plus({ days: 30 }).ts / 1000,
+              DateTime.local().plus({days: 30}).ts / 1000,
             ).toString(),
           },
           {
             name: 'governance_applied',
-            value: governance.name + " v" + governance.version,
+            value: governance.name + ' v' + governance.version,
           },
           {
             name: 'credential_issuer_name',
@@ -1026,22 +1184,27 @@ const adminMessage = async (message) => {
           },
           {
             name: 'credential_issue_date',
-            value: Math.round(DateTime.fromISO(new Date()).ts / 1000).toString(),
+            value: Math.round(
+              DateTime.fromISO(new Date()).ts / 1000,
+            ).toString(),
           },
         ]
 
         // Validation happens here
         // (eldersonar) Check if we have submission requirments
         if (pdf.presentation_definition.submission_requirements) {
-
           // (eldersonar) Execute if there are any of input descriptors match the submission requirements group value
-          if (!pdf.presentation_definition.submission_requirements[0].hasOwnProperty('from_nested')) {
-
+          if (
+            !pdf.presentation_definition.submission_requirements[0].hasOwnProperty(
+              'from_nested',
+            )
+          ) {
             for (let i = 0; i < inputDescriptors.length; i++) {
-
-              console.log("")
-              console.log(`Comparing proof with ${inputDescriptors[i].name} input descriptor`)
-              console.log("")
+              console.log('')
+              console.log(
+                `Comparing proof with ${inputDescriptors[i].name} input descriptor`,
+              )
+              console.log('')
 
               let fields = []
               let proofResult = false
@@ -1049,12 +1212,22 @@ const adminMessage = async (message) => {
               let fieldsValidationResult = false
 
               // (eldersonar) Execute if there are any of input descriptors match the submission requirements group value
-              if (inputDescriptors[i].group.includes(pdf.presentation_definition.submission_requirements[0].from)) {
-
+              if (
+                inputDescriptors[i].group.includes(
+                  pdf.presentation_definition.submission_requirements[0].from,
+                )
+              ) {
                 // Get an array of attributes
-                for (let j = 0; j < inputDescriptors[i].constraints.fields.length; j++) {
-
-                  const fieldPath = inputDescriptors[i].constraints.fields[j].path.join('').split('$.')[1] // (eldersonar) TODO: turn into a loop. This will be not valid if have more than 1 path in the array
+                for (
+                  let j = 0;
+                  j < inputDescriptors[i].constraints.fields.length;
+                  j++
+                ) {
+                  const fieldPath = inputDescriptors[i].constraints.fields[
+                    j
+                  ].path
+                    .join('')
+                    .split('$.')[1] // (eldersonar) TODO: turn into a loop. This will be not valid if have more than 1 path in the array
 
                   fields.push(fieldPath)
                 }
@@ -1063,8 +1236,13 @@ const adminMessage = async (message) => {
               // (eldersonar) Get and sort the list of proof attributes and descriptor fields
               const proofAttributeKeys = Object.keys(attributes)
               const proofPredicateKeys = Object.keys(predicates)
-              const predicatesAndArrays = proofAttributeKeys.concat(proofPredicateKeys)
-              const sortedProofFields = predicatesAndArrays.sort(function (a, b) {
+              const predicatesAndArrays = proofAttributeKeys.concat(
+                proofPredicateKeys,
+              )
+              const sortedProofFields = predicatesAndArrays.sort(function (
+                a,
+                b,
+              ) {
                 return a.localeCompare(b)
               })
               const sortedDescriptorFields = fields.sort(function (a, b) {
@@ -1073,48 +1251,76 @@ const adminMessage = async (message) => {
 
               // (eldersonar) Start validation
               if (sortedProofFields.length && sortedDescriptorFields.length) {
-
                 // (eldersonar) Check if there is no array match (no credential match or no predicate match)
-                if (JSON.stringify(sortedProofFields) != JSON.stringify(sortedDescriptorFields)) {
-
+                if (
+                  JSON.stringify(sortedProofFields) !=
+                  JSON.stringify(sortedDescriptorFields)
+                ) {
                   // (eldersonar) Get leftover fields with the filter
-                  let nonDuplicateFields = sortedProofFields.filter(val => !sortedDescriptorFields.includes(val))
+                  let nonDuplicateFields = sortedProofFields.filter(
+                    (val) => !sortedDescriptorFields.includes(val),
+                  )
 
-                  for (let k = 0; k < inputDescriptors[i].constraints.fields.length; k++) {
-
+                  for (
+                    let k = 0;
+                    k < inputDescriptors[i].constraints.fields.length;
+                    k++
+                  ) {
                     // (eldersonar) Check if input descriptor has in-field conditional logic
-                    if (inputDescriptors[i].constraints.fields[k].filter.oneOf) {
-
-                      for (let l = 0; l < inputDescriptors[i].constraints.fields[k].filter.oneOf.length; l++) {
-
+                    if (
+                      inputDescriptors[i].constraints.fields[k].filter.oneOf
+                    ) {
+                      for (
+                        let l = 0;
+                        l <
+                        inputDescriptors[i].constraints.fields[k].filter.oneOf
+                          .length;
+                        l++
+                      ) {
                         for (let m = 0; m < nonDuplicateFields.length; m++) {
-
                           const prefix = '$.'
                           let lookupField = ''
                           lookupField += prefix
                           lookupField += nonDuplicateFields[m]
 
                           // (eldersonar) If we can find the field name in the list of in-field predicates
-                          if (inputDescriptors[i].constraints.fields[k].filter.oneOf[l].dependent_fields[0].path.includes(lookupField)) {
-
+                          if (
+                            inputDescriptors[i].constraints.fields[
+                              k
+                            ].filter.oneOf[l].dependent_fields[0].path.includes(
+                              lookupField,
+                            )
+                          ) {
                             // (eldersonar) Removing predicate from the list of sorted fields
-                            const index = sortedProofFields.indexOf(nonDuplicateFields[m]);
+                            const index = sortedProofFields.indexOf(
+                              nonDuplicateFields[m],
+                            )
                             if (index > -1) {
                               sortedProofFields.splice(index, 1)
                             }
 
                             console.log(sortedProofFields)
                             console.log(sortedDescriptorFields)
-                            console.log(JSON.stringify(sortedProofFields) === JSON.stringify(sortedDescriptorFields))
+                            console.log(
+                              JSON.stringify(sortedProofFields) ===
+                                JSON.stringify(sortedDescriptorFields),
+                            )
 
                             // (eldersonar) Check if arrays match after the predicates were removed
-                            if (JSON.stringify(sortedProofFields) === JSON.stringify(sortedDescriptorFields)) {
+                            if (
+                              JSON.stringify(sortedProofFields) ===
+                              JSON.stringify(sortedDescriptorFields)
+                            ) {
+                              console.log('')
+                              console.log(
+                                '_____________________________________________',
+                              )
+                              console.log('Validation of proof was successful.')
 
-                              console.log("")
-                              console.log("_____________________________________________")
-                              console.log("Validation of proof was successful.")
-
-                              fieldsValidationResult = validateFieldByField(attributes, inputDescriptors[i])
+                              fieldsValidationResult = validateFieldByField(
+                                attributes,
+                                inputDescriptors[i],
+                              )
 
                               proofResult = true
                             } else {
@@ -1132,22 +1338,23 @@ const adminMessage = async (message) => {
                 }
                 // (eldersonar) Perfect match, proof fields are validated!
                 else {
+                  console.log('')
+                  console.log('_____________________________________________')
+                  console.log('Validation of proof was successful.')
 
-                  console.log("")
-                  console.log("_____________________________________________")
-                  console.log("Validation of proof was successful.")
-
-                  fieldsValidationResult = validateFieldByField(attributes, inputDescriptors[i])
+                  fieldsValidationResult = validateFieldByField(
+                    attributes,
+                    inputDescriptors[i],
+                  )
 
                   proofResult = true
                 }
               } else {
-                console.log("Error: lacking data for validation")
+                console.log('Error: lacking data for validation')
               }
 
               console.log(proofResult)
               console.log(fieldsValidationResult)
-
 
               // console.log("Original presentations array")
               // console.log("")
@@ -1204,7 +1411,6 @@ const adminMessage = async (message) => {
               //   // Update traveler's proof result list
               //   await Travelers.updateProofResultList(contact.contact_id, presentations)
 
-
               //   // Break out of outer loop if validation failed
               //   if (successFlag) {
               //     console.log("breakkkkkkkkkkkkkkkkkkkkkkk")
@@ -1217,31 +1423,49 @@ const adminMessage = async (message) => {
 
               // Check if all level validation passed
               if (proofResult && fieldsValidationResult) {
-
                 // --------------------------- Handling and storing success -------------------------
-                console.log("Original presentations array")
-                console.log("")
-                console.log(contact.Traveler.dataValues.proof_result_list.presentations)
-                console.log("")
+                console.log('Original presentations array')
+                console.log('')
+                console.log(
+                  contact.Traveler.dataValues.proof_result_list.presentations,
+                )
+                console.log('')
 
                 let successFlag = null
 
-                for (let x = 0; x < contact.Traveler.dataValues.proof_result_list.presentations.length; x++) {
-                  console.log(contact.Traveler.dataValues.proof_result_list.presentations[x])
+                for (
+                  let x = 0;
+                  x <
+                  contact.Traveler.dataValues.proof_result_list.presentations
+                    .length;
+                  x++
+                ) {
+                  console.log(
+                    contact.Traveler.dataValues.proof_result_list.presentations[
+                      x
+                    ],
+                  )
 
-                  // // Get all the object keys
-                  let keys = Object.keys(contact.Traveler.dataValues.proof_result_list.presentations[x])
+                  // Get all the object keys
+                  let keys = Object.keys(
+                    contact.Traveler.dataValues.proof_result_list.presentations[
+                      x
+                    ],
+                  )
 
                   // (eldersonar) TODO: Locate and remove redundant code here
                   let listElement = {
                     [inputDescriptors[i].name]: {
-                      "result": true,
-                      presentation: attributes
-                    }
+                      result: true,
+                      presentation: attributes,
+                    },
                   }
 
-                  // // Proof object reasignment
-                  let proofList = contact.Traveler.dataValues.proof_result_list.presentations[x]
+                  // Proof object reasignment
+                  let proofList =
+                    contact.Traveler.dataValues.proof_result_list.presentations[
+                      x
+                    ]
 
                   // Keys to string
                   let key = keys.join()
@@ -1261,101 +1485,227 @@ const adminMessage = async (message) => {
                   // console.log("this is an updated list")
                   // console.log(proofList)
 
-                  // Proof result list (presentation ) shallow copy 
-                  let presentations = [...contact.Traveler.dataValues.proof_result_list.presentations]
+                  // Proof result list (presentation ) shallow copy
+                  let presentations = [
+                    ...contact.Traveler.dataValues.proof_result_list
+                      .presentations,
+                  ]
 
                   // Rebuilding object list
                   presentations.presentations = proofList[x]
 
-                  // Set check result to true 
-                  const list = presentations.map((item) => {
-                    if (Object.keys(item) === key) {
-                      item.result = true
-                      item.presentation = attributes
+                  // We need to check if this presentation is for a vaccine;
+                  // If so, make sure that it contains a valid vaccine manufacturer code
+                  console.log('Lab + Vaccine')
+
+                  let passedBusinessLogic = true
+
+                  const supportedVaccineCodes = ['JSN', 'MOD', 'PFR', 'ASZ']
+
+                  console.log(attributes)
+                  if (
+                    contact.Traveler.dataValues.proof_result_list.presentations[
+                      x
+                    ].Vaccination
+                  ) {
+                    if (attributes.vaccine_manufacturer_code) {
+                      // Check vaccine manufacturer
+                      if (
+                        supportedVaccineCodes.includes(
+                          attributes.vaccine_manufacturer_code.raw,
+                        )
+                      ) {
+                        console.log('Your vaccine is accepted by Aruba!')
+                      } else {
+                        console.log('Your vaccine is not accepted by Aruba!')
+
+                        passedBusinessLogic = false
+                      }
                     }
-                    return item;
-                  })
+                  }
+                  console.log(passedBusinessLogic)
+                  if (passedBusinessLogic) {
+                    console.log('Passed business logic')
+                    // Set check result to true
+                    const list = presentations.map((item) => {
+                      if (Object.keys(item) === key) {
+                        item.result = true
+                        item.presentation = attributes
+                      }
+                      return item
+                    })
 
-                  console.log("list")
-                  console.log(list)
+                    console.log('list')
+                    console.log(list)
 
-                  let finalList = {}
-                  finalList.presentations = list
+                    let finalList = {}
+                    finalList.presentations = list
 
-                  // Update traveler's proof result list
-                  await Travelers.updateProofResultList(contact.contact_id, finalList)
+                    // Update traveler's proof result list
+                    await Travelers.updateProofResultList(
+                      contact.contact_id,
+                      finalList,
+                    )
 
-                  // Break out of outer loop if successfully passed val
-                  if (successFlag) {
-                    console.log("break")
-                    break
+                    // Break out of outer loop if successfully processed validation
+                    if (successFlag) {
+                      console.log('break')
+                      break
+                    }
+                  } else {
+                    console.log('Failed business logic')
+                    // Set check result to false
+                    const list = presentations.map((item) => {
+                      console.log(Object.keys(item))
+                      console.log(key)
+                      if (Object.keys(item)[0] === key) {
+                        item[key].result = false
+                        item[key].presentation = attributes
+                      }
+                      return item
+                    })
+
+                    console.log('list')
+                    console.log(list)
+
+                    let finalList = {}
+                    finalList.presentations = list
+
+                    // Update traveler's proof result list
+                    await Travelers.updateProofResultList(
+                      contact.contact_id,
+                      finalList,
+                    )
+
+                    // Break out of outer loop if successfully processed validation
+                    if (successFlag) {
+                      console.log('break')
+                      break
+                    }
                   }
                 }
 
                 // Get contact
                 const updatedContact = await Contacts.getContactByConnection(
                   message.connection_id,
-                  ["Traveler"],
+                  ['Traveler'],
                 )
 
                 // (eldersonar) Further validation of presentations. Issue a single trusted traveler based on presentation options
-                if (updatedContact.Traveler.dataValues.proof_result_list.presentations.length === 2) {
-                  console.log("Lab + Vaccine")
+                if (
+                  updatedContact.Traveler.dataValues.proof_result_list
+                    .presentations.length === 2
+                ) {
+                  // console.log("Lab + Vaccine")
+
+                  // let results = []
+                  // const supportedVaccineCodes = ["JSN", "MOD", "PFR", "ASZ"]
+
+                  // for (let v = 0; v < updatedContact.Traveler.dataValues.proof_result_list.presentations.length; v++) {
+                  //   if (updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Lab_Result && updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Lab_Result.result === true) {
+                  //     results.push(true)
+                  //   } else if (updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Vaccination && updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Vaccination.result === true) {
+
+                  //     // Check vaccine manufacturer
+                  //     if (supportedVaccineCodes.includes(updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Vaccination.presentation.vaccine_manufacturer_code.raw)) {
+                  //       console.log("Your vaccine is accepted by Aruba!")
+
+                  //       // Update traveler's verification status
+                  //       // await Travelers.updateVerificationStatus(updatedContact.contact_id, true)
+
+                  //       results.push(true)
+                  //     } else {
+                  //       console.log("Your vaccine is not accepted by Aruba!")
+
+                  //       // Update traveler's verification status
+                  //       // await Travelers.updateVerificationStatus(updatedContact.contact_id, false)
+
+                  //       results.push(false)
+                  //       break
+                  //     }
+
+                  //   }
+                  // }
 
                   let results = []
-                  const supportedVaccineCodes = ["JSN", "MOD", "PFR", "ASZ"]
 
-                  for (let v = 0; v < updatedContact.Traveler.dataValues.proof_result_list.presentations.length; v++) {
-                    if (updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Lab_Result && updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Lab_Result.result === true) {
+                  for (
+                    let v = 0;
+                    v <
+                    updatedContact.Traveler.dataValues.proof_result_list
+                      .presentations.length;
+                    v++
+                  ) {
+                    if (
+                      updatedContact.Traveler.dataValues.proof_result_list
+                        .presentations[v].Lab_Result &&
+                      updatedContact.Traveler.dataValues.proof_result_list
+                        .presentations[v].Lab_Result.result === true
+                    ) {
                       results.push(true)
-                    } else if (updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Vaccination && updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Vaccination.result === true) {
-
-                      // Check vaccine manufacturer
-                      if (supportedVaccineCodes.includes(updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Vaccination.presentation.vaccine_manufacturer_code.raw)) {
-                        console.log("Your vaccine is accepted by Aruba!")
-                        results.push(true)
-                      } else {
-                        console.log("Your vaccine is not accepted by Aruba!")
-                        break
-                      }
-
+                    } else if (
+                      updatedContact.Traveler.dataValues.proof_result_list
+                        .presentations[v].Lab_Result &&
+                      updatedContact.Traveler.dataValues.proof_result_list
+                        .presentations[v].Lab_Result.result === false
+                    ) {
+                      results.push(false)
+                    } else if (
+                      updatedContact.Traveler.dataValues.proof_result_list
+                        .presentations[v].Vaccination &&
+                      updatedContact.Traveler.dataValues.proof_result_list
+                        .presentations[v].Vaccination.result === true
+                    ) {
+                      results.push(true)
+                    } else if (
+                      updatedContact.Traveler.dataValues.proof_result_list
+                        .presentations[v].Vaccination &&
+                      updatedContact.Traveler.dataValues.proof_result_list
+                        .presentations[v].Vaccination.result === false
+                    ) {
+                      results.push(false)
                     }
                   }
 
-                  if (results[0] && results[1]) {
+                  if (results[0] === true && results[1] === true) {
+                    console.log('')
+                    console.log('it passed 1')
+                    console.log('')
 
-                    console.log("")
-                    console.log("it passed 1")
-                    console.log("")
-
-                    console.log("Issuing trusted traveler credential.")
+                    console.log('Issuing trusted traveler credential.')
 
                     credentialVerifiedAttributes = credentialAttributes
                     let schema_id = ''
 
                     // (eldersonar) Validate the privileges
-                    if (governance && privileges.includes("issue_trusted_traveler")) {
+                    if (
+                      governance &&
+                      privileges.includes('issue_trusted_traveler')
+                    ) {
                       for (let i = 0; i < governance.actions.length; i++) {
                         // (eldersonar) Get schema id for trusted traveler
-                        if (governance.actions[i].name === "issue_trusted_traveler") {
+                        if (
+                          governance.actions[i].name ===
+                          'issue_trusted_traveler'
+                        ) {
                           schema_id = governance.actions[i].details.schema
                         }
                       }
 
-                      // (eldersonar) Get shema information
+                      // (eldersonar) Get schema information
                       if (credentialVerifiedAttributes !== null) {
                         let newCredential = {
                           connectionID: message.connection_id,
                           schemaID: schema_id,
-                          schemaVersion: schema_id.split(":")[3],
-                          schemaName: schema_id.split(":")[2],
-                          schemaIssuerDID: schema_id.split(":")[0],
+                          schemaVersion: schema_id.split(':')[3],
+                          schemaName: schema_id.split(':')[2],
+                          schemaIssuerDID: schema_id.split(':')[0],
                           comment: '',
                           attributes: credentialVerifiedAttributes,
                         }
 
                         // (mikekebert) Request issuance of the trusted_traveler credential
-                        console.log("ready to issue trusted traveler")
+                        console.log('ready to issue trusted traveler')
 
                         await Credentials.autoIssueCredential(
                           newCredential.connectionID,
@@ -1369,59 +1719,97 @@ const adminMessage = async (message) => {
                           newCredential.attributes,
                         )
 
+                        // Update traveler's verification status
+                        await Travelers.updateVerificationStatus(
+                          updatedContact.contact_id,
+                          true,
+                        )
+
                         credentialVerifiedAttributes = null
                       } else {
                         // (mikekebert) Send a basic message saying the verification was rejected because of business logic
                         console.log('Presentation rejected: 2019-nCoV Detected')
-                        await AdminAPI.Connections.sendBasicMessage(message.connection_id, {
-                          content: 'INVALID_PROOF',
-                        })
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content: 'INVALID_PROOF',
+                          },
+                        )
 
+                        // Update traveler's verification status
+                        await Travelers.updateVerificationStatus(
+                          contact.contact_id,
+                          false,
+                        )
                       }
                     } else {
                       console.log('no governance or insificient privilieges')
-                      await AdminAPI.Connections.sendBasicMessage(message.connection_id, {
-                        content: 'INVALID_PRIVILEGES',
-                      })
+                      await AdminAPI.Connections.sendBasicMessage(
+                        message.connection_id,
+                        {
+                          content: 'INVALID_PRIVILEGES',
+                        },
+                      )
                     }
                   } else {
-                    console.log("Lab and/or Vaccine didn't pass... OR you've provided only 1 out of 2 presentations")
+                    console.log(
+                      "Lab and/or Vaccine didn't pass... OR you've provided only 1 out of 2 presentations",
+                    )
+                    console.log(results[0])
+                    console.log(results[1])
+
+                    if (results[0] === false || results[1] === false) {
+                      // Update traveler's verification status
+                      await Travelers.updateVerificationStatus(
+                        contact.contact_id,
+                        false,
+                      )
+                    }
                   }
                 } else {
-                  console.log("Just the Lab")
-                  if (updatedContact.Traveler.dataValues.proof_result_list.presentations[0].Lab_Result.result === true) {
-                    console.log("")
-                    console.log("it passed 1")
-                    console.log("")
+                  console.log('Just the Lab')
+                  if (
+                    updatedContact.Traveler.dataValues.proof_result_list
+                      .presentations[0].Lab_Result.result === true
+                  ) {
+                    console.log('')
+                    console.log('it passed 1')
+                    console.log('')
 
-                    console.log("Issuing trusted traveler credential.")
+                    console.log('Issuing trusted traveler credential.')
 
                     credentialVerifiedAttributes = credentialAttributes
                     let schema_id = ''
 
                     // (eldersonar) Validate the privileges
-                    if (governance && privileges.includes("issue_trusted_traveler")) {
+                    if (
+                      governance &&
+                      privileges.includes('issue_trusted_traveler')
+                    ) {
                       for (let i = 0; i < governance.actions.length; i++) {
                         // (eldersonar) Get schema id for trusted traveler
-                        if (governance.actions[i].name === "issue_trusted_traveler") {
+                        if (
+                          governance.actions[i].name ===
+                          'issue_trusted_traveler'
+                        ) {
                           schema_id = governance.actions[i].details.schema
                         }
                       }
 
-                      // (eldersonar) Get shema information
+                      // (eldersonar) Get schema information
                       if (credentialVerifiedAttributes !== null) {
                         let newCredential = {
                           connectionID: message.connection_id,
                           schemaID: schema_id,
-                          schemaVersion: schema_id.split(":")[3],
-                          schemaName: schema_id.split(":")[2],
-                          schemaIssuerDID: schema_id.split(":")[0],
+                          schemaVersion: schema_id.split(':')[3],
+                          schemaName: schema_id.split(':')[2],
+                          schemaIssuerDID: schema_id.split(':')[0],
                           comment: '',
                           attributes: credentialVerifiedAttributes,
                         }
 
                         // (mikekebert) Request issuance of the trusted_traveler credential
-                        console.log("ready to issue trusted traveler")
+                        console.log('ready to issue trusted traveler')
 
                         await Credentials.autoIssueCredential(
                           newCredential.connectionID,
@@ -1435,39 +1823,49 @@ const adminMessage = async (message) => {
                           newCredential.attributes,
                         )
 
+                        // Update traveler's verification status
+                        await Travelers.updateVerificationStatus(
+                          updatedContact.contact_id,
+                          true,
+                        )
+
                         credentialVerifiedAttributes = null
                       } else {
                         // (mikekebert) Send a basic message saying the verification was rejected because of business logic
-                        console.log('Presentation rejected: 2019-nCoV Detected')
-                        await AdminAPI.Connections.sendBasicMessage(message.connection_id, {
-                          content: 'INVALID_PROOF',
-                        })
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content: 'INVALID_PROOF',
+                          },
+                        )
 
+                        // Update traveler's verification status
+                        await Travelers.updateVerificationStatus(
+                          contact.contact_id,
+                          false,
+                        )
                       }
                     } else {
                       console.log('no governance or insificient privilieges')
-                      await AdminAPI.Connections.sendBasicMessage(message.connection_id, {
-                        content: 'INVALID_PRIVILEGES',
-                      })
+                      await AdminAPI.Connections.sendBasicMessage(
+                        message.connection_id,
+                        {
+                          content: 'INVALID_PRIVILEGES',
+                        },
+                      )
                     }
                   } else {
                     console.log("Lab didn't pass...")
+
+                    // Update traveler's verification status
+                    await Travelers.updateVerificationStatus(
+                      contact.contact_id,
+                      false,
+                    )
                   }
                 }
 
-
-
-
-
                 // --------------------------- Handling and storing success -------------------------
-
-
-
-
-
-
-
-
 
                 // console.log("")
                 // console.log("it passed 1")
@@ -1532,39 +1930,49 @@ const adminMessage = async (message) => {
 
                 // (eldersonar) Validation failed
               } else {
-                console.log("")
-                console.log("The field comparison failed.")
-                console.log("")
+                console.log('')
+                console.log('The field comparison failed.')
+                console.log('')
               }
-
-
             }
             // Handle nested submission requirements validation
           } else {
-            console.log("...........Handling nested submission requrements validation.................")
-
+            console.log(
+              '...........Handling nested submission requrements validation.................',
+            )
 
             // TODO: fix this not to trigger issuing from_nested.length * credentials
-            for (let g = 0; g < pdf.presentation_definition.submission_requirements[0].from_nested.length; g++) {
-
+            for (
+              let g = 0;
+              g <
+              pdf.presentation_definition.submission_requirements[0].from_nested
+                .length;
+              g++
+            ) {
               let chosenDescriptors = []
 
               // Get nested descriptors
               for (let f = 0; f < inputDescriptors.length; f++) {
-                if (inputDescriptors[f].group.includes(pdf.presentation_definition.submission_requirements[0].from_nested[g].from)) {
+                if (
+                  inputDescriptors[f].group.includes(
+                    pdf.presentation_definition.submission_requirements[0]
+                      .from_nested[g].from,
+                  )
+                ) {
                   chosenDescriptors.push(inputDescriptors[f])
                 }
               }
 
-              console.log("these are the chosen descriptors")
+              console.log('these are the chosen descriptors')
               console.log(g)
               console.log(chosenDescriptors)
 
               for (let i = 0; i < chosenDescriptors.length; i++) {
-
-                console.log("")
-                console.log(`Comparing proof with ${chosenDescriptors[i].name} input descriptor`)
-                console.log("")
+                console.log('')
+                console.log(
+                  `Comparing proof with ${chosenDescriptors[i].name} input descriptor`,
+                )
+                console.log('')
 
                 let fields = []
                 let proofResult = false
@@ -1572,12 +1980,23 @@ const adminMessage = async (message) => {
                 let fieldsValidationResult = false
 
                 // (eldersonar) Execute if there are any of input descriptors match the submission requirements group value
-                if (chosenDescriptors[i].group.includes(pdf.presentation_definition.submission_requirements[0].from_nested[g].from)) {
-
+                if (
+                  chosenDescriptors[i].group.includes(
+                    pdf.presentation_definition.submission_requirements[0]
+                      .from_nested[g].from,
+                  )
+                ) {
                   // Get an array of attributes
-                  for (let j = 0; j < chosenDescriptors[i].constraints.fields.length; j++) {
-
-                    const fieldPath = chosenDescriptors[i].constraints.fields[j].path.join('').split('$.')[1] // (eldersonar) TODO: turn into a loop. This will be not valid if have more than 1 path in the array
+                  for (
+                    let j = 0;
+                    j < chosenDescriptors[i].constraints.fields.length;
+                    j++
+                  ) {
+                    const fieldPath = chosenDescriptors[i].constraints.fields[
+                      j
+                    ].path
+                      .join('')
+                      .split('$.')[1] // (eldersonar) TODO: turn into a loop. This will be not valid if have more than 1 path in the array
 
                     fields.push(fieldPath)
                   }
@@ -1586,8 +2005,13 @@ const adminMessage = async (message) => {
                 // (eldersonar) Get and sort the list of proof attributes and descriptor fields
                 const proofAttributeKeys = Object.keys(attributes)
                 const proofPredicateKeys = Object.keys(predicates)
-                const predicatesAndArrays = proofAttributeKeys.concat(proofPredicateKeys)
-                const sortedProofFields = predicatesAndArrays.sort(function (a, b) {
+                const predicatesAndArrays = proofAttributeKeys.concat(
+                  proofPredicateKeys,
+                )
+                const sortedProofFields = predicatesAndArrays.sort(function (
+                  a,
+                  b,
+                ) {
                   return a.localeCompare(b)
                 })
                 const sortedDescriptorFields = fields.sort(function (a, b) {
@@ -1596,50 +2020,80 @@ const adminMessage = async (message) => {
 
                 // (eldersonar) Start validation
                 if (sortedProofFields.length && sortedDescriptorFields.length) {
-
                   // (eldersonar) Check if there is no array match (no credential match or no predicate match)
-                  if (JSON.stringify(sortedProofFields) != JSON.stringify(sortedDescriptorFields)) {
-
-                    console.log("comparison failed")
+                  if (
+                    JSON.stringify(sortedProofFields) !=
+                    JSON.stringify(sortedDescriptorFields)
+                  ) {
+                    console.log('comparison failed')
 
                     // (eldersonar) Get leftover fields with the filter
-                    let nonDuplicateFields = sortedProofFields.filter(val => !sortedDescriptorFields.includes(val))
+                    let nonDuplicateFields = sortedProofFields.filter(
+                      (val) => !sortedDescriptorFields.includes(val),
+                    )
 
-                    for (let k = 0; k < chosenDescriptors[i].constraints.fields.length; k++) {
-
+                    for (
+                      let k = 0;
+                      k < chosenDescriptors[i].constraints.fields.length;
+                      k++
+                    ) {
                       // (eldersonar) Check if input descriptor has in-field conditional logic
-                      if (chosenDescriptors[i].constraints.fields[k].filter.oneOf) {
-
-                        for (let l = 0; l < chosenDescriptors[i].constraints.fields[k].filter.oneOf.length; l++) {
-
+                      if (
+                        chosenDescriptors[i].constraints.fields[k].filter.oneOf
+                      ) {
+                        for (
+                          let l = 0;
+                          l <
+                          chosenDescriptors[i].constraints.fields[k].filter
+                            .oneOf.length;
+                          l++
+                        ) {
                           for (let m = 0; m < nonDuplicateFields.length; m++) {
-
                             const prefix = '$.'
                             let lookupField = ''
                             lookupField += prefix
                             lookupField += nonDuplicateFields[m]
 
                             // (eldersonar) If we can find the field name in the list of in-field predicates
-                            if (chosenDescriptors[i].constraints.fields[k].filter.oneOf[l].dependent_fields[0].path.includes(lookupField)) {
-
+                            if (
+                              chosenDescriptors[i].constraints.fields[
+                                k
+                              ].filter.oneOf[
+                                l
+                              ].dependent_fields[0].path.includes(lookupField)
+                            ) {
                               // (eldersonar) Removing predicate from the list of sorted fields
-                              const index = sortedProofFields.indexOf(nonDuplicateFields[m]);
+                              const index = sortedProofFields.indexOf(
+                                nonDuplicateFields[m],
+                              )
                               if (index > -1) {
                                 sortedProofFields.splice(index, 1)
                               }
 
                               console.log(sortedProofFields)
                               console.log(sortedDescriptorFields)
-                              console.log(JSON.stringify(sortedProofFields) === JSON.stringify(sortedDescriptorFields))
+                              console.log(
+                                JSON.stringify(sortedProofFields) ===
+                                  JSON.stringify(sortedDescriptorFields),
+                              )
 
                               // (eldersonar) Check if arrays match after the predicates were removed
-                              if (JSON.stringify(sortedProofFields) === JSON.stringify(sortedDescriptorFields)) {
+                              if (
+                                JSON.stringify(sortedProofFields) ===
+                                JSON.stringify(sortedDescriptorFields)
+                              ) {
+                                console.log('')
+                                console.log(
+                                  '_____________________________________________',
+                                )
+                                console.log(
+                                  'Validation of proof was successful.',
+                                )
 
-                                console.log("")
-                                console.log("_____________________________________________")
-                                console.log("Validation of proof was successful.")
-
-                                fieldsValidationResult = validateFieldByField(attributes, chosenDescriptors[i])
+                                fieldsValidationResult = validateFieldByField(
+                                  attributes,
+                                  chosenDescriptors[i],
+                                )
 
                                 proofResult = true
                               } else {
@@ -1657,17 +2111,20 @@ const adminMessage = async (message) => {
                   }
                   // (eldersonar) Perfect match, proof fields are validated!
                   else {
-                    console.log("")
-                    console.log("_____________________________________________")
-                    console.log("Validation of proof was successful.")
+                    console.log('')
+                    console.log('_____________________________________________')
+                    console.log('Validation of proof was successful.')
 
                     // (eldersonar) Value validation happens here
-                    fieldsValidationResult = validateFieldByField(attributes, chosenDescriptors[i])
+                    fieldsValidationResult = validateFieldByField(
+                      attributes,
+                      chosenDescriptors[i],
+                    )
 
                     proofResult = true
                   }
                 } else {
-                  console.log("Error: lacking data for validation")
+                  console.log('Error: lacking data for validation')
                 }
 
                 console.log(proofResult)
@@ -1679,40 +2136,51 @@ const adminMessage = async (message) => {
 
                 // Check if all level validation passed
                 if (proofResult && fieldsValidationResult) {
-
-
-                  console.log("")
-                  console.log("it passed 2")
-                  console.log("")
-                  console.log("")
-
-
-
+                  console.log('')
+                  console.log('it passed 2')
+                  console.log('')
+                  console.log('')
 
                   // --------------------------- Handling and storing success -------------------------
-                  console.log("Original presentations array")
-                  console.log("")
-                  console.log(contact.Traveler.dataValues.proof_result_list.presentations)
-                  console.log("")
+                  console.log('Original presentations array')
+                  console.log('')
+                  console.log(
+                    contact.Traveler.dataValues.proof_result_list.presentations,
+                  )
+                  console.log('')
 
                   let successFlag = null
 
-                  for (let x = 0; x < contact.Traveler.dataValues.proof_result_list.presentations.length; x++) {
-                    console.log(contact.Traveler.dataValues.proof_result_list.presentations[x])
+                  for (
+                    let x = 0;
+                    x <
+                    contact.Traveler.dataValues.proof_result_list.presentations
+                      .length;
+                    x++
+                  ) {
+                    console.log(
+                      contact.Traveler.dataValues.proof_result_list
+                        .presentations[x],
+                    )
 
                     // // Get all the object keys
-                    let keys = Object.keys(contact.Traveler.dataValues.proof_result_list.presentations[x])
+                    let keys = Object.keys(
+                      contact.Traveler.dataValues.proof_result_list
+                        .presentations[x],
+                    )
 
                     // (eldersonar) TODO: Locate and remove redundant code here
                     let listElement = {
                       [inputDescriptors[i].name]: {
-                        "result": true,
-                        presentation: {}
-                      }
+                        result: true,
+                        presentation: {},
+                      },
                     }
 
                     // // Proof object reasignment
-                    let proofList = contact.Traveler.dataValues.proof_result_list.presentations[x]
+                    let proofList =
+                      contact.Traveler.dataValues.proof_result_list
+                        .presentations[x]
 
                     // Keys to string
                     let key = keys.join()
@@ -1732,54 +2200,59 @@ const adminMessage = async (message) => {
                     // console.log("this is an updated list")
                     // console.log(proofList)
 
-                    // Proof result list (presentation ) shallow copy 
-                    let presentations = [...contact.Traveler.dataValues.proof_result_list.presentations]
+                    // Proof result list (presentation ) shallow copy
+                    let presentations = [
+                      ...contact.Traveler.dataValues.proof_result_list
+                        .presentations,
+                    ]
 
                     // Rebuilding object list
                     presentations.presentations = proofList[x]
 
-                    // Set check result to true 
+                    // Set check result to true
                     const list = presentations.map((item) => {
                       if (Object.keys(item) === key) {
                         item.result = true
                       }
-                      return item;
+                      return item
                     })
 
-                    console.log("list")
+                    console.log('list')
                     console.log(list)
 
                     let finalList = {}
                     finalList.presentations = list
 
                     // Update traveler's proof result list
-                    await Travelers.updateProofResultList(contact.contact_id, finalList)
-
+                    await Travelers.updateProofResultList(
+                      contact.contact_id,
+                      finalList,
+                    )
 
                     // Break out of outer loop if successfully passed val
                     if (successFlag) {
-                      console.log("break")
+                      console.log('break')
                       break
                     }
                   }
 
                   // --------------------------- Handling and storing success -------------------------
 
-
-
-
-
-
-                  console.log("Issuing trusted traveler credential.")
+                  console.log('Issuing trusted traveler credential.')
 
                   credentialVerifiedAttributes = credentialAttributes
                   let schema_id = ''
 
                   // (eldersonar) Validate the privileges
-                  if (governance && privileges.includes("issue_trusted_traveler")) {
+                  if (
+                    governance &&
+                    privileges.includes('issue_trusted_traveler')
+                  ) {
                     for (let i = 0; i < governance.actions.length; i++) {
                       // (eldersonar) Get schema id for trusted traveler
-                      if (governance.actions[i].name === "issue_trusted_traveler") {
+                      if (
+                        governance.actions[i].name === 'issue_trusted_traveler'
+                      ) {
                         schema_id = governance.actions[i].details.schema
                       }
                     }
@@ -1789,15 +2262,15 @@ const adminMessage = async (message) => {
                       let newCredential = {
                         connectionID: message.connection_id,
                         schemaID: schema_id,
-                        schemaVersion: schema_id.split(":")[3],
-                        schemaName: schema_id.split(":")[2],
-                        schemaIssuerDID: schema_id.split(":")[0],
+                        schemaVersion: schema_id.split(':')[3],
+                        schemaName: schema_id.split(':')[2],
+                        schemaIssuerDID: schema_id.split(':')[0],
                         comment: '',
                         attributes: credentialVerifiedAttributes,
                       }
 
                       // (mikekebert) Request issuance of the trusted_traveler credential
-                      console.log("ready to issue trusted traveler")
+                      console.log('ready to issue trusted traveler')
 
                       // await Credentials.autoIssueCredential(
                       //   newCredential.connectionID,
@@ -1812,35 +2285,44 @@ const adminMessage = async (message) => {
                       // )
 
                       // Update traveler's verification status
-                      await Travelers.updateVerificationStatus(contact.contact_id, true)
+                      await Travelers.updateVerificationStatus(
+                        contact.contact_id,
+                        true,
+                      )
 
                       credentialVerifiedAttributes = null
                     } else {
                       // (mikekebert) Send a basic message saying the verification was rejected because of business logic
                       console.log('Presentation rejected: 2019-nCoV Detected')
-                      await AdminAPI.Connections.sendBasicMessage(message.connection_id, {
-                        content: 'INVALID_PROOF',
-                      })
+                      await AdminAPI.Connections.sendBasicMessage(
+                        message.connection_id,
+                        {
+                          content: 'INVALID_PROOF',
+                        },
+                      )
 
                       // Update traveler's verification status
-                      await Travelers.updateVerificationStatus(contact.contact_id, false)
-
+                      await Travelers.updateVerificationStatus(
+                        contact.contact_id,
+                        false,
+                      )
                     }
                   } else {
-                    console.log('no governance or insificient privilieges')
-                    await AdminAPI.Connections.sendBasicMessage(message.connection_id, {
-                      content: 'INVALID_PRIVILEGES',
-                    })
+                    console.log('no governance or insufficient privilieges')
+                    await AdminAPI.Connections.sendBasicMessage(
+                      message.connection_id,
+                      {
+                        content: 'INVALID_PRIVILEGES',
+                      },
+                    )
                   }
 
                   // (eldersonar) Validation failed
                 } else {
-                  console.log("")
-                  console.log("The field comparison failed.")
-                  console.log("")
+                  console.log('')
+                  console.log('The field comparison failed.')
+                  console.log('')
                 }
-
-
               }
             }
           }
@@ -1894,5 +2376,5 @@ const adminMessage = async (message) => {
 module.exports = {
   adminMessage,
   requestPresentation,
-  requestIdentityPresentation
+  requestIdentityPresentation,
 }

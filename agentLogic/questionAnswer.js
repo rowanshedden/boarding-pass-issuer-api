@@ -5,54 +5,54 @@ const Presentations = require('./presentations')
 
 // Retrieve Credential Definition IDs
 const askQuestion = async (
-    connection_id,
-    question_text,
-    question_detail,
-    valid_responses
+  connection_id,
+  question_text,
+  question_detail,
+  valid_responses,
 ) => {
-    try {
-        const answer = await AdminAPI.QuestionAnswer.sendQuestion(
-            connection_id,
-            question_text,
-            question_detail,
-            valid_responses
-        )
+  try {
+    const answer = await AdminAPI.QuestionAnswer.sendQuestion(
+      connection_id,
+      question_text,
+      question_detail,
+      valid_responses,
+    )
 
-        return answer
-    } catch (error) {
-        console.error('Error Sending a Question')
-        throw error
-    }
+    return answer
+  } catch (error) {
+    console.error('Error Sending a Question')
+    throw error
+  }
 }
 
 const adminMessage = async (message) => {
-    console.log('New Q&A Message')
+  console.log('New Q&A Message')
 
-    console.log(message)
+  console.log(message)
 
-    // Connection Reuse Method
-    switch (message.response) {
-        case 'Vaccination + PCR Test':
-            console.log('Connection Request Vaccination + PCR Test')
+  // Connection Reuse Method
+  switch (message.response) {
+    case 'Vaccination + PCR Test':
+      console.log('Connection Request Vaccination + PCR Test')
 
-            // (eldersonar) TODO: tie this to the governance
-            Presentations.requestPresentation(message.connection_id, 'Lab+Vaccine')
-            break
+      // (eldersonar) TODO: tie this to the governance
+      Presentations.requestPresentation(message.connection_id, 'Lab+Vaccine')
+      break
 
-        case 'PCR Test Only':
-            console.log('Connection Request PCR Test Only')
+    case 'PCR Test Only':
+      console.log('Connection Request PCR Test Only')
 
-            // (eldersonar) TODO: tie this to the governance
-            Presentations.requestPresentation(message.connection_id, 'Lab')
-            break
+      // (eldersonar) TODO: tie this to the governance
+      Presentations.requestPresentation(message.connection_id, 'Lab')
+      break
 
-        default:
-            console.warn('Answer Message:', message.response)
-            return
-    }
+    default:
+      console.warn('Answer Message:', message.response)
+      return
+  }
 }
 
 module.exports = {
-    askQuestion,
-    adminMessage
+  askQuestion,
+  adminMessage,
 }

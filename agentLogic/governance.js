@@ -13,11 +13,10 @@ const getGovernance = async () => {
     return response
   } catch (error) {
     console.error('Governance Document Request Error')
-    console.log(error.response.status)
+    //console.log(error.response.status)
 
     // (eldersonar) Do we handle specific codes or handle all errors as one?
-    if (error.response.status)
-      return undefined
+    if (error.response.status) return undefined
   }
 }
 
@@ -27,7 +26,9 @@ const getPresentationDefinition = async () => {
     const governance = await getGovernance()
 
     // Presentation definition file
-    const pdfLink = governance.actions.find((item) => item.name === 'issue_trusted_traveler').details.presentation_definition
+    const pdfLink = governance.actions.find(
+      (item) => item.name === 'issue_trusted_traveler',
+    ).details.presentation_definition
 
     const response = await axios({
       method: 'GET',
@@ -43,7 +44,7 @@ const getPresentationDefinition = async () => {
     console.log(error)
 
     // (eldersonar) Do we handle specific codes or handle all errors as one?
-    // if (error.response.status) 
+    // if (error.response.status)
     return undefined
 
     // throw error
@@ -56,7 +57,7 @@ const getLabPresentationDefinition = async () => {
     const governance = await getGovernance()
 
     // Presentation definition file
-    const pdfLink = "http://localhost:3100/api/lab-presentation-exchange"
+    const pdfLink = 'http://localhost:3100/api/lab-presentation-exchange'
 
     const response = await axios({
       method: 'GET',
@@ -72,7 +73,7 @@ const getLabPresentationDefinition = async () => {
     console.log(error)
 
     // (eldersonar) Do we handle specific codes or handle all errors as one?
-    // if (error.response.status) 
+    // if (error.response.status)
     return undefined
 
     // throw error
@@ -84,7 +85,8 @@ const getLabVaccinePresentationDefinition = async () => {
     const governance = await getGovernance()
 
     // Presentation definition file
-    const pdfLink = "http://localhost:3100/api/lab-vaccine-presentation-exchange"
+    const pdfLink =
+      'http://localhost:3100/api/lab-vaccine-presentation-exchange'
 
     const response = await axios({
       method: 'GET',
@@ -100,7 +102,7 @@ const getLabVaccinePresentationDefinition = async () => {
     console.log(error)
 
     // (eldersonar) Do we handle specific codes or handle all errors as one?
-    // if (error.response.status) 
+    // if (error.response.status)
     return undefined
 
     // throw error
@@ -130,16 +132,14 @@ const getDID = async () => {
 const getParticipantByDID = async () => {
   try {
     const did = await getDID()
-    if (!did) return { error: 'noDID' }
+    if (!did) return {error: 'noDID'}
     else {
-
       const governance = await getGovernance()
 
       if (!governance || Object.keys(governance).length === 0) {
         console.log("the file is empty or doesn't exist")
-        return { error: "noGov" }
+        return {error: 'noGov'}
       } else if (
-
         // (eldersonar) Are we still doing this???
 
         // Handle the case where we check for participants if roles are missing. Allow to act, but give the warning message (working with unknown participant.)
@@ -148,19 +148,17 @@ const getParticipantByDID = async () => {
 
         !governance.hasOwnProperty('roles') ||
         !governance.hasOwnProperty('permissions') ||
-        !governance.hasOwnProperty('privileges')) {
-
+        !governance.hasOwnProperty('privileges')
+      ) {
         // (eldersonar) TODO: rename the return value
-        console.log("the file is not empty, but lacks core data")
-        return { error: "limitedGov" }
+        console.log('the file is not empty, but lacks core data')
+        return {error: 'limitedGov'}
       } else {
-
         let participant = governance.participants.find((o) => o.id === did)
 
         return participant
       }
     }
-
   } catch (error) {
     console.error('Error fetching participant')
     throw error
@@ -192,32 +190,32 @@ const getPrivilegesByRoles = async () => {
   try {
     const did = await getDID()
 
-    if (!did) return { error: 'noDID' }
+    if (!did) return {error: 'noDID'}
     else {
-
       const governance = await getGovernance()
 
       // (eldersonar) missing or empty governance
       if (!governance || Object.keys(governance).length === 0) {
         console.log("the file is empty or doesn't exist")
-        return { error: "noGov" }
+        return {error: 'noGov'}
         // (eldersonar) partial governance
       } else if (
         // !governance.hasOwnProperty('participants') ||
         !governance.hasOwnProperty('roles') ||
         !governance.hasOwnProperty('permissions') ||
         // !governance.hasOwnProperty('actions') ||
-        !governance.hasOwnProperty('privileges')) {
-        console.log("the file is not empty, but lacks core data")
+        !governance.hasOwnProperty('privileges')
+      ) {
+        console.log('the file is not empty, but lacks core data')
         // return { error: "limitedGov" }
-        return { error: "noPrivileges" }
+        return {error: 'noPrivileges'}
         // (eldersonar) You have a pass
       } else {
         const permissions = await getPermissionsByDID()
 
         if (!permissions || permissions.length == 0)
           // return { error: 'noPermissions' }
-          return { error: 'noPrivileges' }
+          return {error: 'noPrivileges'}
         else {
           let privileges = []
 
@@ -235,7 +233,7 @@ const getPrivilegesByRoles = async () => {
           }
 
           if (!privileges || privileges.length == 0)
-            return { error: 'noPrivileges' }
+            return {error: 'noPrivileges'}
           else {
             const uniquePrivileges = [...new Set(privileges)]
 
@@ -250,41 +248,39 @@ const getPrivilegesByRoles = async () => {
   }
 }
 
-
 // Get actions by privileges
 const getActionsByPrivileges = async () => {
   try {
     const did = await getDID()
 
-    if (!did) return { error: 'noDID' }
+    if (!did) return {error: 'noDID'}
     else {
-
       const governance = await getGovernance()
 
       // (eldersonar) missing or empty governance
       if (!governance || Object.keys(governance).length === 0) {
         console.log("the file is empty or doesn't exist")
-        return { error: "noGov" }
+        return {error: 'noGov'}
         // (eldersonar) partial governance
       } else if (
         // !governance.hasOwnProperty('participants') ||
         !governance.hasOwnProperty('roles') ||
         !governance.hasOwnProperty('permissions') ||
         !governance.hasOwnProperty('actions') ||
-        !governance.hasOwnProperty('privileges')) {
-        console.log("the file is not empty, but lacks core data")
+        !governance.hasOwnProperty('privileges')
+      ) {
+        console.log('the file is not empty, but lacks core data')
         // return { error: "limitedGov" }
-        return { error: "noPrivileges" }
+        return {error: 'noPrivileges'}
         // (eldersonar) Pass granted
       } else {
-
         const privileges = await getPrivilegesByRoles()
         const actionsArr = await getActions()
 
         if (!privileges || privileges.length == 0) {
-          return { error: 'noPrivileges' }
+          return {error: 'noPrivileges'}
         } else if (!actionsArr || actionsArr.length == 0) {
-          return { error: 'noActionsArr' }
+          return {error: 'noActionsArr'}
         } else {
           let actions = []
 
@@ -298,8 +294,7 @@ const getActionsByPrivileges = async () => {
           }
 
           // (eldersonar) Filter unique actions
-          if (!actions || actions.length == 0)
-            return { error: 'noActions' }
+          if (!actions || actions.length == 0) return {error: 'noActions'}
           else {
             const uniqueActions = [...new Set(actions)]
 
@@ -318,22 +313,20 @@ const getActionsByPrivileges = async () => {
 const getActions = async () => {
   try {
     const did = await getDID()
-    if (!did) return { error: 'noDID' }
+    if (!did) return {error: 'noDID'}
     else {
-
       const governance = await getGovernance()
 
       if (!governance || Object.keys(governance).length === 0) {
         console.log("the file is empty or doesn't exist")
-        return { error: "noGov" }
+        return {error: 'noGov'}
       } else if (!governance.hasOwnProperty('actions')) {
-        console.log("the are no actions")
-        return { error: "noActions" }
+        console.log('the are no actions')
+        return {error: 'noActions'}
       } else {
         return governance.actions
       }
     }
-
   } catch (error) {
     console.error('Error fetching actions')
     throw error
@@ -344,22 +337,20 @@ const getActions = async () => {
 const getParticipants = async () => {
   try {
     const did = await getDID()
-    if (!did) return { error: 'noDID' }
+    if (!did) return {error: 'noDID'}
     else {
-
       const governance = await getGovernance()
 
       if (!governance || Object.keys(governance).length === 0) {
         console.log("the file is empty or doesn't exist")
-        return { error: "noGov" }
+        return {error: 'noGov'}
       } else if (!governance.hasOwnProperty('participants')) {
-        console.log("the are no participants")
-        return { error: "noParticipants" }
+        console.log('the are no participants')
+        return {error: 'noParticipants'}
       } else {
         return governance.participants
       }
     }
-
   } catch (error) {
     console.error('Error fetching participants')
     throw error
@@ -375,8 +366,8 @@ module.exports = {
   getParticipants,
   getActionsByPrivileges,
   getActions,
-//------------ (eldersonar) TODO: remove after trial-------------
-getLabPresentationDefinition,
-getLabVaccinePresentationDefinition,
-//------------ (eldersonar) TODO: remove after trial-------------
+  //------------ (eldersonar) TODO: remove after trial-------------
+  getLabPresentationDefinition,
+  getLabVaccinePresentationDefinition,
+  //------------ (eldersonar) TODO: remove after trial-------------
 }

@@ -17,19 +17,17 @@ exports.setup = function (options, seedLink) {
 exports.up = function (db) {
   // If there are demographics, we need to delete them anyway
 
-  return (
-    db
-      .addColumn('travelers', 'proof_type', {
-        type: 'string',
+  return db
+    .addColumn('travelers', 'proof_type', {
+      type: 'string',
+      null: true,
+    })
+    .then(function () {
+      return db.addColumn('travelers', 'proof_result_list', {
+        type: 'json',
         null: true,
       })
-      .then(function () {
-        return db.addColumn('travelers', 'proof_result_list', {
-          type: 'json',
-          null: true,
-        })
-      })
-  )
+    })
 }
 
 exports.down = function (db) {

@@ -8,7 +8,7 @@ const Governance = require('../agentLogic/governance')
 const requestPresentation = async (
   connectionID,
   predicates,
-  attributes, 
+  attributes,
   name,
   comment,
   trace = false,

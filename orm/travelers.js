@@ -314,7 +314,6 @@ const updateProofStatus = async function (contact_id, proof_status) {
   }
 }
 
-
 const updateProofType = async function (contact_id, proof_type) {
   try {
     const timestamp = Date.now()

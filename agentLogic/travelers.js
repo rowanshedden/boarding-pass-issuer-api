@@ -114,5 +114,5 @@ module.exports = {
   updateVerificationStatus,
   updateProofStatus,
   updateProofType,
-  updateProofResultList
+  updateProofResultList,
 }
