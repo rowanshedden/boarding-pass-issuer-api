@@ -32,7 +32,7 @@ let Websocket = require('./websockets.js')
 const Passenger = require('./agentLogic/passenger')
 const Users = require('./agentLogic/users')
 
-app.use(bodyParser.urlencoded({extended: false}))
+app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
 app.use(passport.initialize())
@@ -40,15 +40,14 @@ require('./passport-config')(passport)
 
 server.listen(process.env.CONTROLLERPORT || 3100, () =>
   console.log(
-    `Server listening at http://localhost:${
-      process.env.CONTROLLERPORT || 3100
+    `Server listening at http://localhost:${process.env.CONTROLLERPORT || 3100
     }`,
     `\n Agent Address: ${process.env.AGENTADDRESS || 'localhost:8150'}`,
   ),
 )
 
 const agentWebhookRouter = require('./agentWebhook')
-const {connect} = require('http2')
+const { connect } = require('http2')
 
 // Send all cloud agent webhooks posting to the agent webhook router
 app.use('/api/controller-webhook', agentWebhookRouter)
@@ -63,6 +62,23 @@ app.use(
   '/api/governance-framework',
   express.static('governance-framework.json'),
 )
+
+app.use(
+  '/api/presentation-exchange',
+  express.static('presentation-exchange-nested.json'),
+  // express.static('presentation-exchange.json'),
+)
+
+//------------ (eldersonar) TODO: remove after trial-------------
+app.use(
+  '/api/lab-presentation-exchange',
+  express.static('lab-presentation-exchange.json'),
+)
+app.use(
+  '/api/lab-vaccine-presentation-exchange',
+  express.static('lab-vaccine-presentation-exchange.json'),
+)
+//------------ (eldersonar) TODO: remove after trial-------------
 
 // (eldersonar) Create database
 const sequelize = new Sequelize('government', 'government', 'government', {
@@ -138,7 +154,7 @@ const verifySession = (req, res, next) => {
 app.post('/api/user/log-in', (req, res, next) => {
   // Empty/data checks
   if (!req.body.username || !req.body.password)
-    res.json({error: 'All fields must be filled out.'})
+    res.json({ error: 'All fields must be filled out.' })
 
   if (!Util.validateAlphaNumeric(req.body.username))
     res.json({
@@ -153,10 +169,10 @@ app.post('/api/user/log-in', (req, res, next) => {
     })
 
   if (!req.body.password || !req.body.username)
-    res.json({error: 'All fields must be filled out.'})
+    res.json({ error: 'All fields must be filled out.' })
   passport.authenticate('local', (err, user, info) => {
     if (err) throw err
-    if (!user) res.json({error: 'Username or password is wrong.'})
+    if (!user) res.json({ error: 'Username or password is wrong.' })
     else {
       req.logIn(user, (err) => {
         if (err) throw err
@@ -184,8 +200,8 @@ app.post('/api/user/log-out', (req, res) => {
       if (!err) {
         res
           .status(200)
-          .clearCookie('sessionId', {path: '/'})
-          .json({status: 'Session destroyed.'})
+          .clearCookie('sessionId', { path: '/' })
+          .json({ status: 'Session destroyed.' })
       } else {
         res.send("Couldn't destroy the session.")
       }
@@ -197,10 +213,12 @@ app.post('/api/user/log-out', (req, res) => {
 app.post('/api/user/token/validate', async (req, res) => {
   try {
     const verify = jwt.verify(req.body.token, process.env.JWT_SECRET)
-    res.status(200).json({status: 'The link is valid.'})
+    const unusedtoken = await Users.getUserByToken(req.body.token)
+    if (!unusedtoken) res.json({ error: 'The link has expired.' })
+    else res.status(200).json({ status: 'The link is valid.' })
   } catch (err) {
     console.error(err)
-    res.json({error: 'The link has expired.'})
+    res.json({ error: 'The link has expired.' })
   }
 })
 
@@ -210,13 +228,13 @@ app.post('/api/user/password/update', async (req, res) => {
   } catch (err) {
     console.error(err)
     console.log('The token has expired.')
-    res.json({error: 'The link has expired.'})
+    res.json({ error: 'The link has expired.' })
   }
 
   let user = undefined
 
   if (!req.body.password)
-    res.status(200).json({error: 'All fields must be filled out.'})
+    res.status(200).json({ error: 'All fields must be filled out.' })
   else if (!Util.validatePassword(req.body.password)) {
     res.json({
       error:
@@ -226,15 +244,15 @@ app.post('/api/user/password/update', async (req, res) => {
     try {
       const validToken = await Users.getUserByToken(req.body.token)
       if (validToken.user_id !== req.body.id)
-        res.json({error: 'The token did not match the user.'})
+        res.json({ error: 'The token did not match the user.' })
     } catch (error) {
       throw error
     }
 
     user = await Users.updatePassword(req.body.id, req.body.password)
     if (!user)
-      res.status(200).json({error: "The password couldn't be updated."})
-    else res.status(200).json({status: 'Password updated.'})
+      res.status(200).json({ error: "The password couldn't be updated." })
+    else res.status(200).json({ status: 'Password updated.' })
   }
 })
 
@@ -248,16 +266,16 @@ app.post('/api/user/update', async (req, res) => {
     try {
       const verify = jwt.verify(req.body.token, process.env.JWT_SECRET)
     } catch (error) {
-      res.json({error: 'The link has expired.'})
+      res.json({ error: 'The link has expired.' })
       throw error
     }
 
     // Empty/data checks
     if (!req.body.email || !req.body.username || !req.body.password)
-      res.json({error: 'All fields must be filled out.'})
+      res.json({ error: 'All fields must be filled out.' })
 
     if (!Util.validateEmail(req.body.email))
-      res.json({error: 'Must be a valid email.'})
+      res.json({ error: 'Must be a valid email.' })
 
     if (!Util.validateAlphaNumeric(req.body.username))
       res.json({
@@ -272,7 +290,7 @@ app.post('/api/user/update', async (req, res) => {
       })
 
     userByEmail = await Users.getUserByEmail(req.body.email)
-    if (!userByEmail) res.json({error: 'The user was not found.'})
+    if (!userByEmail) res.json({ error: 'The user was not found.' })
 
     user = await Users.updateUser(
       userByEmail.user_id,
@@ -287,13 +305,13 @@ app.post('/api/user/update', async (req, res) => {
     // updating the token for the user (from password forgot screen)
 
     // Empty/data checks
-    if (!req.body.email) res.json({error: 'All fields must be filled out.'})
+    if (!req.body.email) res.json({ error: 'All fields must be filled out.' })
 
     if (!Util.validateEmail(req.body.email))
-      res.json({error: 'Must be a valid email.'})
+      res.json({ error: 'Must be a valid email.' })
 
     userByEmail = await Users.getUserByEmail(req.body.email)
-    if (!userByEmail) res.json({error: 'The user was not found.'})
+    if (!userByEmail) res.json({ error: 'The user was not found.' })
     user = await Users.updateUser(
       userByEmail.user_id,
       userByEmail.username,
@@ -308,15 +326,15 @@ app.post('/api/user/update', async (req, res) => {
   // If SMTP is not set up or broken
   if (user.error) res.send(user.error)
 
-  if (!user) res.json({error: "The user couldn't be updated."})
-  else res.status(200).json({status: 'User updated.'})
+  if (!user) res.json({ error: "The user couldn't be updated." })
+  else res.status(200).json({ status: 'User updated.' })
 })
 
 // Logo retrieval
 app.get('/api/logo', async (req, res) => {
   try {
     const logo = await Images.getImagesByType('logo')
-    if (!logo) res.json({error: 'The logo was not found.'})
+    if (!logo) res.json({ error: 'The logo was not found.' })
     res.send(logo)
   } catch (err) {
     console.error(err)
@@ -333,7 +351,7 @@ app.get('/api/renew-session', verifySession, async (req, res) => {
 
   res
     .status(200)
-    .json({id: user.user_id, username: user.username, roles: userRoles})
+    .json({ id: user.user_id, username: user.username, roles: userRoles })
 })
 
 // Invitation request API
@@ -357,7 +375,7 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
     const invitation = await Invitations.createSingleUseInvitation()
 
     if (!invitation) {
-      res.json({error: 'There was a problem creating an invitation'})
+      res.json({ error: 'There was a problem creating an invitation' })
     }
 
     const fullName = data.passport_surnames + ' ' + data.passport_given_names
@@ -379,7 +397,7 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
     )
 
     if (!connections) {
-      res.json({error: "Couldn't link contacts to connections"})
+      res.json({ error: "Couldn't link contacts to connections" })
     }
 
     // (eldersonar) Write traveler and passport to the database
@@ -438,7 +456,7 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
     await axios({
       method: 'POST',
       url: 'https://health-provider.sitalab.io/api/v1.0/provider/xid',
-      headers: {'x-apikey': process.env.SITA_APIKEY},
+      headers: { 'x-apikey': process.env.SITA_APIKEY },
       data: SITAHubTraveler,
     })
       .then((response) => {
@@ -454,7 +472,7 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
           const secondResponse = await axios({
             method: 'POST',
             url: 'https://health-provider.sitalab.io/api/v1.0/provider/xid',
-            headers: {'x-apikey': process.env.SITA_APIKEY},
+            headers: { 'x-apikey': process.env.SITA_APIKEY },
             data: SITAHubTraveler,
           })
             .then((response2) => {
@@ -465,13 +483,13 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
               })
             })
             .catch(function (error) {
-              res.send({error: "Couldn't write to the SITA HUB database"})
+              res.send({ error: "Couldn't write to the SITA HUB database" })
             })
         }, 30000)
       })
   } catch (error) {
     console.error(error)
-    res.json({error: 'Unexpected error occurred'})
+    res.json({ error: 'Unexpected error occurred' })
   }
 })
 
@@ -485,8 +503,17 @@ app.get('/api/verification/:id', async (req, res) => {
       ['Traveler'],
     )
 
+    // (eldersonar) TODO: Remove after development
+    console.log("")
+    console.log("")
+    console.log(contact.Traveler.dataValues.proof_result_list)
+    console.log(contact.Traveler.dataValues.proof_result_list.presentations)
+    console.log("")
+    console.log("")
+    // (eldersonar) TODO: Remove after development
+
     if (!contact) {
-      res.json({error: "Couldn't find contact by connection id"})
+      res.json({ error: "Couldn't find contact by connection id" })
     }
 
     let complete = null
@@ -527,7 +554,7 @@ app.get('/api/verification/:id', async (req, res) => {
     res.status(200).send(response)
   } catch (err) {
     console.error(err)
-    res.json({error: "Passenger couldn't be verified"})
+    res.json({ error: "Passenger couldn't be verified" })
   }
 })
 

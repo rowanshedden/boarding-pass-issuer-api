@@ -85,8 +85,34 @@ const updateProofStatus = async function (contact_id, proof_status) {
   }
 }
 
+const updateProofType = async function (contact_id, answer) {
+  try {
+    const timestamp = Date.now()
+
+    await Travelers.updateProofType(contact_id, answer)
+
+    console.log('Answer to question update success.')
+  } catch (error) {
+    console.error('Answer to question update failed: ', error)
+  }
+}
+
+const updateProofResultList = async function (contact_id, list) {
+  try {
+    const timestamp = Date.now()
+
+    await Travelers.updateProofResultList(contact_id, list)
+
+    console.log('Proof result list update success.')
+  } catch (error) {
+    console.error('Proof result list update failed: ', error)
+  }
+}
+
 module.exports = {
   updateOrCreateTraveler,
   updateVerificationStatus,
   updateProofStatus,
+  updateProofType,
+  updateProofResultList
 }

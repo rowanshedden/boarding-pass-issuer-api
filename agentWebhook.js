@@ -5,14 +5,51 @@ const router = express.Router()
 
 const Contacts = require('./agentLogic/contacts')
 const Credentials = require('./agentLogic/credentials')
-// const Demographics = require('./agentLogic/demographics')
 const Passports = require('./agentLogic/passports')
 const BasicMessages = require('./agentLogic/basicMessages')
+const Governance = require('./agentLogic/governance')
 const Presentations = require('./agentLogic/presentations')
 const QuestionAnswer = require('./agentLogic/questionAnswer')
 
 router.post('/topic/connections', async (req, res, next) => {
   console.log('Aries Cloud Agent Webhook Message----Connection------')
+
+  // --------- (eldersonar) This code allows dynamically create answer options from presentation definition file (if we rely on a single one) ------------
+  // const pdf = await Governance.getPresentationDefinition()
+  // let answerOptions = []
+  // let answers = []
+
+  // if (pdf) {
+  //   if (!pdf.presentation_definition.submission_requirements[0].hasOwnProperty('from_nested')) {
+
+  //     console.log("I'm in nested")
+  //     for (let i = 0; i < pdf.presentation_definition.submission_requirements[0].from_nested.length; i++) {
+  //       answerOptions.push(pdf.presentation_definition.submission_requirements[0].from_nested[i].from)
+  //     }
+
+  //   } else {
+  //     console.log("I'm in regular")
+
+  //     for (let j = 0; j < pdf.presentation_definition.input_descriptors.length; j++) {
+  //       answerOptions.push(pdf.presentation_definition.input_descriptors[j].name)
+  //     }
+  //   }
+
+  //   console.log("answerOptions is ")
+  //   console.log(answerOptions)
+  //   console.log("")
+
+  //   for (let k = 0; k < answerOptions.length; k++) {
+  //     answers.push({ "text": answerOptions[k] })
+  //     console.log("answers are")
+  //     console.log(answers)
+  //     console.log("")
+  //   }
+  // } else {
+  //   console.log("no pdf for you")
+  // }
+
+  // console.log(answers)
 
   console.log('Connection Details:')
   const connectionMessage = req.body
@@ -30,7 +67,11 @@ router.post('/topic/connections', async (req, res, next) => {
         { "text": "Vaccination + PCR Test" },
         { "text": "PCR Test Only" }
       ]
+      // answers
     )
+
+    answerOptions = []
+    answers = []
   }
 
   await Contacts.adminMessage(connectionMessage)

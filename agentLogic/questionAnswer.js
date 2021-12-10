@@ -36,14 +36,14 @@ const adminMessage = async (message) => {
             console.log('Connection Request Vaccination + PCR Test')
 
             // (eldersonar) TODO: tie this to the governance
-            // Presentations.requestPresentation(connectionMessage.connection_id, 'Vaccine')
+            Presentations.requestPresentation(message.connection_id, 'Lab+Vaccine')
             break
 
         case 'PCR Test Only':
             console.log('Connection Request PCR Test Only')
 
             // (eldersonar) TODO: tie this to the governance
-            // Presentations.requestPresentation(connectionMessage.connection_id, 'Result')
+            Presentations.requestPresentation(message.connection_id, 'Lab')
             break
 
         default:

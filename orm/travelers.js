@@ -60,6 +60,12 @@ Traveler.init(
     proof_status: {
       type: DataTypes.TEXT,
     },
+    proof_type: {
+      type: DataTypes.TEXT,
+    },
+    proof_result_list: {
+      type: DataTypes.JSON,
+    },
     created_at: {
       type: DataTypes.DATE,
     },
@@ -308,6 +314,51 @@ const updateProofStatus = async function (contact_id, proof_status) {
   }
 }
 
+
+const updateProofType = async function (contact_id, proof_type) {
+  try {
+    const timestamp = Date.now()
+
+    await Traveler.update(
+      {
+        proof_type,
+        updated_at: timestamp,
+      },
+      {
+        where: {
+          contact_id,
+        },
+      },
+    )
+
+    console.log('Answer to question updated successfully.')
+  } catch (error) {
+    console.error('Error updating answer to question : ', error)
+  }
+}
+
+const updateProofResultList = async function (contact_id, proof_result_list) {
+  try {
+    const timestamp = Date.now()
+
+    await Traveler.update(
+      {
+        proof_result_list,
+        updated_at: timestamp,
+      },
+      {
+        where: {
+          contact_id,
+        },
+      },
+    )
+
+    console.log('Answer to question updated successfully.')
+  } catch (error) {
+    console.error('Error updating answer to question : ', error)
+  }
+}
+
 const deleteTraveler = async function (contact_id) {
   try {
     await Traveler.destroy({
@@ -330,5 +381,7 @@ module.exports = {
   readTravelers,
   updateTravelerVerification,
   updateProofStatus,
+  updateProofType,
+  updateProofResultList,
   deleteTraveler,
 }

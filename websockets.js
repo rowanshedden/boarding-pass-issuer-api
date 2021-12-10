@@ -12,7 +12,7 @@ const cookieParser = require('cookie-parser')
 
 let userRoles = []
 
-wss = new WebSocket.Server({server: server, path: '/api/ws'})
+wss = new WebSocket.Server({ server: server, path: '/api/ws' })
 console.log('Websockets Setup')
 
 // Send a message to all connected clients
@@ -23,7 +23,7 @@ const sendMessageToAll = (context, type, data = {}) => {
     wss.clients.forEach(function each(client) {
       if (client.readyState === WebSocket.OPEN) {
         console.log('Sending Message to Client')
-        client.send(JSON.stringify({context, type, data}))
+        client.send(JSON.stringify({ context, type, data }))
       } else {
         console.log('Client Not Ready')
       }
@@ -152,7 +152,7 @@ wss.on('connection', async (ws, req) => {
 const sendMessage = (ws, context, type, data = {}) => {
   console.log(`Sending Message to websocket client of type: ${type}`)
   try {
-    ws.send(JSON.stringify({context, type, data}))
+    ws.send(JSON.stringify({ context, type, data }))
   } catch (error) {
     console.error(error)
     throw error
@@ -164,7 +164,7 @@ const sendErrorMessage = (ws, errorCode, errorReason) => {
   try {
     console.log('Sending Error Message')
 
-    sendMessage(ws, 'ERROR', 'SERVER_ERROR', {errorCode, errorReason})
+    sendMessage(ws, 'ERROR', 'SERVER_ERROR', { errorCode, errorReason })
   } catch (error) {
     console.error('Error Sending Error Message to Client')
     console.error(error)
@@ -181,7 +181,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
           case 'GET_ALL':
             if (check(rules, userRoles, 'users:read')) {
               const users = await Users.getAll()
-              sendMessage(ws, 'USERS', 'USERS', {users})
+              sendMessage(ws, 'USERS', 'USERS', { users })
             } else {
               sendMessage(ws, 'USERS', 'USER_ERROR', {
                 error: 'ERROR: You are not authorized to fetch users.',
@@ -191,17 +191,17 @@ const messageHandler = async (ws, context, type, data = {}) => {
 
           case 'GET':
             const user = await Users.getUser(data.user_id)
-            sendMessage(ws, 'USERS', 'USERS', {users: [user]})
+            sendMessage(ws, 'USERS', 'USERS', { users: [user] })
             break
 
           case 'GET_USER_BY_TOKEN':
             const userByToken = await Users.getUserByToken(data)
-            sendMessage(ws, 'USERS', 'USER', {user: [userByToken]})
+            sendMessage(ws, 'USERS', 'USER', { user: [userByToken] })
             break
 
           case 'GET_USER_BY_EMAIL':
             const userByEmail = await Users.getUserByEmail(data)
-            sendMessage(ws, 'USERS', 'USER', {user: [userByEmail]})
+            sendMessage(ws, 'USERS', 'USER', { user: [userByEmail] })
             break
 
           case 'CREATE':
@@ -324,7 +324,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
           case 'GET_ALL':
             if (check(rules, userRoles, 'roles:read')) {
               const roles = await Roles.getAll()
-              sendMessage(ws, 'ROLES', 'ROLES', {roles})
+              sendMessage(ws, 'ROLES', 'ROLES', { roles })
             } else {
               sendMessage(ws, 'USERS', 'USER_ERROR', {
                 error: 'ERROR: You are not authorized to fetch roles.',
@@ -334,7 +334,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
 
           case 'GET':
             const role = await Roles.getRole(data.role_id)
-            sendMessage(ws, 'ROLES', 'ROLES', {roles: [role]})
+            sendMessage(ws, 'ROLES', 'ROLES', { roles: [role] })
             break
 
           default:
@@ -378,7 +378,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
           case 'GET_ALL':
             if (check(rules, userRoles, 'contacts:read')) {
               const contacts = await Contacts.getAll(data.additional_tables)
-              sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts})
+              sendMessage(ws, 'CONTACTS', 'CONTACTS', { contacts })
             } else {
               sendMessage(ws, 'CONTACTS', 'CONTACTS_ERROR', {
                 error: 'ERROR: You are not authorized to fetch contacts.',
@@ -391,7 +391,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
               data.contact_id,
               data.additional_tables,
             )
-            sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts: [contact]})
+            sendMessage(ws, 'CONTACTS', 'CONTACTS', { contacts: [contact] })
             break
 
           default:
@@ -670,6 +670,169 @@ const messageHandler = async (ws, context, type, data = {}) => {
         }
         break
 
+      //   case 'GOVERNANCE':
+      //     switch (type) {
+      //       case 'GET_PRIVILEGES':
+      //         console.log('GET_PRIVILEGES')
+      //         if (check(rules, userCookieParsed, 'invitations:create')) {
+      //           const privileges = await Governance.getPrivilegesByRoles()
+      //           if (privileges.error === 'noDID') {
+      //             console.log('No public did anchored')
+      //             sendMessage(ws, 'GOVERNANCE', 'GOVERNANCE_ERROR', {
+      //               error: 'ERROR: You need to anchor your DID',
+      //             })
+      //           } else if (privileges.error === 'noGov') {
+      //             console.log('Governance file is not set or missing')
+      //             sendMessage(ws, 'GOVERNANCE', 'GOVERNANCE_WARNING', { warning: 'WARNING: Governance is not set or missing' })
+      //             // } else if (privileges.error === 'limitedGov') {
+      //             //   console.log('Governance file is set, but lacks core configurations')
+      //             //   sendMessage(ws, 'GOVERNANCE', 'PRIVILEGES_SUCCESS', { privileges: ["ignore_governance"] })
+      //             // } else if (privileges.error === 'noPermissions') {
+      //             //   console.log('No permissions set')
+      //             //   sendMessage(ws, 'GOVERNANCE', 'GOVERNANCE_ERROR', {
+      //             //     error: 'ERROR: Governance permissions are not set',
+      //             //   })
+      //             // } else if (privileges.error === 'noPrivileges') {
+      //             //   console.log('No privileges set')
+      //             //   sendMessage(ws, 'GOVERNANCE', 'GOVERNANCE_ERROR', {
+      //             //     error: 'ERROR: Governance privileges are not set',
+      //             //   })
+
+      //           } else if (privileges.error === 'noPrivileges') {
+      //             console.log('No privileges set')
+      //             sendMessage(ws, 'GOVERNANCE', 'PRIVILEGES_SUCCESS', { privileges: ["ignore_privileges"] })
+
+      //           } else if (!privileges) {
+      //             console.log('ERROR: privileges undefined error')
+      //             sendMessage(ws, 'GOVERNANCE', 'GOVERNANCE_ERROR', {
+      //               error: 'ERROR: privileges undefined error',
+      //             })
+      //           } else {
+      //             sendMessage(ws, 'GOVERNANCE', 'PRIVILEGES_SUCCESS', {
+      //               privileges,
+      //             })
+      //           }
+      //         } else {
+      //           sendMessage(ws, 'GOVERNANCE', 'GOVERNANCE_ERROR', {
+      //             error: 'ERROR: You are not authorized to create invitations.',
+      //           })
+      //         }
+      //         break
+
+      //       case 'GET_PARTICIPANTS':
+      //         console.log('GET PARTICIPANTS')
+      //         if (check(rules, userCookieParsed, 'invitations:create')) {
+      //           const participants = await Governance.getParticipants()
+      //           if (participants.error === 'noGov') {
+      //             console.log('Governance file is not set or missing')
+      //             sendMessage(ws, 'GOVERNANCE', 'GOVERNANCE_WARNING', { warning: 'WARNING: Governance is not set or missing' })
+      //           } else if (participants.error === 'noParticipants') {
+      //             console.log('Governance file is set, but participants are missing')
+      //             sendMessage(ws, 'GOVERNANCE', 'PARTICIPANTS_SUCCESS', { participants: ["ignore_participants"] })
+      //           } else if (!participants) {
+      //             console.log('ERROR: participants undefined error')
+      //             sendMessage(ws, 'GOVERNANCE', 'GOVERNANCE_ERROR', {
+      //               error: 'ERROR: participants undefined error',
+      //             })
+      //           } else {
+      //             console.log(participants)
+      //             sendMessage(ws, 'GOVERNANCE', 'PARTICIPANTS_SUCCESS', {
+      //               participants,
+      //             })
+      //           }
+      //         } else {
+      //           sendMessage(ws, 'GOVERNANCE', 'GOVERNANCE_ERROR', {
+      //             error: 'ERROR: You are not authorized to create invitations.',
+      //           })
+      //         }
+      //         break
+
+      //       case 'GET_ACTIONS':
+      //         console.log('GET ACTIONS')
+      //         if (check(rules, userCookieParsed, 'invitations:create')) {
+      //           const actions = await Governance.getActions()
+      //           if (actions.error === 'noGov') {
+      //             console.log('Governance file is not set or missing')
+      //             sendMessage(ws, 'GOVERNANCE', 'GOVERNANCE_WARNING', { warning: 'WARNING: Governance is not set or missing' })
+      //           } else if (actions.error === 'noActions') {
+      //             console.log('Governance file is set, but actions are missing')
+      //             sendMessage(ws, 'GOVERNANCE', 'ACTIONS_SUCCESS', { actions: ["ignore_actions"] })
+      //           } else if (!actions) {
+      //             console.log('ERROR: actions undefined error')
+      //             sendMessage(ws, 'GOVERNANCE', 'GOVERNANCE_ERROR', {
+      //               error: 'ERROR: actions undefined error',
+      //             })
+      //           } else {
+      //             console.log(actions)
+      //             sendMessage(ws, 'GOVERNANCE', 'ACTIONS_SUCCESS', {
+      //               actions,
+      //             })
+      //           }
+      //         } else {
+      //           sendMessage(ws, 'GOVERNANCE', 'GOVERNANCE_ERROR', {
+      //             error: 'ERROR: You are not authorized to create invitations.',
+      //           })
+      //         }
+      //         break
+
+      //       default:
+      //         console.error(`Unrecognized Message Type: ${type}`)
+      //         sendErrorMessage(ws, 1, 'Unrecognized Message Type')
+      //         break
+      //     }
+      //     break
+
+
+      case 'GOVERNANCE':
+        switch (type) {
+          case 'GET_PRIVILEGES':
+            console.log('GET_PRIVILEGES')
+            if (check(rules, userRoles, 'invitations:create')) {
+              const privileges = await Governance.getPrivilegesByRoles()
+              if (privileges.error === 'noDID') {
+                console.log('No public did anchored')
+                sendMessage(ws, 'GOVERNANCE', 'PRIVILEGES_ERROR', {
+                  error: 'ERROR: You need to anchor your DID',
+                })
+              } else if (privileges.error === 'noGov') {
+                console.log('No permissions set')
+                sendMessage(ws, 'GOVERNANCE', 'PRIVILEGES_ERROR', {
+                  error: 'ERROR: Governance permissions are not set',
+                }) // change it to warning { warning: 'WARNING: Governance is not set or missing' }
+              } else if (privileges.error === 'noPermissions') {
+                console.log('No permissions set')
+                sendMessage(ws, 'GOVERNANCE', 'PRIVILEGES_ERROR', {
+                  error: 'ERROR: Governance permissions are not set',
+                })
+              } else if (privileges.error === 'noPrivileges') {
+                console.log('No privileges set')
+                sendMessage(ws, 'GOVERNANCE', 'PRIVILEGES_ERROR', {
+                  error: 'ERROR: Governance privileges are not set',
+                })
+              } else if (!privileges) {
+                console.log('ERROR: privileges undefined error')
+                sendMessage(ws, 'GOVERNANCE', 'PRIVILEGES_ERROR', {
+                  error: 'ERROR: privileges undefined error',
+                })
+              } else {
+                sendMessage(ws, 'GOVERNANCE', 'PRIVILEGES_SUCCESS', {
+                  privileges,
+                })
+              }
+            } else {
+              sendMessage(ws, 'GOVERNANCE', 'PRIVILEGES_ERROR', {
+                error: 'ERROR: You are not authorized to create invitations.',
+              })
+            }
+            break
+          default:
+            console.error(`Unrecognized Message Type: ${type}`)
+            sendErrorMessage(ws, 1, 'Unrecognized Message Type')
+            break
+        }
+        break
+
+
       default:
         console.error(`Unrecognized Message Context: ${context}`)
         sendErrorMessage(ws, 1, 'Unrecognized Message Context')
@@ -696,6 +859,7 @@ const Passports = require('./agentLogic/passports')
 const Contacts = require('./agentLogic/contacts')
 const Credentials = require('./agentLogic/credentials')
 const Images = require('./agentLogic/images')
+const Governance = require('./agentLogic/governance')
 const Presentations = require('./agentLogic/presentations')
 const Settings = require('./agentLogic/settings')
 const Sessions = require('./agentLogic/sessions')
