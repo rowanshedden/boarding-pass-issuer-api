@@ -145,7 +145,7 @@
                                 "$.patient_phone"
                             ],
                             "filter": {
-                                "type": "number"
+                                "type": "string"
                             }
                         },
                         {
@@ -496,7 +496,7 @@
                                 "$.patient_phone"
                             ],
                             "filter": {
-                                "type": "number"
+                                "type": "string"
                             }
                         },
                         {
@@ -857,7 +857,7 @@
                                 "$.patient_phone"
                             ],
                             "filter": {
-                                "type": "number"
+                                "type": "string"
                             }
                         },
                         {
@@ -1218,7 +1218,7 @@
                                 "$.patient_phone"
                             ],
                             "filter": {
-                                "type": "number"
+                                "type": "string"
                             }
                         },
                         {
