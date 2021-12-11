@@ -456,7 +456,7 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
     // (eldersonar) Posting to the SITA HEALTH HUB database
     await axios({
       method: 'POST',
-      url: 'https://health-provider.sitalab.io/api/v1.0/provider/xid',
+      url: process.env.SITA_API,
       headers: {'x-apikey': process.env.SITA_APIKEY},
       data: SITAHubTraveler,
     })
@@ -472,7 +472,7 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
         setTimeout(async () => {
           const secondResponse = await axios({
             method: 'POST',
-            url: 'https://health-provider.sitalab.io/api/v1.0/provider/xid',
+            url: process.env.SITA_API,
             headers: {'x-apikey': process.env.SITA_APIKEY},
             data: SITAHubTraveler,
           })
