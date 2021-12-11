@@ -68,26 +68,6 @@ app.use(
 const Invitations = require('./agentLogic/invitations')
 const Connections = require('./orm/connections')
 
-const checkApiKey = function (req, res, next) {
-  if (req.header('x-api-key') != process.env.APIKEY) {
-    res.sendStatus(401)
-  } else {
-    next()
-  }
-}
-
-// Invitation request API
-app.post('/api/invitations', checkApiKey, async (req, res) => {
-  console.log(req.body)
-  const data = req.body
-  try {
-    // (eldersonar) Create invitation
-    const invitation = await Invitations.createSingleUseInvitation()
-
-    if (!invitation) {
-      res.json({error: 'There was a problem creating an invitation'})
-    }
-
 app.use(
   '/api/presentation-exchange',
   express.static('presentation-exchange-nested.json'),
@@ -379,12 +359,8 @@ app.get('/api/renew-session', verifySession, async (req, res) => {
     .json({id: user.user_id, username: user.username, roles: userRoles})
 })
 
-// Invitation request API
-const Invitations = require('./agentLogic/invitations')
-const Connections = require('./orm/connections')
-
 const checkApiKey = function (req, res, next) {
-  if (req.header('x-apikey') != process.env.APIKEY) {
+  if (req.header('x-api-key') != process.env.APIKEY) {
     res.sendStatus(401)
   } else {
     next()

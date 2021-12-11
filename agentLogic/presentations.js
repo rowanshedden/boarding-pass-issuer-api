@@ -1503,6 +1503,7 @@ const adminMessage = async (message) => {
                   const supportedVaccineCodes = ['JSN', 'MOD', 'PFR', 'ASZ']
 
                   console.log(attributes)
+                  // Check if the vaccine is approved by Aruba
                   if (
                     contact.Traveler.dataValues.proof_result_list.presentations[
                       x
@@ -1518,6 +1519,23 @@ const adminMessage = async (message) => {
                         console.log('Your vaccine is accepted by Aruba!')
                       } else {
                         console.log('Your vaccine is not accepted by Aruba!')
+
+                        passedBusinessLogic = false
+                      }
+                    }
+                  }
+                  // Check if the lab test is negative
+                  if (
+                    contact.Traveler.dataValues.proof_result_list.presentations[
+                      x
+                    ].Lab_Result
+                  ) {
+                    if (attributes.lab_result) {
+                      // Check vaccine manufacturer
+                      if (attributes.lab_result.raw === "Negative") {
+                        console.log('You were not tested COVID positive!')
+                      } else {
+                        console.log('You were tested COVID positive!')
 
                         passedBusinessLogic = false
                       }
