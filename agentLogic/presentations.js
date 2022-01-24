@@ -1532,7 +1532,7 @@ const adminMessage = async (message) => {
                   ) {
                     if (attributes.lab_result) {
                       // Check vaccine manufacturer
-                      if (attributes.lab_result.raw === "Negative") {
+                      if (attributes.lab_result.raw === 'Negative') {
                         console.log('You were not tested COVID positive!')
                       } else {
                         console.log('You were tested COVID positive!')

@@ -31,7 +31,9 @@ exports.up = function (db) {
 }
 
 exports.down = function (db) {
-  return db.dropTable('travelers')
+  return db.removeColumn('travelers', 'proof_type').then(function () {
+    return db.removeColumn('travelers', 'proof_result_list')
+  })
 }
 
 exports._meta = {

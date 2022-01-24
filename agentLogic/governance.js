@@ -1,22 +1,44 @@
 const axios = require('axios')
 const DIDs = require('../adminAPI/dids.js')
 
+// (eldersonar) Set up the ssl check flag for testing if SSL cert is expired during live test
+// If not set, this code will use default settings for axios calls
+const https = require('https')
+let agent = new https.Agent({
+  rejectUnauthorized: true,
+})
+console.log('SSL check is enabled')
+
+if (process.env.GOVERNANCE_DISABLE_SSL_CHECK === 'true') {
+  agent = new https.Agent({
+    rejectUnauthorized: false,
+  })
+  console.log('SSL check is disabled')
+}
+
 // Get the machine readable governance file from the external source
 const getGovernance = async () => {
   try {
     const response = await axios({
       method: 'GET',
-      url: process.env.GOVERNANCE_PATH,
+      // url: 'http://localhost:3100/api/governance-framework',
+      url: `${process.env.GOVERNANCE_PATH}`,
+      httpsAgent: agent,
+      // url: 'https://government.black.indiciotech.io/api/governance-framework'
     }).then((res) => {
+      console.log('......................................')
+      console.log(res.data)
       return res.data
     })
     return response
   } catch (error) {
     console.error('Governance Document Request Error')
-    //console.log(error.response.status)
+    console.log(error)
 
-    // (eldersonar) Do we handle specific codes or handle all errors as one?
-    if (error.response.status) return undefined
+    // (eldersonar) Doesn't always have a response. Do we handle specific codes or handle all errors as one?
+    // if (error.response.status) return undefined
+    // (eldersonar) This will ensure that we set our response to undefined
+    if (error) return undefined
   }
 }
 
@@ -33,6 +55,7 @@ const getPresentationDefinition = async () => {
     const response = await axios({
       method: 'GET',
       url: pdfLink,
+      httpsAgent: agent,
     }).then((res) => {
       return res.data
     })
@@ -62,6 +85,7 @@ const getLabPresentationDefinition = async () => {
     const response = await axios({
       method: 'GET',
       url: pdfLink,
+      httpsAgent: agent,
     }).then((res) => {
       return res.data
     })
@@ -91,6 +115,7 @@ const getLabVaccinePresentationDefinition = async () => {
     const response = await axios({
       method: 'GET',
       url: pdfLink,
+      httpsAgent: agent,
     }).then((res) => {
       return res.data
     })

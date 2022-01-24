@@ -114,7 +114,77 @@ exports.up = function (db) {
 }
 
 exports.down = function (db) {
-  return db.dropTable('travelers')
+  return (
+    db
+      // (eldersonar) Name the table back
+      .renameTable('travelers', 'demographic_data')
+      // (eldersonar) Renaming old columns back
+      .then(function () {
+        return db.renameColumn('demographic_data', 'traveler_email', 'email')
+      })
+      .then(function () {
+        return db.renameColumn('demographic_data', 'traveler_phone', 'phone')
+      })
+      // (eldersonar) Adding back old columns
+      .then(function () {
+        return db.addColumn('demographic_data', 'address', {type: 'json'})
+      })
+      // (eldersonar) Removing new columns
+      .then(function () {
+        return db.removeColumn('demographic_data', 'traveler_country')
+      })
+      .then(function () {
+        return db.removeColumn('demographic_data', 'traveler_country_of_origin')
+      })
+      .then(function () {
+        return db.removeColumn('demographic_data', 'arrival_airline')
+      })
+      .then(function () {
+        return db.removeColumn('demographic_data', 'arrival_flight_number')
+      })
+      .then(function () {
+        return db.removeColumn('demographic_data', 'arrival_date')
+      })
+      .then(function () {
+        return db.removeColumn(
+          'demographic_data',
+          'arrival_destination_port_code',
+        )
+      })
+      .then(function () {
+        return db.removeColumn(
+          'demographic_data',
+          'arrival_destination_country_code',
+        )
+      })
+      .then(function () {
+        return db.removeColumn('demographic_data', 'departure_airline')
+      })
+      .then(function () {
+        return db.removeColumn('demographic_data', 'departure_flight_number')
+      })
+      .then(function () {
+        return db.removeColumn('demographic_data', 'departure_date')
+      })
+      .then(function () {
+        return db.removeColumn(
+          'demographic_data',
+          'departure_destination_port_code',
+        )
+      })
+      .then(function () {
+        return db.removeColumn(
+          'demographic_data',
+          'departure_destination_country_code',
+        )
+      })
+      .then(function () {
+        return db.removeColumn('demographic_data', 'verification_status')
+      })
+      .then(function () {
+        return db.removeColumn('demographic_data', 'proof_status')
+      })
+  )
 }
 
 exports._meta = {
