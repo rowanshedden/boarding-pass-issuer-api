@@ -11,9 +11,13 @@ const Credentials = require('./credentials')
 const Governance = require('./governance')
 const Passports = require('./passports')
 const Travelers = require('./travelers')
+
+const Presentations = require('../orm/presentations')
+const Traveler = require('../orm/travelers')
+
 const {getOrganization} = require('./settings')
+
 const Util = require('../util')
-const {Traveler} = require('../orm/travelers')
 
 // // (eldersonar) Get Presentation Definition file
 // const getPresentationDefinition = async () => {
@@ -2391,8 +2395,79 @@ const adminMessage = async (message) => {
   }
 }
 
+const createPresentationReports = async (presentation) => {
+  try {
+    const presentationReport = await Presentations.createPresentationReports(
+      presentation.presentation_exchange_id,
+      presentation.trace,
+      presentation.connection_id,
+      presentation.role,
+      presentation.created_at,
+      presentation.updated_at,
+      JSON.stringify(presentation.presentation_request_dict),
+      presentation.initiator,
+      JSON.stringify(presentation.presentation_request),
+      presentation.state,
+      presentation.thread_id,
+      presentation.auto_present,
+      JSON.stringify(presentation.presentation),
+    )
+
+    // Broadcast the message to all connections
+    Websockets.sendMessageToAll('PRESENTATIONS', 'PRESENTATION_REPORTS', {
+      presentation_reports: [presentationReport],
+    })
+  } catch (error) {
+    console.log('Error creating presentation reports:')
+    throw error
+  }
+}
+
+const updatePresentationReports = async (presentation) => {
+  try {
+    const presentationReport = await Presentations.updatePresentationReports(
+      presentation.presentation_exchange_id,
+      presentation.trace,
+      presentation.connection_id,
+      presentation.role,
+      presentation.created_at,
+      presentation.updated_at,
+      JSON.stringify(presentation.presentation_request_dict),
+      presentation.initiator,
+      JSON.stringify(presentation.presentation_request),
+      presentation.state,
+      presentation.thread_id,
+      presentation.auto_present,
+      JSON.stringify(presentation.presentation),
+    )
+
+    // Broadcast the message to all connections
+    Websockets.sendMessageToAll('PRESENTATIONS', 'PRESENTATION_REPORTS', {
+      presentation_reports: [presentationReport],
+    })
+  } catch (error) {
+    console.log('Error updating presentation reports:')
+    throw error
+  }
+}
+
+const getAll = async () => {
+  try {
+    console.log('Fetching presentation reports!')
+    const presentationReports = await Presentations.readPresentations()
+
+    return presentationReports
+  } catch (error) {
+    console.log('Error fetching presentation reports:')
+    throw error
+  }
+}
+
 module.exports = {
   adminMessage,
   requestPresentation,
   requestIdentityPresentation,
+  createPresentationReports,
+  updatePresentationReports,
+  getAll,
 }

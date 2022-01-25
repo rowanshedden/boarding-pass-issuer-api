@@ -61,7 +61,7 @@
   "participants": [
     {
       "name": "Aruba Government",
-      "id": "Sf1Qgo3ketUMgfSZZgBE9X",
+      "id": "JigXNjfXLdSen9d6XDivjE",
       "describe": {
         "label": "Aruba",
         "sublabel": "Aruba Government",
@@ -112,7 +112,7 @@
       "grant": ["travel_issuer"],
       "when": {
         "any": [
-          {"id": "Sf1Qgo3ketUMgfSZZgBE9X"}
+          {"id": "JigXNjfXLdSen9d6XDivjE"}
         ]
       }
     },
@@ -120,7 +120,7 @@
       "grant": ["health_verifier"],
       "when": {
         "any": [
-          {"id": "Sf1Qgo3ketUMgfSZZgBE9X"}
+          {"id": "JigXNjfXLdSen9d6XDivjE"}
         ]
       }
     },
@@ -128,7 +128,7 @@
       "grant": ["travel_verifier"],
       "when": {
         "any": [
-          {"id": "Sf1Qgo3ketUMgfSZZgBE9X"}
+          {"id": "JigXNjfXLdSen9d6XDivjE"}
         ]
       }
     },

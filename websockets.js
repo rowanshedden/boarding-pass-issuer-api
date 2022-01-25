@@ -789,6 +789,14 @@ const messageHandler = async (ws, context, type, data = {}) => {
               data.type,
             )
             break
+
+          case 'GET_ALL':
+            const presentationReports = await Presentations.getAll()
+
+            sendMessage(ws, 'PRESENTATIONS', 'PRESENTATION_REPORTS', {
+              presentation_reports: presentationReports,
+            })
+            break
           default:
             console.error(`Unrecognized Message Type: ${type}`)
             sendErrorMessage(ws, 1, 'Unrecognized Message Type')
