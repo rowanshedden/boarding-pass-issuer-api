@@ -19,34 +19,34 @@ const {getOrganization} = require('./settings')
 
 const Util = require('../util')
 
-// // (eldersonar) Get Presentation Definition file
-// const getPresentationDefinition = async () => {
-//   try {
-//     const governance = await Governance.getGovernance()
+// (eldersonar) Get Presentation Definition file
+const getPresentationDefinition = async () => {
+  try {
+    const governance = await Governance.getGovernance()
 
-//     // Presentation definition file
-//     const pdfLink = governance.actions.find((item) => item.name === 'issue_trusted_traveler').details.presentation_definition
+    // Presentation definition file
+    const pdfLink = governance.actions.find((item) => item.name === 'issue_trusted_traveler').details.presentation_definition
 
-//     const response = await axios({
-//       method: 'GET',
-//       url: pdfLink,
-//     }).then((res) => {
-//       return res.data
-//     })
+    const response = await axios({
+      method: 'GET',
+      url: pdfLink,
+    }).then((res) => {
+      return res.data
+    })
 
-//     return response
-//   } catch (error) {
-//     console.error('Presentation Definition File Request Error')
-//     // console.log(error.response.status)
-//     console.log(error)
+    return response
+  } catch (error) {
+    console.error('Presentation Definition File Request Error')
+    // console.log(error.response.status)
+    console.log(error)
 
-//     // (eldersonar) Do we handle specific codes or handle all errors as one?
-//     // if (error.response.status)
-//     return undefined
+    // (eldersonar) Do we handle specific codes or handle all errors as one?
+    // if (error.response.status)
+    return undefined
 
-//     // throw error
-//   }
-// }
+    // throw error
+  }
+}
 
 // (eldersonar) Request identity proof
 const requestIdentityPresentation = async (connectionID) => {
