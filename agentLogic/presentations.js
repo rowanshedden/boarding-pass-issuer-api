@@ -961,7 +961,10 @@ const validateFieldByField = (attributes, inputDescriptor) => {
             let dateNumber = parseInt(attributes[key].raw, 10)
 
             // (eldersonar) Check if the value can be transformed to a valid number
-            if (!isNaN(dateNumber)) {
+            if (attributes[key].raw === '') {
+              console.log('format passed')
+              typePass = true
+	    } else if (!isNaN(dateNumber)) {
               console.log('the date check (NUMBER) have passed')
               let luxonDate = DateTime.fromMillis(dateNumber).toISO()
               let date = new DateTime(luxonDate).isValid
@@ -1023,7 +1026,10 @@ const validateFieldByField = (attributes, inputDescriptor) => {
           // (eldersonar) Pattern validation
           if (inputDescriptor.constraints.fields[p].filter.pattern) {
             // Check if it's base64 encoded
-            if (
+	    if (attributes[key].raw === '') {
+              console.log('pattern passed')
+	      patternPass = true
+	    } else if (
               Buffer.from(
                 inputDescriptor.constraints.fields[p].filter.pattern,
                 'base64',
@@ -1504,30 +1510,30 @@ const adminMessage = async (message) => {
 
                   let passedBusinessLogic = true
 
-                  const supportedVaccineCodes = ['JSN', 'MOD', 'PFR', 'ASZ']
+                  //const supportedVaccineCodes = ['JSN', 'MOD', 'PFR', 'ASZ']
 
-                  console.log(attributes)
+                  //console.log(attributes)
                   // Check if the vaccine is approved by Aruba
-                  if (
-                    contact.Traveler.dataValues.proof_result_list.presentations[
-                      x
-                    ].Vaccination
-                  ) {
-                    if (attributes.vaccine_manufacturer_code) {
-                      // Check vaccine manufacturer
-                      if (
-                        supportedVaccineCodes.includes(
-                          attributes.vaccine_manufacturer_code.raw,
-                        )
-                      ) {
-                        console.log('Your vaccine is accepted by Aruba!')
-                      } else {
-                        console.log('Your vaccine is not accepted by Aruba!')
+                  //if (
+                  //  contact.Traveler.dataValues.proof_result_list.presentations[
+                  //    x
+                  //  ].Vaccination
+                  //) {
+                  //  if (attributes.vaccine_manufacturer_code) {
+                  //    // Check vaccine manufacturer
+                  //    if (
+                  //      supportedVaccineCodes.includes(
+                  //        attributes.vaccine_manufacturer_code.raw,
+                  //     )
+                  //    ) {
+                  //      console.log('Your vaccine is accepted by Aruba!')
+                  //    } else {
+                  //      console.log('Your vaccine is not accepted by Aruba!')
 
-                        passedBusinessLogic = false
-                      }
-                    }
-                  }
+                  //      passedBusinessLogic = false
+                  //    }
+                  //  }
+                  //}
                   // Check if the lab test is negative
                   if (
                     contact.Traveler.dataValues.proof_result_list.presentations[
