@@ -1,21 +1,19 @@
 require('dotenv').config()
 const axios = require('axios')
 const bodyParser = require('body-parser')
+const {DateTime} = require('luxon')
 const express = require('express')
 const http = require('http')
 const jwt = require('jsonwebtoken')
 const passport = require('passport')
+const Sequelize = require('sequelize')
 const session = require('express-session')
+const {v4: uuid} = require('uuid')
+
 const Util = require('./util')
 
-const Sequelize = require('sequelize')
-// initalize sequelize with session store
+// Initalize sequelize with session store
 const SequelizeStore = require('connect-session-sequelize')(session.Store)
-
-const Contacts = require('./orm/contacts')
-const ContactsCompiled = require('./orm/contactsCompiled')
-
-const Images = require('./agentLogic/images')
 
 // Import environment variables for use via an .env file in a non-containerized context
 const dotenv = require('dotenv')
@@ -23,12 +21,17 @@ dotenv.config()
 
 let app = express()
 let server = http.createServer(app)
-
 module.exports.server = server
 
 // Websockets required to make APIs work and avoid circular dependency
 let Websocket = require('./websockets.js')
 
+const Contacts = require('./orm/contacts')
+const ContactsCompiled = require('./orm/contactsCompiled')
+const Credentials = require('./agentLogic/credentials')
+const Governance = require('./agentLogic/governance')
+const Images = require('./agentLogic/images')
+const {getOrganization} = require('./agentLogic/settings')
 const Passenger = require('./agentLogic/passenger')
 const Users = require('./agentLogic/users')
 
@@ -412,80 +415,10 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
       })
     }
 
-    // (eldersonar) Assamble response object for SITA Health Hub database
-    const SITAHubTraveler = {
-      xid: invitation.connection_id,
-      travellerDetails: {
-        dateOfBirth: data.passport_date_of_birth,
-        familyName: data.passport_surnames,
-        givenNames: data.passport_given_names,
-        nationality: data.passport_nationality,
-        sex: data.passport_gender_legal,
-        travelDocumentDetails: [
-          {
-            issuingState: data.passport_authority,
-            number: data.passport_number,
-            type: data.passport_type,
-          },
-        ],
-      },
-      travelItinerary: {
-        carrierCode: '',
-        carrierType: 'A',
-        pnrNumber: '',
-        routeDetails: [
-          {
-            arrival: {
-              countryCode: data.arrival_destination_country_code,
-              dateTime: data.arrival_date,
-              portCode: data.arrival_destination_port_code,
-            },
-            departure: {
-              countryCode: data.departure_destination_country_code,
-              dateTime: data.departure_date,
-              portCode: data.departure_destination_port_code,
-            },
-          },
-        ],
-        serviceNumber: '',
-      },
-    }
-
-    // (eldersonar) Posting to the SITA HEALTH HUB database
-    await axios({
-      method: 'POST',
-      url: `${process.env.SITA_API}`,
-      headers: {'x-apikey': process.env.SITA_APIKEY},
-      data: SITAHubTraveler,
+    res.status(200).json({
+      connection_id: invitation.connection_id,
+      invitation_url: invitation.invitation_url,
     })
-      .then((response) => {
-        // (eldersonar) Success
-        res.status(200).json({
-          connection_id: invitation.connection_id,
-          invitation_url: invitation.invitation_url,
-        })
-      })
-      .catch(function (error) {
-        // (eldersonar) Wait for 30 seconds and try again
-        setTimeout(async () => {
-          const secondResponse = await axios({
-            method: 'POST',
-            url: `${process.env.SITA_API}`,
-            headers: {'x-apikey': process.env.SITA_APIKEY},
-            data: SITAHubTraveler,
-          })
-            .then((response2) => {
-              // (eldersonar) Success
-              res.status(200).json({
-                connection_id: invitation.connection_id,
-                invitation_url: invitation.invitation_url,
-              })
-            })
-            .catch(function (error) {
-              res.send({error: "Couldn't write to the SITA HUB database"})
-            })
-        }, 30000)
-      })
   } catch (error) {
     console.error(error)
     res.json({error: 'Unexpected error occurred'})
@@ -554,6 +487,126 @@ app.get('/api/verification/:id', async (req, res) => {
   } catch (err) {
     console.error(err)
     res.json({error: "Passenger couldn't be verified"})
+  }
+})
+
+// Credential request API
+app.post('/api/credentials', checkApiKey, async (req, res) => {
+  console.log(req.body)
+  const data = req.body
+  try {
+    // (mikekebert) Find the contact
+    const contact = await ContactsCompiled.readContactByConnection(
+      data.connection_id,
+      ['Traveler', 'Passport'],
+    )
+
+    console.log(contact)
+    const passport = contact.Passport.dataValues
+    const traveler = contact.Traveler.dataValues
+
+    // (mikekebert) Load the governance
+    const governance = await Governance.getGovernance()
+
+    // (mikekebert) Load the organization name
+    const issuerName = await getOrganization()
+
+    // (mikekebert) Build the credential
+    let credentialAttributes = [
+      {
+        name: 'traveler_surnames',
+        value: passport.passport_surnames || '',
+      },
+      {
+        name: 'traveler_given_names',
+        value: passport.passport_given_names || '',
+      },
+      {
+        name: 'traveler_date_of_birth',
+        value: passport.passport_date_of_birth || '',
+      },
+      {
+        name: 'traveler_gender_legal',
+        value: passport.passport_gender_legal || '',
+      },
+      {
+        name: 'traveler_country',
+        value: passport.passport_country || '',
+      },
+      {
+        name: 'traveler_origin_country',
+        value: traveler.traveler_country_of_origin || '',
+      },
+      {
+        name: 'traveler_email',
+        value: traveler.traveler_email || '',
+      },
+      {
+        name: 'trusted_traveler_id',
+        value: uuid(),
+      },
+      {
+        name: 'trusted_traveler_issue_date_time',
+        value: Math.round(DateTime.fromISO(new Date()).ts / 1000).toString(),
+      },
+      {
+        name: 'trusted_traveler_expiration_date_time',
+        value: Math.round(
+          DateTime.local().plus({days: 30}).ts / 1000,
+        ).toString(),
+      },
+      {
+        name: 'governance_applied',
+        value: governance.name + ' v' + governance.version,
+      },
+      {
+        name: 'credential_issuer_name',
+        value: issuerName.dataValues.value.organizationName || '',
+      },
+      {
+        name: 'credential_issue_date',
+        value: Math.round(DateTime.fromISO(new Date()).ts / 1000).toString(),
+      },
+    ]
+
+    console.log(credentialAttributes)
+
+    // (mikekebert) Get schema id for trusted traveler
+    const schema_id = process.env.SCHEMA_TRUSTED_TRAVELER
+
+    // (mikekebert) Issue the trusted_traveler to this contact
+    let newCredential = {
+      connectionID: data.connection_id,
+      schemaID: schema_id,
+      schemaVersion: schema_id.split(':')[3],
+      schemaName: schema_id.split(':')[2],
+      schemaIssuerDID: schema_id.split(':')[0],
+      comment: '',
+      attributes: credentialAttributes,
+    }
+
+    console.log(newCredential)
+
+    // (mikekebert) Request issuance of the trusted_traveler credential
+    await Credentials.autoIssueCredential(
+      newCredential.connectionID,
+      undefined,
+      undefined,
+      newCredential.schemaID,
+      newCredential.schemaVersion,
+      newCredential.schemaName,
+      newCredential.schemaIssuerDID,
+      newCredential.comment,
+      newCredential.attributes,
+    )
+
+    response = {success: 'Trusted Traveler successfully offered'}
+    res.status(200).send(response)
+  } catch (error) {
+    console.error(error)
+    res.json({
+      error: "Unexpected error occurred, couldn't issue Trusted Traveler",
+    })
   }
 })
 

@@ -9,7 +9,7 @@ let agent = new https.Agent({
 })
 console.log('SSL check is enabled')
 
-if (process.env.GOVERNANCE_DISABLE_SSL_CHECK === 'true') {
+if (process.env.DISABLE_SSL_CHECK === 'true') {
   agent = new https.Agent({
     rejectUnauthorized: false,
   })

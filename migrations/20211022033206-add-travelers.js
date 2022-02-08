@@ -23,6 +23,7 @@ exports.up = function (db) {
 
   return (
     db
+      // (eldersonar) Rename the table)
       .renameTable('demographic_data', 'travelers')
       // (eldersonar) Renaming old columns
       .then(function () {

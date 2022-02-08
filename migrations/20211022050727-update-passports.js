@@ -15,9 +15,9 @@ exports.setup = function (options, seedLink) {
 }
 
 exports.up = function (db) {
-  // (eldersonar) Renaming old columns
   return (
     db
+      // (eldersonar) Renaming old columns
       .renameColumn('passports', 'surname', 'passport_surnames')
       .then(function () {
         return db.renameColumn(
@@ -71,6 +71,7 @@ exports.up = function (db) {
       .then(function () {
         return db.addColumn('passports', 'passport_date_of_issue', {
           type: 'timestamptz',
+          null: true,
         })
       })
       .then(function () {

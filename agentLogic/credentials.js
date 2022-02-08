@@ -1,3 +1,5 @@
+const axios = require('axios')
+
 const ControllerError = require('../errors.js')
 
 const AdminAPI = require('../adminAPI')
@@ -7,6 +9,7 @@ const Contacts = require('./contacts.js')
 const DIDs = require('./dids.js')
 const Schemas = require('./schemas.js')
 
+const ContactsCompiled = require('../orm/contactsCompiled')
 const Credentials = require('../orm/credentials.js')
 
 // Perform Agent Business Logic
@@ -108,6 +111,96 @@ const adminMessage = async (credentialIssuanceMessage) => {
         credentialIssuanceMessage.created_at,
         credentialIssuanceMessage.updated_at,
       )
+    }
+    console.log(credentialIssuanceMessage.state)
+    if (credentialIssuanceMessage.state === 'credential_acked') {
+      if (
+        credentialIssuanceMessage.schema_id ===
+        process.env.SCHEMA_TRUSTED_TRAVELER
+      ) {
+        let SITAHubTraveler = {}
+
+        // (mikekebert) Find the contact
+        const contact = await ContactsCompiled.readContactByConnection(
+          credentialIssuanceMessage.connection_id,
+          ['Traveler', 'Passport'],
+        )
+
+        console.log(contact)
+        const passport = contact.Passport.dataValues
+        const traveler = contact.Traveler.dataValues
+
+        if (credentialIssuanceMessage.connection_id != '') {
+          SITAHubTraveler = {
+            xid: credentialIssuanceMessage.connection_id,
+            travelerDetails: {
+              dateOfBirth: passport.passport_date_of_birth,
+              familyName: passport.passport_surnames,
+              givenNames: passport.passport_given_names,
+              nationality: passport.passport_code,
+              sex: passport.passport_gender_legal,
+              travelDocumentDetails: [
+                {
+                  issuingState: passport.passport_code,
+                  number: passport.passport_number,
+                  type: passport.passport_type,
+                },
+              ],
+            },
+            travelItinerary: {
+              carrierCode: '',
+              carrierType: 'A',
+              pnrNumber: '',
+              routeDetails: [
+                {
+                  arrival: {
+                    countryCode: traveler.arrival_destination_country_code,
+                    dateTime: traveler.arrival_date,
+                    portCode: traveler.arrival_destination_port_code,
+                  },
+                  departure: {
+                    countryCode: traveler.departure_destination_country_code,
+                    dateTime: traveler.departure_date,
+                    portCode: traveler.departure_destination_port_code,
+                  },
+                },
+              ],
+              serviceNumber: '',
+            },
+          }
+        }
+
+        if (SITAHubTraveler != {}) {
+          console.log('Send data to SITA')
+          // (eldersonar) Posting to the SITA HEALTH HUB database
+          await axios({
+            method: 'POST',
+            url: process.env.SITA_API,
+            headers: {'x-apikey': process.env.SITA_APIKEY},
+            data: SITAHubTraveler,
+          })
+            .then((response) => {
+              console.log('Successfully sent data to SITA')
+            })
+            .catch(function (error) {
+              // (eldersonar) Wait for 30 seconds and try again
+              setTimeout(async () => {
+                const secondResponse = await axios({
+                  method: 'POST',
+                  url: process.env.SITA_API,
+                  headers: {'x-apikey': process.env.SITA_APIKEY},
+                  data: SITAHubTraveler,
+                })
+                  .then((response2) => {
+                    console.log('Successfully sent data to SITA')
+                  })
+                  .catch(function (error) {
+                    console.log('Error sending data to SITA')
+                  })
+              }, 30000)
+            })
+        }
+      }
     }
 
     if (credentialIssuanceMessage.role === 'issuer') {

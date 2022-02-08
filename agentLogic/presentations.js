@@ -25,7 +25,9 @@ const getPresentationDefinition = async () => {
     const governance = await Governance.getGovernance()
 
     // Presentation definition file
-    const pdfLink = governance.actions.find((item) => item.name === 'issue_trusted_traveler').details.presentation_definition
+    const pdfLink = governance.actions.find(
+      (item) => item.name === 'issue_trusted_traveler',
+    ).details.presentation_definition
 
     const response = await axios({
       method: 'GET',
@@ -964,7 +966,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
             if (attributes[key].raw === '') {
               console.log('format passed')
               typePass = true
-	    } else if (!isNaN(dateNumber)) {
+            } else if (!isNaN(dateNumber)) {
               console.log('the date check (NUMBER) have passed')
               let luxonDate = DateTime.fromMillis(dateNumber).toISO()
               let date = new DateTime(luxonDate).isValid
@@ -1026,10 +1028,10 @@ const validateFieldByField = (attributes, inputDescriptor) => {
           // (eldersonar) Pattern validation
           if (inputDescriptor.constraints.fields[p].filter.pattern) {
             // Check if it's base64 encoded
-	    if (attributes[key].raw === '') {
+            if (attributes[key].raw === '') {
               console.log('pattern passed')
-	      patternPass = true
-	    } else if (
+              patternPass = true
+            } else if (
               Buffer.from(
                 inputDescriptor.constraints.fields[p].filter.pattern,
                 'base64',
@@ -1735,17 +1737,17 @@ const adminMessage = async (message) => {
                         // (mikekebert) Request issuance of the trusted_traveler credential
                         console.log('ready to issue trusted traveler')
 
-                        await Credentials.autoIssueCredential(
-                          newCredential.connectionID,
-                          undefined,
-                          undefined,
-                          newCredential.schemaID,
-                          newCredential.schemaVersion,
-                          newCredential.schemaName,
-                          newCredential.schemaIssuerDID,
-                          newCredential.comment,
-                          newCredential.attributes,
-                        )
+                        // await Credentials.autoIssueCredential(
+                        //   newCredential.connectionID,
+                        //   undefined,
+                        //   undefined,
+                        //   newCredential.schemaID,
+                        //   newCredential.schemaVersion,
+                        //   newCredential.schemaName,
+                        //   newCredential.schemaIssuerDID,
+                        //   newCredential.comment,
+                        //   newCredential.attributes,
+                        // )
 
                         // Update traveler's verification status
                         await Travelers.updateVerificationStatus(
@@ -1771,7 +1773,7 @@ const adminMessage = async (message) => {
                         )
                       }
                     } else {
-                      console.log('no governance or insificient privilieges')
+                      console.log('no governance or insufficient privileges')
                       await AdminAPI.Connections.sendBasicMessage(
                         message.connection_id,
                         {
@@ -1839,17 +1841,17 @@ const adminMessage = async (message) => {
                         // (mikekebert) Request issuance of the trusted_traveler credential
                         console.log('ready to issue trusted traveler')
 
-                        await Credentials.autoIssueCredential(
-                          newCredential.connectionID,
-                          undefined,
-                          undefined,
-                          newCredential.schemaID,
-                          newCredential.schemaVersion,
-                          newCredential.schemaName,
-                          newCredential.schemaIssuerDID,
-                          newCredential.comment,
-                          newCredential.attributes,
-                        )
+                        // await Credentials.autoIssueCredential(
+                        //   newCredential.connectionID,
+                        //   undefined,
+                        //   undefined,
+                        //   newCredential.schemaID,
+                        //   newCredential.schemaVersion,
+                        //   newCredential.schemaName,
+                        //   newCredential.schemaIssuerDID,
+                        //   newCredential.comment,
+                        //   newCredential.attributes,
+                        // )
 
                         // Update traveler's verification status
                         await Travelers.updateVerificationStatus(
@@ -2285,7 +2287,7 @@ const adminMessage = async (message) => {
                       }
                     }
 
-                    // (eldersonar) Get shema information
+                    // (eldersonar) Get schema information
                     if (credentialVerifiedAttributes !== null) {
                       let newCredential = {
                         connectionID: message.connection_id,
