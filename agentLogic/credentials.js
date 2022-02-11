@@ -1,4 +1,5 @@
 const axios = require('axios')
+const {DateTime} = require('luxon')
 
 const ControllerError = require('../errors.js')
 
@@ -133,8 +134,8 @@ const adminMessage = async (credentialIssuanceMessage) => {
         if (credentialIssuanceMessage.connection_id != '') {
           SITAHubTraveler = {
             xid: credentialIssuanceMessage.connection_id,
-            travelerDetails: {
-              dateOfBirth: passport.passport_date_of_birth,
+            travellerDetails: {
+              dateOfBirth: DateTime.fromJSDate(new Date(passport.passport_date_of_birth)).toFormat('yyyy-MM-dd'),
               familyName: passport.passport_surnames,
               givenNames: passport.passport_given_names,
               nationality: passport.passport_code,
