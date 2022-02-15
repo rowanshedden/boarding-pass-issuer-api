@@ -89,8 +89,8 @@ app.use(
 //------------ (eldersonar) TODO: remove after trial-------------
 
 // (eldersonar) Create database
-const sequelize = new Sequelize('government', 'government', 'government', {
-  host: 'government-db',
+const sequelize = new Sequelize(process.env.DB, process.env.DB_USERNAME, process.env.DB_PASSWORD, {
+  host: process.env.DB_HOST,
   dialect: 'postgres',
 })
 
