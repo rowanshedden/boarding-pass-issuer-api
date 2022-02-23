@@ -1433,8 +1433,12 @@ const adminMessage = async (message) => {
 
               // }
 
+              // (eldersonar) Hanlding additional manual validation for non-nested submission requirements
               // Check if all level validation passed
               if (proofResult && fieldsValidationResult) {
+                console.log(
+                  'Hanlding additional manual validation for non-nested submission requirements ',
+                )
                 // --------------------------- Handling and storing success -------------------------
                 console.log('Original presentations array')
                 console.log('')
@@ -1465,56 +1469,12 @@ const adminMessage = async (message) => {
                     ],
                   )
 
-                  // (eldersonar) TODO: Locate and remove redundant code here
-                  let listElement = {
-                    [inputDescriptors[i].name]: {
-                      result: true,
-                      presentation: attributes,
-                    },
-                  }
-
-                  // Proof object reasignment
-                  let proofList =
-                    contact.Traveler.dataValues.proof_result_list.presentations[
-                      x
-                    ]
-
-                  // Keys to string
+                  // Key to string
                   let key = keys.join()
-
-                  // (eldersonar) Check if we are updating correct proof element
-                  if (inputDescriptors[i].name === key) {
-                    successFlag = true
-                    proofList[keys[0]] = listElement[keys[0]]
-                    // Same thing but handles muliple keys
-                    // keys.map(y => {
-                    //   proofList[y] = listElement[y]
-                    //   console.log("map magic")
-                    //   console.log(proofList[y])
-                    // })
-                  }
-
-                  // console.log("this is an updated list")
-                  // console.log(proofList)
-
-                  // Proof result list (presentation ) shallow copy
-                  let presentations = [
-                    ...contact.Traveler.dataValues.proof_result_list
-                      .presentations,
-                  ]
-
-                  // Rebuilding object list
-                  presentations.presentations = proofList[x]
-
-                  // We need to check if this presentation is for a vaccine;
-                  // If so, make sure that it contains a valid vaccine manufacturer code
-                  console.log('Lab + Vaccine')
-
                   let passedBusinessLogic = true
 
                   //const supportedVaccineCodes = ['JSN', 'MOD', 'PFR', 'ASZ']
 
-                  //console.log(attributes)
                   // Check if the vaccine is approved by Aruba
                   //if (
                   //  contact.Traveler.dataValues.proof_result_list.presentations[
@@ -1553,110 +1513,88 @@ const adminMessage = async (message) => {
                       }
                     }
                   }
+
                   console.log(passedBusinessLogic)
+
                   if (passedBusinessLogic) {
                     console.log('Passed business logic')
-                    // Set check result to true
-                    const list = presentations.map((item) => {
-                      if (Object.keys(item) === key) {
-                        item.result = true
-                        item.presentation = attributes
-                      }
-                      return item
-                    })
+                    // Make sure to update the correct presentation result
+                    if (inputDescriptors[i].name === key) {
+                      successFlag = true
 
-                    console.log('list')
-                    console.log(list)
+                      // Set check result to true
+                      const list = contact.Traveler.dataValues.proof_result_list.presentations.map(
+                        (item) => {
+                          if (Object.keys(item).join() === key) {
+                            item[key].result = true
+                            item[key].presentation = attributes
+                          }
+                          return item
+                        },
+                      )
 
-                    let finalList = {}
-                    finalList.presentations = list
+                      let finalList = {}
+                      finalList.presentations = list
 
-                    // Update traveler's proof result list
-                    await Travelers.updateProofResultList(
-                      contact.contact_id,
-                      finalList,
-                    )
-
-                    // Break out of outer loop if successfully processed validation
+                      // Update traveler's proof result list
+                      await Travelers.updateProofResultList(
+                        contact.contact_id,
+                        finalList,
+                      )
+                    }
+                    // (eldersonar) Break out of outer loop if successfully processed validation
                     if (successFlag) {
                       console.log('break')
                       break
                     }
                   } else {
                     console.log('Failed business logic')
-                    // Set check result to false
-                    const list = presentations.map((item) => {
-                      console.log(Object.keys(item))
-                      console.log(key)
-                      if (Object.keys(item)[0] === key) {
-                        item[key].result = false
-                        item[key].presentation = attributes
-                      }
-                      return item
-                    })
 
-                    console.log('list')
-                    console.log(list)
+                    // Make sure to update the correct presentation result
+                    if (inputDescriptors[i].name === key) {
+                      successFlag = true
 
-                    let finalList = {}
-                    finalList.presentations = list
+                      // Set check result to false
+                      const list = contact.Traveler.dataValues.proof_result_list.presentations.map(
+                        (item) => {
+                          if (Object.keys(item)[0] === key) {
+                            item[key].result = false
+                            item[key].presentation = attributes
+                          }
+                          return item
+                        },
+                      )
 
-                    // Update traveler's proof result list
-                    await Travelers.updateProofResultList(
-                      contact.contact_id,
-                      finalList,
-                    )
+                      let finalList = {}
+                      finalList.presentations = list
 
-                    // Break out of outer loop if successfully processed validation
-                    if (successFlag) {
-                      console.log('break')
-                      break
+                      // Update traveler's proof result list
+                      await Travelers.updateProofResultList(
+                        contact.contact_id,
+                        finalList,
+                      )
                     }
+                  }
+                  // (eldersonar) Break out of outer loop if successfully processed validation
+                  if (successFlag) {
+                    console.log('break')
+                    break
                   }
                 }
 
-                // Get contact
+                // Get updated contact
                 const updatedContact = await Contacts.getContactByConnection(
                   message.connection_id,
                   ['Traveler'],
                 )
 
                 // (eldersonar) Further validation of presentations. Issue a single trusted traveler based on presentation options
+
+                // (eldersonar) Handling the lab result and vaccination presentations
                 if (
                   updatedContact.Traveler.dataValues.proof_result_list
                     .presentations.length === 2
                 ) {
-                  // console.log("Lab + Vaccine")
-
-                  // let results = []
-                  // const supportedVaccineCodes = ["JSN", "MOD", "PFR", "ASZ"]
-
-                  // for (let v = 0; v < updatedContact.Traveler.dataValues.proof_result_list.presentations.length; v++) {
-                  //   if (updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Lab_Result && updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Lab_Result.result === true) {
-                  //     results.push(true)
-                  //   } else if (updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Vaccination && updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Vaccination.result === true) {
-
-                  //     // Check vaccine manufacturer
-                  //     if (supportedVaccineCodes.includes(updatedContact.Traveler.dataValues.proof_result_list.presentations[v].Vaccination.presentation.vaccine_manufacturer_code.raw)) {
-                  //       console.log("Your vaccine is accepted by Aruba!")
-
-                  //       // Update traveler's verification status
-                  //       // await Travelers.updateVerificationStatus(updatedContact.contact_id, true)
-
-                  //       results.push(true)
-                  //     } else {
-                  //       console.log("Your vaccine is not accepted by Aruba!")
-
-                  //       // Update traveler's verification status
-                  //       // await Travelers.updateVerificationStatus(updatedContact.contact_id, false)
-
-                  //       results.push(false)
-                  //       break
-                  //     }
-
-                  //   }
-                  // }
-
                   let results = []
 
                   for (
@@ -1699,7 +1637,9 @@ const adminMessage = async (message) => {
 
                   if (results[0] === true && results[1] === true) {
                     console.log('')
-                    console.log('it passed 1')
+                    console.log(
+                      'it passed for regular (non-nested) presentation definition',
+                    )
                     console.log('')
 
                     console.log('Issuing trusted traveler credential.')
@@ -1796,6 +1736,7 @@ const adminMessage = async (message) => {
                       )
                     }
                   }
+                  // (eldersonar) Handling the lab result presentation only
                 } else {
                   console.log('Just the Lab')
                   if (
@@ -1803,7 +1744,7 @@ const adminMessage = async (message) => {
                       .presentations[0].Lab_Result.result === true
                   ) {
                     console.log('')
-                    console.log('it passed 1')
+                    console.log('it passed for nested presentation definition')
                     console.log('')
 
                     console.log('Issuing trusted traveler credential.')
@@ -1894,77 +1835,16 @@ const adminMessage = async (message) => {
                     )
                   }
                 }
-
-                // --------------------------- Handling and storing success -------------------------
-
-                // console.log("")
-                // console.log("it passed 1")
-                // console.log("")
-
-                // console.log("Issuing trusted traveler credential.")
-
-                // credentialVerifiedAttributes = credentialAttributes
-                // let schema_id = ''
-
-                // // (eldersonar) Validate the privileges
-                // if (governance && privileges.includes("issue_trusted_traveler")) {
-                //   for (let i = 0; i < governance.actions.length; i++) {
-                //     // (eldersonar) Get schema id for trusted traveler
-                //     if (governance.actions[i].name === "issue_trusted_traveler") {
-                //       schema_id = governance.actions[i].details.schema
-                //     }
-                //   }
-
-                //   // (eldersonar) Get shema information
-                //   if (credentialVerifiedAttributes !== null) {
-                //     let newCredential = {
-                //       connectionID: message.connection_id,
-                //       schemaID: schema_id,
-                //       schemaVersion: schema_id.split(":")[3],
-                //       schemaName: schema_id.split(":")[2],
-                //       schemaIssuerDID: schema_id.split(":")[0],
-                //       comment: '',
-                //       attributes: credentialVerifiedAttributes,
-                //     }
-
-                //     // (mikekebert) Request issuance of the trusted_traveler credential
-                //     console.log("ready to issue trusted traveler")
-
-                //     // await Credentials.autoIssueCredential(
-                //     //   newCredential.connectionID,
-                //     //   undefined,
-                //     //   undefined,
-                //     //   newCredential.schemaID,
-                //     //   newCredential.schemaVersion,
-                //     //   newCredential.schemaName,
-                //     //   newCredential.schemaIssuerDID,
-                //     //   newCredential.comment,
-                //     //   newCredential.attributes,
-                //     // )
-
-                //     credentialVerifiedAttributes = null
-                //   } else {
-                //     // (mikekebert) Send a basic message saying the verification was rejected because of business logic
-                //     console.log('Presentation rejected: 2019-nCoV Detected')
-                //     await AdminAPI.Connections.sendBasicMessage(message.connection_id, {
-                //       content: 'INVALID_PROOF',
-                //     })
-
-                //   }
-                // } else {
-                //   console.log('no governance or insificient privilieges')
-                //   await AdminAPI.Connections.sendBasicMessage(message.connection_id, {
-                //     content: 'INVALID_PRIVILEGES',
-                //   })
-                // }
-
-                // (eldersonar) Validation failed
               } else {
                 console.log('')
-                console.log('The field comparison failed.')
+                console.log('One or all the field comparison attempts failed.')
+                console.log(
+                  "The field comparison attempts failed while looping through input descriptor list. It can be just wrong descriptor or the list of attributes from the correct proof and fields from input descriptor didn't match.",
+                )
                 console.log('')
               }
             }
+
             // Handle nested submission requirements validation
           } else {
             console.log(
@@ -2207,13 +2087,22 @@ const adminMessage = async (message) => {
                       },
                     }
 
+                    console.log('listElement')
+                    console.log(listElement)
+
                     // // Proof object reasignment
                     let proofList =
                       contact.Traveler.dataValues.proof_result_list
                         .presentations[x]
 
+                    console.log('proofList')
+                    console.log(proofList)
+
                     // Keys to string
                     let key = keys.join()
+
+                    console.log('key')
+                    console.log(key)
 
                     // (eldersonar) Check if we are updating correct proof element
                     if (inputDescriptors[i].name === key) {
@@ -2227,6 +2116,9 @@ const adminMessage = async (message) => {
                       // })
                     }
 
+                    console.log('proofList')
+                    console.log(proofList)
+
                     // console.log("this is an updated list")
                     // console.log(proofList)
 
@@ -2236,8 +2128,14 @@ const adminMessage = async (message) => {
                         .presentations,
                     ]
 
+                    console.log('presentations')
+                    console.log(presentations)
+
                     // Rebuilding object list
                     presentations.presentations = proofList[x]
+
+                    console.log('presentations')
+                    console.log(presentations)
 
                     // Set check result to true
                     const list = presentations.map((item) => {
