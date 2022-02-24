@@ -153,36 +153,55 @@ const getDID = async () => {
   }
 }
 
-// Get participant
-const getParticipantByDID = async () => {
+// Validate participant
+const validateParticipant = async (schemaID, protocol, endorserDID) => {
   try {
-    const did = await getDID()
-    if (!did) return {error: 'noDID'}
-    else {
-      const governance = await getGovernance()
+    const governance = await getGovernance()
+    const permissions = governance.permissions
 
-      if (!governance || Object.keys(governance).length === 0) {
-        console.log("the file is empty or doesn't exist")
-        return {error: 'noGov'}
-      } else if (
-        // (eldersonar) Are we still doing this???
+    if (!governance || Object.keys(governance).length === 0) {
+      console.log("Governance file is empty or doesn't exist")
+      return {error: 'noGov'}
+    } else if (!governance.hasOwnProperty('permissions')) {
+      // (eldersonar) TODO: rename the return value
+      console.log('the file is not empty, but lacks core data')
+      return {error: 'limitedGov'}
+    } else {
+      // (eldersonar) Preparing for presentation definition schemas extraction in future
+      const schemas = [
+        'RuuJwd3JMffNwZ43DcJKN1:2:Vaccination:1.4',
+        'RuuJwd3JMffNwZ43DcJKN1:2:Exemption:1.4',
+        'RuuJwd3JMffNwZ43DcJKN1:2:Lab_Result:1.4',
+      ]
+      const schemaMatch = schemas
+        .filter((schema) => schema === schemaID)
+        .toString()
 
-        // Handle the case where we check for participants if roles are missing. Allow to act, but give the warning message (working with unknown participant.)
+      let rule = governance.command_drive.find(
+        (o) => o.data.schema === schemaMatch && o.data.protocol === protocol,
+      )
+      let role = null
+      let permission = null
 
-        // or participants or privileges or do whatever you want (no governance, empty gov, no privileges (no roles, no permissions), no participants, ... no actions)
+      if (rule) {
+        role = rule.role.toString()
 
-        !governance.hasOwnProperty('roles') ||
-        !governance.hasOwnProperty('permissions') ||
-        !governance.hasOwnProperty('privileges')
-      ) {
-        // (eldersonar) TODO: rename the return value
-        console.log('the file is not empty, but lacks core data')
-        return {error: 'limitedGov'}
+        // Validate participant by DID and role
+        for (i = 0; i < permissions.length; i++) {
+          if (
+            permissions[i].when.any.find((item) => item.id === endorserDID) &&
+            permissions[i].grant[0] === role
+          ) {
+            permission = true
+          }
+        }
+        // Rule was not found
       } else {
-        let participant = governance.participants.find((o) => o.id === did)
-
-        return participant
+        console.log('FAILED no role')
+        return false
       }
+
+      return permission
     }
   } catch (error) {
     console.error('Error fetching participant')
@@ -385,7 +404,7 @@ const getParticipants = async () => {
 module.exports = {
   getGovernance,
   getPresentationDefinition,
-  getParticipantByDID,
+  validateParticipant,
   getPermissionsByDID,
   getPrivilegesByRoles,
   getParticipants,

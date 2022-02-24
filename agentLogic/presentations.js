@@ -1096,6 +1096,25 @@ const adminMessage = async (message) => {
   const governance = await Governance.getGovernance()
   const privileges = await Governance.getPrivilegesByRoles()
 
+  let endorserDID = null
+  let schemaID = null
+  const protocol = 'https://didcomm.org/issue-credential/1.0/'
+
+  // Get cred def id and schema id
+  if (message.presentation && message.presentation.identifiers.length) {
+    endorserDID = message.presentation.identifiers[0].cred_def_id
+      .split(':', 1)
+      .toString()
+    schemaID = message.presentation.identifiers[0].schema_id
+  }
+
+  // TODO: Check governance and don't send schema id
+  const participantValidated = await Governance.validateParticipant(
+    schemaID,
+    protocol,
+    endorserDID,
+  )
+
   // Update traveler's proof status
   const contact = await Contacts.getContactByConnection(message.connection_id, [
     'Traveler',
@@ -1109,9 +1128,6 @@ const adminMessage = async (message) => {
     pdf = await Governance.getLabVaccinePresentationDefinition()
   } else if (contact.Traveler.dataValues.proof_type === 'Lab') {
     pdf = await Governance.getLabPresentationDefinition()
-  } else {
-    console.log('are we here?')
-    console.log(contact.Traveler.dataValues.proof_type)
   }
   //------------ (eldersonar) TODO: remove after trial-------------
 
@@ -1120,7 +1136,7 @@ const adminMessage = async (message) => {
   await Travelers.updateProofStatus(contact.contact_id, message.state)
 
   if (message.state === 'verified') {
-    if (message.verified === 'true') {
+    if (message.verified === 'true' && participantValidated) {
       let attributes = ''
       let predicates = message.presentation.requested_proof.predicates
 
@@ -2256,6 +2272,13 @@ const adminMessage = async (message) => {
           }
         }
       }
+    } else {
+      // (eldersonar) Send a basic message
+      console.log("I'm here")
+      await AdminAPI.Connections.sendBasicMessage(message.connection_id, {
+        content:
+          "We're sorry, but we don't currently recognize the issuer of your credential and cannot approve it at this time.",
+      })
     }
     // (eldersonar) Handle passport and travelers
     // else {
