@@ -41,6 +41,7 @@
     "style-check": "prettier --check '**/*.js'",
     "style-format": "prettier --write '**/*.js'",
     "dev": "nodemon index.js",
+    "start": "node index.js",
     "first-time-setup": "node ./scripts/firstTimeSetup.js",
     "test": "jest"
   },
