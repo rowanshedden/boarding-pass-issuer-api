@@ -6,6 +6,9 @@ connect = function () {
     dialect: 'postgres',
     logging: false, //console.log, // Log to console or false (no logging of database queries)
     omitNull: true,
+    dialectOptions: {
+      ssl: true
+    }
   })
 
   return sequelize

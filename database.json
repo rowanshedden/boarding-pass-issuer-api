@@ -1,11 +1,12 @@
 {
-  "defaultEnv":"test",
-  "test": {
+  "defaultEnv":"dev",
+  "dev": {
     "driver": "pg",
     "host": {"ENV": "DB_HOST"},
     "schema": "public",
     "database": {"ENV": "DB"},
     "user": {"ENV": "DB_USERNAME"},
-    "password": {"ENV": "DB_PASSWORD"}
+    "password": {"ENV": "DB_PASSWORD"},
+    "ssl": true
   }
 }
