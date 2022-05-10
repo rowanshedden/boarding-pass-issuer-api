@@ -2354,6 +2354,13 @@ const createPresentationReports = async (presentation) => {
 
 const updatePresentationReports = async (presentation) => {
   try {
+    let requestedPresentation = presentation.presentation
+
+    // (AmmonBurgi) If our environment variable is equal to false, assign presentation to undefined so we don't store PHI attributes. Assigning it to undefined will prevent UI from breaking.
+    if (process.env.ALLOW_PHI_ATTRIBUTES === 'false') {
+      requestedPresentation = undefined
+    }
+
     const presentationReport = await Presentations.updatePresentationReports(
       presentation.presentation_exchange_id,
       presentation.trace,
@@ -2367,7 +2374,7 @@ const updatePresentationReports = async (presentation) => {
       presentation.state,
       presentation.thread_id,
       presentation.auto_present,
-      JSON.stringify(presentation.presentation),
+      JSON.stringify(requestedPresentation),
     )
 
     // Broadcast the message to all connections
@@ -2383,7 +2390,7 @@ const updatePresentationReports = async (presentation) => {
 const getAll = async () => {
   try {
     console.log('Fetching presentation reports!')
-    const presentationReports = await Presentations.readPresentations()
+    let presentationReports = await Presentations.readPresentations()
 
     return presentationReports
   } catch (error) {
