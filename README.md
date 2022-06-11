@@ -40,6 +40,13 @@ CONTROLLERPORT=3100
 AGENTADDRESS='http://AGENT_IP_ADDRESS:8150'
 ```
 
+If you need to reset your ecryption key (the raw key which is used by the algorithm and iv) for the SMTP password encrypyion, copy and run these commands to generate one. Then replace the old key with the new one ( e.g. LAB_ENC_KEY=40222988217e8dd592fc84fbf6ca20d7) 
+```
+const crypto = require('crypto')
+const enc_key = crypto.randomBytes(16).toString('hex')
+console.log(enc_key)
+```
+
 Add the following line to your ACA-Py Agent startup.sh file:
 ```
 --webhook-url "$WEBHOOK_ADDRESS" \
