@@ -17,7 +17,7 @@ exports.setup = function (options, seedLink) {
 exports.up = function (db) {
   const organizationName = JSON.stringify({
     organizationName: 'Aruba Department of Public Health',
-    title: 'Aruba Department of Public Health'
+    title: 'Aruba Department of Public Health',
   })
 
   return db.runSql(
@@ -30,7 +30,7 @@ exports.up = function (db) {
 
 exports.down = function (db) {
   const organizationName = JSON.stringify({
-    organizationName: 'Aruba Department of Public Health'
+    organizationName: 'Aruba Department of Public Health',
   })
 
   return db.runSql(

@@ -40,12 +40,21 @@ const getSMTP = async () => {
 
 const setSMTP = async (data = {}) => {
   try {
+    if (
+      !data.auth.email ||
+      !data.auth.pass ||
+      !data.auth.mailUsername ||
+      !data.host
+    ) {
+      return false
+    }
+
     const IV = crypto.randomBytes(8).toString('hex')
     const encryptedPassword = Util.encrypt(data.auth.pass, IV)
 
     data.IV = IV
     data.auth.pass = encryptedPassword
-    
+
     await Settings.updateSMTP(data)
     const updatedSMTP = await Settings.readSMTP()
     return updatedSMTP

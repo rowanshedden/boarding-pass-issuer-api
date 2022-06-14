@@ -325,7 +325,7 @@ const createUser = async function (email, roles) {
     // console.log(currentLogo[0].dataValues.image, 'logo dig')
 
     // Send new account email
-    sendEmailNewAccount(
+    await sendEmailNewAccount(
       currentSMTP.dataValues.value.auth.email,
       user.email,
       currentOrganization.value.organizationName,
@@ -339,7 +339,11 @@ const createUser = async function (email, roles) {
     return true
   } catch (error) {
     console.error('Error Fetching User')
-    throw error
+    // throw error
+    return {
+      error:
+        'Was not able to send a confirmation email. Please, make sure that you set user email in the SMTP configurations properly.',
+    }
   }
 }
 
@@ -431,32 +435,47 @@ const updateUser = async function (
           }
         }
 
-        const newToken = jwt.sign({id: userID}, process.env.JWT_SECRET, {
-          expiresIn: '10m',
-        })
+        try {
+          const newToken = jwt.sign({id: userID}, process.env.JWT_SECRET, {
+            expiresIn: '10m',
+          })
 
-        await Users.updateUserInfo(userID, username, email, password, newToken)
-
-        // Get email from SMTP config
-        const currentSMTP = await SMTP.getSMTP()
-        const currentOrganization = await SMTP.getOrganization()
-
-        if (username) {
-          sendEmailPasswordReset(
-            currentSMTP.dataValues.value.auth.email,
-            email,
+          await Users.updateUserInfo(
+            userID,
             username,
-            currentOrganization.value.organizationName,
-            newToken,
-          )
-        } else {
-          // This user isn't set up yet, so resend the new account email
-          sendEmailNewAccount(
-            currentSMTP.dataValues.value.auth.email,
             email,
-            currentOrganization.value.organizationName,
+            password,
             newToken,
           )
+
+          // Get email from SMTP config
+          const currentSMTP = await SMTP.getSMTP()
+          const currentOrganization = await SMTP.getOrganization()
+
+          if (username) {
+            await sendEmailPasswordReset(
+              currentSMTP.dataValues.value.auth.email,
+              email,
+              username,
+              currentOrganization.value.organizationName,
+              newToken,
+            )
+          } else {
+            // This user isn't set up yet, so resend the new account email
+            await sendEmailNewAccount(
+              currentSMTP.dataValues.value.auth.email,
+              email,
+              currentOrganization.value.organizationName,
+              newToken,
+            )
+          }
+        } catch (error) {
+          console.error('Error Reseting Password')
+          // throw error
+          return {
+            error:
+              'Was not able to send a confirmation email. Please, make sure that you set user email in the SMTP configurations properly.',
+          }
         }
       } else {
         // User update by admin
@@ -567,7 +586,7 @@ const resendAccountConfirmation = async function (email) {
     const currentOrganization = await SMTP.getOrganization()
 
     // Send new account email
-    sendEmailNewAccount(
+    await sendEmailNewAccount(
       currentSMTP.dataValues.value.auth.email,
       email,
       currentOrganization.value.organizationName,
@@ -578,7 +597,11 @@ const resendAccountConfirmation = async function (email) {
     return true
   } catch (error) {
     console.error('Error Fetching User')
-    throw error
+    // throw error
+    return {
+      error:
+        'Was not able to send a confirmation email. Please, make sure that you set user email in the SMTP configurations properly.',
+    }
   }
 }
 

@@ -135,7 +135,9 @@ const adminMessage = async (credentialIssuanceMessage) => {
           SITAHubTraveler = {
             xid: credentialIssuanceMessage.connection_id,
             travellerDetails: {
-              dateOfBirth: DateTime.fromJSDate(new Date(passport.passport_date_of_birth)).toFormat('yyyy-MM-dd'),
+              dateOfBirth: DateTime.fromJSDate(
+                new Date(passport.passport_date_of_birth),
+              ).toFormat('yyyy-MM-dd'),
               familyName: passport.passport_surnames,
               givenNames: passport.passport_given_names,
               nationality: passport.passport_code,

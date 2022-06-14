@@ -89,13 +89,18 @@ app.use(
 //------------ (eldersonar) TODO: remove after trial-------------
 
 // (eldersonar) Create database
-const sequelize = new Sequelize(process.env.DB, process.env.DB_USERNAME, process.env.DB_PASSWORD, {
-  host: process.env.DB_HOST,
-  dialect: 'postgres',
-  dialectOptions: {
-    ssl: true
-  }
-})
+const sequelize = new Sequelize(
+  process.env.DB,
+  process.env.DB_USERNAME,
+  process.env.DB_PASSWORD,
+  {
+    host: process.env.DB_HOST,
+    dialect: 'postgres',
+    dialectOptions: {
+      ssl: true,
+    },
+  },
+)
 
 const myStore = new SequelizeStore({
   db: sequelize,
@@ -349,6 +354,12 @@ app.post('/api/user/update', async (req, res) => {
       }
     }
   }
+
+  // If SMTP is not set up or broken
+  if (user.error) res.send(user)
+
+  if (!user) res.json({error: "The user couldn't be updated."})
+  else res.status(200).json({status: 'User updated.'})
 })
 
 // Logo retrieval
