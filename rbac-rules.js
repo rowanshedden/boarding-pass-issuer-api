@@ -15,6 +15,7 @@ const rules = {
     'travelers:update',
     'travelers:delete',
     'invitations:create',
+    'invitations:accept',
     'invitations:read',
     'invitations:delete',
     'presentations:read',
@@ -43,6 +44,7 @@ const rules = {
     'travelers:update',
     'invitations:create',
     'invitations:read',
+    'invitations:accept',
     'presentations:read',
   ],
 }

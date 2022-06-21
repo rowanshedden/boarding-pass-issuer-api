@@ -366,6 +366,16 @@ const messageHandler = async (ws, context, type, data = {}) => {
             }
             break
 
+          case 'ACCEPT_INVITATION':
+            if (check(rules, userRoles, 'invitations:accept')) {
+              await Invitations.acceptInvitation(data)
+            } else {
+              sendMessage(ws, 'INVITATIONS', 'INVITATIONS_ERROR', {
+                error: 'ERROR: You are not authorized to accept invitations.',
+              })
+            }
+            break
+
           default:
             console.error(`Unrecognized Message Type: ${type}`)
             sendErrorMessage(ws, 1, 'Unrecognized Message Type')
@@ -392,6 +402,39 @@ const messageHandler = async (ws, context, type, data = {}) => {
               data.additional_tables,
             )
             sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts: [contact]})
+            break
+
+          default:
+            console.error(`Unrecognized Message Type: ${type}`)
+            sendErrorMessage(ws, 1, 'Unrecognized Message Type')
+            break
+        }
+        break
+
+      case 'OUT_OF_BAND':
+        switch (type) {
+          case 'CREATE_INVITATION':
+            if (check(rules, userRoles, 'invitations:create')) {
+              let invitation = await Invitations.createOutOfBandInvitation()
+
+              sendMessage(ws, 'OUT_OF_BAND', 'INVITATION', {
+                invitation_record: invitation,
+              })
+            } else {
+              sendMessage(ws, 'OUT_OF_BAND', 'INVITATIONS_ERROR', {
+                error: 'ERROR: You are not authorized to create invitations.',
+              })
+            }
+            break
+
+          case 'ACCEPT_INVITATION':
+            if (check(rules, userRoles, 'invitations:accept')) {
+              await Invitations.acceptOutOfBandInvitation(data)
+            } else {
+              sendMessage(ws, 'OUT_OF_BAND', 'INVITATIONS_ERROR', {
+                error: 'ERROR: You are not authorized to accept invitations.',
+              })
+            }
             break
 
           default:
