@@ -27,6 +27,7 @@ module.exports.server = server
 let Websocket = require('./websockets.js')
 
 const Contacts = require('./orm/contacts')
+const ConnectionsAPI = require('./adminAPI/connections')
 const ContactsCompiled = require('./orm/contactsCompiled')
 const Credentials = require('./agentLogic/credentials')
 const Governance = require('./agentLogic/governance')
@@ -85,6 +86,11 @@ app.use(
 app.use(
   '/api/lab-vaccine-presentation-exchange',
   express.static('lab-vaccine-presentation-exchange.json'),
+)
+
+app.use(
+  '/api/vaccine-presentation-exchange',
+  express.static('vaccine-presentation-exchange.json'),
 )
 //------------ (eldersonar) TODO: remove after trial-------------
 
@@ -461,15 +467,6 @@ app.get('/api/verification/:id', async (req, res) => {
       ['Traveler'],
     )
 
-    // (eldersonar) TODO: Remove after development
-    console.log('')
-    console.log('')
-    console.log(contact.Traveler.dataValues.proof_result_list)
-    console.log(contact.Traveler.dataValues.proof_result_list.presentations)
-    console.log('')
-    console.log('')
-    // (eldersonar) TODO: Remove after development
-
     if (!contact) {
       res.json({error: "Couldn't find contact by connection id"})
     }
@@ -509,6 +506,37 @@ app.get('/api/verification/:id', async (req, res) => {
       error,
     }
 
+    if (result === true) {
+      await ConnectionsAPI.sendBasicMessage(
+        contact.Connections[0].connection_id,
+        {
+          content:
+            'Congratulations, your Health Credential meets our current requirements for Happy Travel!',
+        },
+      )
+      await ConnectionsAPI.sendBasicMessage(
+        contact.Connections[0].connection_id,
+        {
+          content:
+            'In a moment, you will receive an email with your approval, in case you need it, and your Happy Traveler Credential to hold in your digital wallet.',
+        },
+      )
+      await ConnectionsAPI.sendBasicMessage(
+        contact.Connections[0].connection_id,
+        {
+          content:
+            'Use the wallet to share your Happy Traveler Credential with airlines, health authorities, hospitality and tourism vendors throughout Aruba. The Happy Traveler Credential is a way of showing your clearance without revealing ANY PERSONAL OR HEALTH INFORMATION.',
+        },
+      )
+    } else if (result === false) {
+      await ConnectionsAPI.sendBasicMessage(
+        contact.Connections[0].connection_id,
+        {
+          content:
+            'Unfortunately, the health information you provided does not meet our current requirements for travel to Aruba, please contact us at __________ (email or phone or website) to find alternatives for healthy and safe travel to our Happy island.',
+        },
+      )
+    }
     res.status(200).send(response)
   } catch (err) {
     console.error(err)

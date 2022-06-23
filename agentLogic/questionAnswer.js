@@ -32,18 +32,27 @@ const adminMessage = async (message) => {
 
   // Connection Reuse Method
   switch (message.response) {
-    case 'Vaccination + PCR Test':
-      console.log('Connection Request Vaccination + PCR Test')
+    case 'Vaccination':
+      console.log('Connection Request Vaccination')
 
       // (eldersonar) TODO: tie this to the governance
-      Presentations.requestPresentation(message.connection_id, 'Lab+Vaccine')
+
+      await AdminAPI.Connections.sendBasicMessage(message.connection_id, {
+        content: 'Please, provide your first vaccination credential',
+      })
+
+      setTimeout(() => {
+        Presentations.requestPresentation(message.connection_id, 'Vaccination')
+      }, 1000)
       break
 
-    case 'PCR Test Only':
-      console.log('Connection Request PCR Test Only')
+    case 'Lab Result':
+      console.log('Connection Request Lab Result')
 
       // (eldersonar) TODO: tie this to the governance
-      Presentations.requestPresentation(message.connection_id, 'Lab')
+      setTimeout(() => {
+        Presentations.requestPresentation(message.connection_id, 'Lab')
+      }, 1000)
       break
 
     default:

@@ -1,54 +1,20 @@
 const {DateTime} = require('luxon')
 const {v4: uuid} = require('uuid')
-const axios = require('axios')
 
 const ControllerError = require('../errors')
 
 const AdminAPI = require('../adminAPI')
 const Websockets = require('../websockets')
 const Contacts = require('./contacts')
+const ConnectionsState = require('../agentLogic/connectionsState')
 const Credentials = require('./credentials')
 const Governance = require('./governance')
-const Passports = require('./passports')
 const Travelers = require('./travelers')
-
 const Presentations = require('../orm/presentations')
-const Traveler = require('../orm/travelers')
 
 const {getOrganization} = require('./settings')
 
 const Util = require('../util')
-
-// (eldersonar) Get Presentation Definition file
-const getPresentationDefinition = async () => {
-  try {
-    const governance = await Governance.getGovernance()
-
-    // Presentation definition file
-    const pdfLink = governance.actions.find(
-      (item) => item.name === 'issue_trusted_traveler',
-    ).details.presentation_definition
-
-    const response = await axios({
-      method: 'GET',
-      url: pdfLink,
-    }).then((res) => {
-      return res.data
-    })
-
-    return response
-  } catch (error) {
-    console.error('Presentation Definition File Request Error')
-    // console.log(error.response.status)
-    console.log(error)
-
-    // (eldersonar) Do we handle specific codes or handle all errors as one?
-    // if (error.response.status)
-    return undefined
-
-    // throw error
-  }
-}
 
 // (eldersonar) Request identity proof
 const requestIdentityPresentation = async (connectionID) => {
@@ -91,7 +57,7 @@ function cartesian(args) {
 }
 
 // TODO: remove after development
-let counter = 0
+// let counter = 0
 
 const createPresentationRequest = async (
   connectionID,
@@ -100,58 +66,6 @@ const createPresentationRequest = async (
   name,
   comment,
 ) => {
-  // counter++
-
-  let list = {presentations: []}
-
-  // Get contact
-  const contact = await Contacts.getContactByConnection(connectionID, [
-    'Traveler',
-  ])
-  console.log(contact)
-
-  // Create a proof element
-  const listElement = {
-    [name]: {
-      result: null,
-      presentation: {},
-    },
-  }
-
-  // Rearrange data
-  let presentationArray = []
-  presentationArray.push(listElement)
-  list.presentations = presentationArray
-
-  let oldProofList = []
-
-  // Check if proof result list is empty
-  if (
-    !contact.Traveler.dataValues.proof_result_list ||
-    Object.keys(contact.Traveler.dataValues.proof_result_list.presentations)
-      .length === 0
-  ) {
-    console.log('empty object')
-
-    // Update traveler's proof result list
-    await Travelers.updateProofResultList(contact.contact_id, list)
-
-    list = []
-    presentationArray = []
-  } else {
-    console.log('NOT empty object')
-    // Add new proof result element to the old list
-    oldProofList =
-      contact.Traveler.dataValues.proof_result_list.presentations[0]
-    list.presentations.push(oldProofList)
-
-    // Update traveler's proof result list
-    await Travelers.updateProofResultList(contact.contact_id, list)
-
-    list = []
-    presentationArray = []
-  }
-
   // console.log("________________________________________________")
   // console.log("This is the counter")
   // console.log(counter)
@@ -482,12 +396,19 @@ const handleCartesianProductSet = async (
 }
 
 // (eldersonar) Simple input descriptors handler (no in-field conditions)
-const handleSimpleDescriptors = async (descriptors, connectionID) => {
+const handleSimpleDescriptors = async (
+  descriptors,
+  connectionID,
+) => {
   try {
-    for (let i = 0; i < descriptors.length; i++) {
-      let attributes = {}
-      let predicates = {}
+    const uid = uuid()
+    let attributes = {}
+    let predicates = {}
+    attributes[uid] = {
+      names: [],
+    }
 
+    for (let i = 0; i < descriptors.length; i++) {
       const schema_id = descriptors[i].schema[0].uri
       const name = descriptors[i].name
       const comment = `Requesting Presentation for ${descriptors[i].name}`
@@ -630,14 +551,11 @@ const handleSimpleDescriptors = async (descriptors, connectionID) => {
             }
           }
         } else {
-          attributes[path] = {
-            name: path,
-            restrictions: [{schema_id}],
-          }
+          // (eldersonar) Prepare attributes and create restrictions
+          attributes[uid].names.push(path)
+          attributes[uid].restrictions = [{schema_id: schema_id}]
         }
       }
-
-      // (eldersonar) TODO: Comment in to create presentation requests from "regular" input descriptors
 
       // (eldersonar) Assemble presentation request
       await createPresentationRequest(
@@ -647,10 +565,6 @@ const handleSimpleDescriptors = async (descriptors, connectionID) => {
         name,
         comment,
       )
-
-      // (eldersonar) Clear variables at the end of each iteration
-      attributes = {}
-      predicates = {}
     }
   } catch (error) {
     console.log(error)
@@ -660,6 +574,11 @@ const handleSimpleDescriptors = async (descriptors, connectionID) => {
 // Governance presentation request
 const requestPresentation = async (connectionID, type) => {
   console.log(`Requesting Presentation from Connection: ${connectionID}`)
+
+  await AdminAPI.Connections.sendBasicMessage(connectionID, {
+    content:
+      'We are requesting some health information you may have in your credential wallet. Please review our request and choose "Share" or "Reject".',
+  })
 
   // (eldersonar) Get governance file and presentation exchange file
   // const pdf = await Governance.getPresentationDefinition()
@@ -672,8 +591,8 @@ const requestPresentation = async (connectionID, type) => {
   await Travelers.updateProofType(contact.contact_id, type)
 
   let pdf = {}
-  if (type === 'Lab+Vaccine') {
-    pdf = await Governance.getLabVaccinePresentationDefinition()
+  if (type === 'Vaccination') {
+    pdf = await Governance.getVaccinePresentationDefinition()
   } else if (type === 'Lab') {
     pdf = await Governance.getLabPresentationDefinition()
   }
@@ -682,9 +601,6 @@ const requestPresentation = async (connectionID, type) => {
   const inputDescriptors = pdf.presentation_definition.input_descriptors
 
   try {
-    // let result = null
-    // let proofCheckResult = []
-
     const date = Math.floor(Date.now() / 1000)
 
     // (eldersonar) Check if we have submission requirments
@@ -772,7 +688,10 @@ const requestPresentation = async (connectionID, type) => {
         }
 
         // (eldersonar) TODO: Wrap into an if statement to check if the the rest of the input descriptors are part of the submission requirment group.
-        await handleSimpleDescriptors(inputDescriptors, connectionID)
+        await handleSimpleDescriptors(
+          inputDescriptors,
+          connectionID,
+        )
 
         // (eldersonar) Handle nested submission requirments
       } else {
@@ -875,7 +794,7 @@ const requestPresentation = async (connectionID, type) => {
           }
 
           // (eldersonar) TODO: Wrap into an if statement to check if the the rest of the input descriptors are part of the submission requirment group.
-          handleSimpleDescriptors(chosenDescriptors, connectionID)
+          await handleSimpleDescriptors(chosenDescriptors, connectionID)
         }
       }
     }
@@ -914,7 +833,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
               case 'string':
                 // Support empty string && attributes[key].raw !== ""
                 if (typeof attributes[key].raw === 'string') {
-                  console.log('the type check (STRING) have passed')
+                  // console.log('the type check (STRING) have passed')
                   typePass = true
                 } else {
                   console.log('this is NOT A STRING or STRING IS EMPTY')
@@ -925,7 +844,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
 
               case 'number':
                 if (!isNaN(attributes[key].raw)) {
-                  console.log('the type check (NUMBER) have passed')
+                  // console.log('the type check (NUMBER) have passed')
                   typePass = true
                 } else {
                   console.log('this is NOT A NUMBER')
@@ -939,7 +858,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
                   attributes[key].raw === 'true' ||
                   attributes[key].raw === 'false'
                 ) {
-                  console.log('the type check (BOOLEAN) have passed')
+                  // console.log('the type check (BOOLEAN) have passed')
                   typePass = true
                 } else {
                   console.log('this is NOT A BOOLEAN')
@@ -954,7 +873,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
                 break
             }
           } else {
-            console.log('no type was found for this attribute')
+            // console.log('no type was found for this attribute')
             typePass = true
           }
 
@@ -964,31 +883,32 @@ const validateFieldByField = (attributes, inputDescriptor) => {
 
             // (eldersonar) Check if the value can be transformed to a valid number
             if (attributes[key].raw === '') {
-              console.log('format passed')
-              typePass = true
+              // console.log('format passed')
+              formatPass = true
             } else if (!isNaN(dateNumber)) {
-              console.log('the date check (NUMBER) have passed')
+              // console.log('the date check (NUMBER) have passed')
               let luxonDate = DateTime.fromMillis(dateNumber).toISO()
               let date = new DateTime(luxonDate).isValid
 
               // (eldersonar) Check if the valid Luxon datetime format
               if (date) {
-                console.log('format passed')
-                typePass = true
+                // console.log('the date is: ', date)
+                // console.log('format passed')
+                formatPass = true
               } else {
-                console.log('this is NOT A DATE')
+                // console.log('this is NOT A DATE')
                 console.log('format failed')
-                typePass = false
+                formatPass = false
                 break
               }
             } else {
-              console.log('this is NOT A DATE')
+              // console.log('this is NOT A DATE')
               console.log('format failed')
-              typePass = false
+              formatPass = false
               break
             }
           } else {
-            console.log('no format was found for this attribute')
+            // console.log('no format was found for this attribute')
             formatPass = true
           }
 
@@ -1000,7 +920,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
                 '' + inputDescriptor.constraints.fields[p].filter.const
 
               if (attributes[key].raw === stringNumber) {
-                console.log('value passed')
+                // console.log('value passed')
                 valuePass = true
               } else {
                 console.log('value failed')
@@ -1012,7 +932,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
                 attributes[key].raw ===
                 inputDescriptor.constraints.fields[p].filter.const
               ) {
-                console.log('value passed')
+                // console.log('value passed')
                 valuePass = true
               } else {
                 console.log('value failed')
@@ -1021,7 +941,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
               }
             }
           } else {
-            console.log('no value was found for this attribute')
+            // console.log('no value was found for this attribute')
             valuePass = true
           }
 
@@ -1029,7 +949,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
           if (inputDescriptor.constraints.fields[p].filter.pattern) {
             // Check if it's base64 encoded
             if (attributes[key].raw === '') {
-              console.log('pattern passed')
+              // console.log('pattern passed')
               patternPass = true
             } else if (
               Buffer.from(
@@ -1038,7 +958,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
               ).toString('base64') ===
               inputDescriptor.constraints.fields[p].filter.pattern
             ) {
-              console.log('decoding....')
+              // console.log('decoding....')
 
               const decodedPattern = Util.decodeBase64(
                 inputDescriptor.constraints.fields[p].filter.pattern,
@@ -1048,7 +968,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
 
               // (eldersonar) Test pattern
               if (re.test(attributes[key].raw)) {
-                console.log('pattern passed')
+                // console.log('pattern passed')
                 patternPass = true
               } else {
                 console.log('pattern failed')
@@ -1063,7 +983,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
 
               // (eldersonar) Test pattern
               if (re.test(attributes[key].raw)) {
-                console.log('pattern passed')
+                // console.log('pattern passed')
                 patternPass = true
               } else {
                 console.log('pattern failed')
@@ -1072,7 +992,7 @@ const validateFieldByField = (attributes, inputDescriptor) => {
               }
             }
           } else {
-            console.log('no pattern was found for this attribute')
+            // console.log('no pattern was found for this attribute')
             patternPass = true
           }
         }
@@ -1080,6 +1000,21 @@ const validateFieldByField = (attributes, inputDescriptor) => {
     }
     // Break out of outer loop if validation failed
     if (!typePass || !valuePass || !patternPass || !formatPass) {
+      console.log('One of these failed: ')
+      console.log('')
+      console.log('typePass')
+      console.log(typePass)
+      console.log('')
+      console.log('valuePass')
+      console.log(valuePass)
+      console.log('')
+      console.log('patternPass')
+      console.log(patternPass)
+      console.log('')
+      console.log('formatPass')
+      console.log(formatPass)
+      console.log('')
+
       result = false
       break
     } else {
@@ -1096,46 +1031,51 @@ const adminMessage = async (message) => {
   const governance = await Governance.getGovernance()
   const privileges = await Governance.getPrivilegesByRoles()
 
-  let endorserDID = null
-  let schemaID = null
-  const protocol = 'https://didcomm.org/issue-credential/1.0/'
-
-  // Get cred def id and schema id
-  if (message.presentation && message.presentation.identifiers.length) {
-    endorserDID = message.presentation.identifiers[0].cred_def_id
-      .split(':', 1)
-      .toString()
-    schemaID = message.presentation.identifiers[0].schema_id
-  }
-
-  // TODO: Check governance and don't send schema id
-  const participantValidated = await Governance.validateParticipant(
-    schemaID,
-    protocol,
-    endorserDID,
-  )
-
-  // Update traveler's proof status
-  const contact = await Contacts.getContactByConnection(message.connection_id, [
-    'Traveler',
-  ])
-
-  // const pdf = await Governance.getPresentationDefinition()
-
-  //------------ (eldersonar) TODO: remove after trial-------------
-  let pdf = {}
-  if (contact.Traveler.dataValues.proof_type === 'Lab+Vaccine') {
-    pdf = await Governance.getLabVaccinePresentationDefinition()
-  } else if (contact.Traveler.dataValues.proof_type === 'Lab') {
-    pdf = await Governance.getLabPresentationDefinition()
-  }
-  //------------ (eldersonar) TODO: remove after trial-------------
-
-  const inputDescriptors = pdf.presentation_definition.input_descriptors
-
-  await Travelers.updateProofStatus(contact.contact_id, message.state)
-
   if (message.state === 'verified') {
+    let endorserDID = null
+    let schemaID = null
+    const protocol = 'https://didcomm.org/issue-credential/1.0/'
+
+    // Get cred def id and schema id
+    if (message.presentation && message.presentation.identifiers.length) {
+      endorserDID = message.presentation.identifiers[0].cred_def_id
+        .split(':', 1)
+        .toString()
+      schemaID = message.presentation.identifiers[0].schema_id
+    }
+
+    // TODO: Check governance and don't send schema id
+    const participantValidated = await Governance.validateParticipant(
+      schemaID,
+      protocol,
+      endorserDID,
+    )
+
+    // Update traveler's proof status
+    const contact = await Contacts.getContactByConnection(
+      message.connection_id,
+      ['Traveler'],
+    )
+
+    // const pdf = await Governance.getPresentationDefinition()
+
+    //------------ (eldersonar) TODO: remove after trial-------------
+    let pdf = {}
+    if (contact.Traveler.dataValues.proof_type === 'Vaccination') {
+      pdf = await Governance.getVaccinePresentationDefinition()
+    } else if (contact.Traveler.dataValues.proof_type === 'Lab') {
+      pdf = await Governance.getLabPresentationDefinition()
+    } else {
+      console.log(
+        "The answer doesn't match any existing presentation exchange files",
+      )
+    }
+    //------------ (eldersonar) TODO: remove after trial-------------
+
+    const inputDescriptors = pdf.presentation_definition.input_descriptors
+
+    await Travelers.updateProofStatus(contact.contact_id, message.state)
+
     if (message.verified === 'true' && participantValidated) {
       let attributes = ''
       let predicates = message.presentation.requested_proof.predicates
@@ -1151,6 +1091,11 @@ const adminMessage = async (message) => {
       } else {
         attributes = message.presentation.requested_proof.revealed_attrs
       }
+
+      await AdminAPI.Connections.sendBasicMessage(message.connection_id, {
+        content:
+          'Thank you for providing your information. We are verifying it now, please wait just a few seconds...',
+      })
 
       const issuerName = await getOrganization()
 
@@ -1352,7 +1297,7 @@ const adminMessage = async (message) => {
 
                               proofResult = true
                             } else {
-                              // console.log("Validation failed.")
+                              console.log('Validation failed.')
                               proofResult = false
                             }
                           } else {
@@ -1381,468 +1326,1978 @@ const adminMessage = async (message) => {
                 console.log('Error: lacking data for validation')
               }
 
-              console.log(proofResult)
-              console.log(fieldsValidationResult)
+              console.log('')
+              console.log('Validation of proof status is: ', proofResult)
+              console.log(
+                'Field-by-field validation status is: ',
+                fieldsValidationResult,
+              )
 
-              // console.log("Original presentations array")
-              // console.log("")
-              // console.log(contact.Traveler.dataValues.proof_result_list.presentations)
-              // console.log("")
-
-              // let successFlag = null
-
-              // for (let x = 0; x < contact.Traveler.dataValues.proof_result_list.presentations.length; x++) {
-              //   console.log(contact.Traveler.dataValues.proof_result_list.presentations[x])
-
-              //   console.log("this is an index count ---------------- ", x)
-
-              //   // Get all the object keys
-              //   let keys = Object.keys(contact.Traveler.dataValues.proof_result_list.presentations[x])
-
-              //   let listElement = {
-              //     [inputDescriptors[i].name]: {
-              //       "result": true,
-              //       presentation: {}
-              //     }
-              //   }
-
-              //   console.log("keys")
-              //   console.log(keys)
-              //   console.log("keys")
-
-              //   let proofList = contact.Traveler.dataValues.proof_result_list.presentations[x]
-
-              //   let key = keys.join()
-
-              //   console.log("checkkkkkkkkkkkkkkkkkkkkkk")
-              //   console.log(inputDescriptors[i].name === key)
-              //   console.log(inputDescriptors[i].name)
-              //   console.log(key)
-
-              //   if (inputDescriptors[i].name === key) {
-              //     successFlag = true
-              //     // keys.map(y => {
-              //     //   proofList[y] = listElement[y]
-              //     //   console.log("map magic")
-              //     //   console.log(proofList[y])
-              //     // })
-
-              //     proofList[keys[0]] = listElement[keys[0]]
-              //   }
-
-              //   console.log("this is an updated list")
-              //   console.log(proofList)
-
-              //   let presentations = {}
-              //   presentations.presentations = proofList
-
-              //   // Update traveler's proof result list
-              //   await Travelers.updateProofResultList(contact.contact_id, presentations)
-
-              //   // Break out of outer loop if validation failed
-              //   if (successFlag) {
-              //     console.log("breakkkkkkkkkkkkkkkkkkkkkkk")
-              //     break
-              //   } else {
-              //     console.log("continnueeeeeeeeeeeeeeeeeeee")
-              //   }
-
-              // }
-
-              // (eldersonar) Hanlding additional manual validation for non-nested submission requirements
               // Check if all level validation passed
               if (proofResult && fieldsValidationResult) {
-                console.log(
-                  'Hanlding additional manual validation for non-nested submission requirements ',
-                )
                 // --------------------------- Handling and storing success -------------------------
-                console.log('Original presentations array')
-                console.log('')
-                console.log(
-                  contact.Traveler.dataValues.proof_result_list.presentations,
+
+                console.log(' ')
+                console.log('-------------Rules validation---------------')
+                console.log(' ')
+
+                let vaccineOne = null
+                let vaccineTwo = null
+                let vaccineThree = null
+
+                console.log('Fetching first vaccine')
+                vaccineOne = await ConnectionsState.getConnectionStatesByKey(
+                  contact.Connections[0].dataValues.connection_id,
+                  'vaccination_1',
                 )
-                console.log('')
 
-                let successFlag = null
+                console.log('Fetching second vaccine')
+                vaccineTwo = await ConnectionsState.getConnectionStatesByKey(
+                  contact.Connections[0].dataValues.connection_id,
+                  'vaccination_2',
+                )
 
-                for (
-                  let x = 0;
-                  x <
-                  contact.Traveler.dataValues.proof_result_list.presentations
-                    .length;
-                  x++
-                ) {
-                  console.log(
-                    contact.Traveler.dataValues.proof_result_list.presentations[
-                      x
-                    ],
-                  )
+                console.log('Fetching third vaccine')
+                vaccineThree = await ConnectionsState.getConnectionStatesByKey(
+                  contact.Connections[0].dataValues.connection_id,
+                  'vaccination_3',
+                )
 
-                  // Get all the object keys
-                  let keys = Object.keys(
-                    contact.Traveler.dataValues.proof_result_list.presentations[
-                      x
-                    ],
-                  )
+                if (contact.Traveler.dataValues.proof_type === 'Vaccination') {
+                  console.log('Validating vaccine proof')
 
-                  // Key to string
-                  let key = keys.join()
-                  let passedBusinessLogic = true
-
-                  //const supportedVaccineCodes = ['JSN', 'MOD', 'PFR', 'ASZ']
-
-                  // Check if the vaccine is approved by Aruba
-                  //if (
-                  //  contact.Traveler.dataValues.proof_result_list.presentations[
-                  //    x
-                  //  ].Vaccination
-                  //) {
-                  //  if (attributes.vaccine_manufacturer_code) {
-                  //    // Check vaccine manufacturer
-                  //    if (
-                  //      supportedVaccineCodes.includes(
-                  //        attributes.vaccine_manufacturer_code.raw,
-                  //     )
-                  //    ) {
-                  //      console.log('Your vaccine is accepted by Aruba!')
-                  //    } else {
-                  //      console.log('Your vaccine is not accepted by Aruba!')
-
-                  //      passedBusinessLogic = false
-                  //    }
-                  //  }
-                  //}
-                  // Check if the lab test is negative
+                  // (eldersonar) ----------Older than 18 y/o----------
                   if (
-                    contact.Traveler.dataValues.proof_result_list.presentations[
-                      x
-                    ].Lab_Result
+                    attributes.patient_date_of_birth.raw * 1000 <
+                    DateTime.local().plus({years: -18}).ts
                   ) {
-                    if (attributes.lab_result) {
-                      // Check vaccine manufacturer
-                      if (attributes.lab_result.raw === 'Negative') {
-                        console.log('You were not tested COVID positive!')
-                      } else {
-                        console.log('You were tested COVID positive!')
+                    console.log('The user is older than 18')
 
-                        passedBusinessLogic = false
-                      }
-                    }
-                  }
+                    // ------------------------MOD------------------------
+                    if (attributes.vaccine_manufacturer_code.raw === 'MOD') {
+                      console.log('Vaccine manufacturer Moderna')
 
-                  console.log(passedBusinessLogic)
-
-                  if (passedBusinessLogic) {
-                    console.log('Passed business logic')
-                    // Make sure to update the correct presentation result
-                    if (inputDescriptors[i].name === key) {
-                      successFlag = true
-
-                      // Set check result to true
-                      const list = contact.Traveler.dataValues.proof_result_list.presentations.map(
-                        (item) => {
-                          if (Object.keys(item).join() === key) {
-                            item[key].result = true
-                            item[key].presentation = attributes
-                          }
-                          return item
-                        },
-                      )
-
-                      let finalList = {}
-                      finalList.presentations = list
-
-                      // Update traveler's proof result list
-                      await Travelers.updateProofResultList(
-                        contact.contact_id,
-                        finalList,
-                      )
-                    }
-                    // (eldersonar) Break out of outer loop if successfully processed validation
-                    if (successFlag) {
-                      console.log('break')
-                      break
-                    }
-                  } else {
-                    console.log('Failed business logic')
-
-                    // Make sure to update the correct presentation result
-                    if (inputDescriptors[i].name === key) {
-                      successFlag = true
-
-                      // Set check result to false
-                      const list = contact.Traveler.dataValues.proof_result_list.presentations.map(
-                        (item) => {
-                          if (Object.keys(item)[0] === key) {
-                            item[key].result = false
-                            item[key].presentation = attributes
-                          }
-                          return item
-                        },
-                      )
-
-                      let finalList = {}
-                      finalList.presentations = list
-
-                      // Update traveler's proof result list
-                      await Travelers.updateProofResultList(
-                        contact.contact_id,
-                        finalList,
-                      )
-                    }
-                  }
-                  // (eldersonar) Break out of outer loop if successfully processed validation
-                  if (successFlag) {
-                    console.log('break')
-                    break
-                  }
-                }
-
-                // Get updated contact
-                const updatedContact = await Contacts.getContactByConnection(
-                  message.connection_id,
-                  ['Traveler'],
-                )
-
-                // (eldersonar) Further validation of presentations. Issue a single trusted traveler based on presentation options
-
-                // (eldersonar) Handling the lab result and vaccination presentations
-                if (
-                  updatedContact.Traveler.dataValues.proof_result_list
-                    .presentations.length === 2
-                ) {
-                  let results = []
-
-                  for (
-                    let v = 0;
-                    v <
-                    updatedContact.Traveler.dataValues.proof_result_list
-                      .presentations.length;
-                    v++
-                  ) {
-                    if (
-                      updatedContact.Traveler.dataValues.proof_result_list
-                        .presentations[v].Lab_Result &&
-                      updatedContact.Traveler.dataValues.proof_result_list
-                        .presentations[v].Lab_Result.result === true
-                    ) {
-                      results.push(true)
-                    } else if (
-                      updatedContact.Traveler.dataValues.proof_result_list
-                        .presentations[v].Lab_Result &&
-                      updatedContact.Traveler.dataValues.proof_result_list
-                        .presentations[v].Lab_Result.result === false
-                    ) {
-                      results.push(false)
-                    } else if (
-                      updatedContact.Traveler.dataValues.proof_result_list
-                        .presentations[v].Vaccination &&
-                      updatedContact.Traveler.dataValues.proof_result_list
-                        .presentations[v].Vaccination.result === true
-                    ) {
-                      results.push(true)
-                    } else if (
-                      updatedContact.Traveler.dataValues.proof_result_list
-                        .presentations[v].Vaccination &&
-                      updatedContact.Traveler.dataValues.proof_result_list
-                        .presentations[v].Vaccination.result === false
-                    ) {
-                      results.push(false)
-                    }
-                  }
-
-                  if (results[0] === true && results[1] === true) {
-                    console.log('')
-                    console.log(
-                      'it passed for regular (non-nested) presentation definition',
-                    )
-                    console.log('')
-
-                    console.log('Issuing trusted traveler credential.')
-
-                    credentialVerifiedAttributes = credentialAttributes
-                    let schema_id = ''
-
-                    // (eldersonar) Validate the privileges
-                    if (
-                      governance &&
-                      privileges.includes('issue_trusted_traveler')
-                    ) {
-                      for (let i = 0; i < governance.actions.length; i++) {
-                        // (eldersonar) Get schema id for trusted traveler
-                        if (
-                          governance.actions[i].name ===
-                          'issue_trusted_traveler'
-                        ) {
-                          schema_id = governance.actions[i].details.schema
-                        }
-                      }
-
-                      // (eldersonar) Get schema information
-                      if (credentialVerifiedAttributes !== null) {
-                        let newCredential = {
-                          connectionID: message.connection_id,
-                          schemaID: schema_id,
-                          schemaVersion: schema_id.split(':')[3],
-                          schemaName: schema_id.split(':')[2],
-                          schemaIssuerDID: schema_id.split(':')[0],
-                          comment: '',
-                          attributes: credentialVerifiedAttributes,
-                        }
-
-                        // (mikekebert) Request issuance of the trusted_traveler credential
-                        console.log('ready to issue trusted traveler')
-
-                        // await Credentials.autoIssueCredential(
-                        //   newCredential.connectionID,
-                        //   undefined,
-                        //   undefined,
-                        //   newCredential.schemaID,
-                        //   newCredential.schemaVersion,
-                        //   newCredential.schemaName,
-                        //   newCredential.schemaIssuerDID,
-                        //   newCredential.comment,
-                        //   newCredential.attributes,
-                        // )
-
-                        // Update traveler's verification status
-                        await Travelers.updateVerificationStatus(
-                          updatedContact.contact_id,
-                          true,
+                      //  ----------Was first vaccine issued at least 187 days ago?----------
+                      if (
+                        !vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -187}).ts
+                      ) {
+                        console.log(
+                          'First vaccine was issued more than 187 days ago. PASS',
                         )
 
-                        credentialVerifiedAttributes = null
-                      } else {
-                        // (mikekebert) Send a basic message saying the verification was rejected because of business logic
-                        console.log('Presentation rejected: 2019-nCoV Detected')
+                        // Create new credential row
+                        const vaccineData = {
+                          rules_pass: true,
+                          presentation: {
+                            attributes,
+                            predicates,
+                          },
+                        }
+
+                        await ConnectionsState.updateOrCreateConnectionState(
+                          contact.Connections[0].dataValues.connection_id,
+                          'vaccination_1',
+                          vaccineData,
+                        )
+
+                        // Ask for second vaccine
                         await AdminAPI.Connections.sendBasicMessage(
                           message.connection_id,
                           {
-                            content: 'INVALID_PROOF',
+                            content:
+                              'Please, provide your second Moderna vaccination credential',
                           },
                         )
 
-                        // Update traveler's verification status
-                        await Travelers.updateVerificationStatus(
-                          contact.contact_id,
-                          false,
-                        )
-                      }
-                    } else {
-                      console.log('no governance or insufficient privileges')
-                      await AdminAPI.Connections.sendBasicMessage(
-                        message.connection_id,
-                        {
-                          content: 'INVALID_PRIVILEGES',
-                        },
-                      )
-                    }
-                  } else {
-                    console.log(
-                      "Lab and/or Vaccine didn't pass... OR you've provided only 1 out of 2 presentations",
-                    )
-                    console.log(results[0])
-                    console.log(results[1])
-
-                    if (results[0] === false || results[1] === false) {
-                      // Update traveler's verification status
-                      await Travelers.updateVerificationStatus(
-                        contact.contact_id,
-                        false,
-                      )
-                    }
-                  }
-                  // (eldersonar) Handling the lab result presentation only
-                } else {
-                  console.log('Just the Lab')
-                  if (
-                    updatedContact.Traveler.dataValues.proof_result_list
-                      .presentations[0].Lab_Result.result === true
-                  ) {
-                    console.log('')
-                    console.log('it passed for nested presentation definition')
-                    console.log('')
-
-                    console.log('Issuing trusted traveler credential.')
-
-                    credentialVerifiedAttributes = credentialAttributes
-                    let schema_id = ''
-
-                    // (eldersonar) Validate the privileges
-                    if (
-                      governance &&
-                      privileges.includes('issue_trusted_traveler')
-                    ) {
-                      for (let i = 0; i < governance.actions.length; i++) {
-                        // (eldersonar) Get schema id for trusted traveler
-                        if (
-                          governance.actions[i].name ===
-                          'issue_trusted_traveler'
-                        ) {
-                          schema_id = governance.actions[i].details.schema
-                        }
+                        setTimeout(() => {
+                          // Request presentation
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
                       }
 
-                      // (eldersonar) Get schema information
-                      if (credentialVerifiedAttributes !== null) {
-                        let newCredential = {
-                          connectionID: message.connection_id,
-                          schemaID: schema_id,
-                          schemaVersion: schema_id.split(':')[3],
-                          schemaName: schema_id.split(':')[2],
-                          schemaIssuerDID: schema_id.split(':')[0],
-                          comment: '',
-                          attributes: credentialVerifiedAttributes,
-                        }
-
-                        // (mikekebert) Request issuance of the trusted_traveler credential
-                        console.log('ready to issue trusted traveler')
-
-                        // await Credentials.autoIssueCredential(
-                        //   newCredential.connectionID,
-                        //   undefined,
-                        //   undefined,
-                        //   newCredential.schemaID,
-                        //   newCredential.schemaVersion,
-                        //   newCredential.schemaName,
-                        //   newCredential.schemaIssuerDID,
-                        //   newCredential.comment,
-                        //   newCredential.attributes,
-                        // )
-
-                        // Update traveler's verification status
-                        await Travelers.updateVerificationStatus(
-                          updatedContact.contact_id,
-                          true,
+                      //  ----------First vaccine issued earlier than 187 days ago----------
+                      else if (
+                        !vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -187}).ts
+                      ) {
+                        console.log(
+                          'First vaccine issued earlier than 187 days ago',
                         )
 
-                        credentialVerifiedAttributes = null
-                      } else {
-                        // (mikekebert) Send a basic message saying the verification was rejected because of business logic
                         await AdminAPI.Connections.sendBasicMessage(
                           message.connection_id,
                           {
-                            content: 'INVALID_PROOF',
+                            content:
+                              "The Moderna vaccine you've provided was issued earlier than 187 days ago. Please, provide your first vaccination credential that is older than 187 ago",
                           },
                         )
 
-                        // Update traveler's verification status
-                        await Travelers.updateVerificationStatus(
-                          contact.contact_id,
-                          false,
+                        // Ask for second vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your first vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+
+                      //  ----------Do we have second vaccine?----------
+                      else if (
+                        vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -159}).ts
+                      ) {
+                        console.log('This is the second vaccine')
+
+                        // Check if attributes from the first vaccine match the presentation attributes
+                        const vaccinesMatch = Util.deepEqual(
+                          vaccineOne.dataValues.value.presentation.attributes,
+                          attributes,
+                        )
+
+                        // If 100% match - first vaccine was presented again, send basic message
+                        if (vaccinesMatch) {
+                          console.log('The first and second vaccines match')
+                          // TODO: when swtiched to use governacne actions implement the logic below:
+                          // Q&A - would you like to present a different credential?
+                          // Q&A yes -> send a loop back and send the presentation request for the failed presentation (with the proper basic message)
+                          // Q&A no -> basic message - please, review your vaccine crendetials and try again later
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                "The second Moderna vaccine you've presented matches the first one. Please try again and present second vaccination credential.",
+                            },
+                          )
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                'Please, provide your second Moderna vaccination credential',
+                            },
+                          )
+
+                          setTimeout(() => {
+                            // Request presentation
+                            requestPresentation(
+                              message.connection_id,
+                              'Vaccination',
+                            )
+                          }, 1000)
+                        }
+                        // If no match - check if the time between vaccine administration dates is at least 28 days
+                        else {
+                          console.log(
+                            "First and second Moderna vaccine credentials didn't match. Checking the 28 days time gap.",
+                          )
+
+                          console.log(
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw,
+                          )
+
+                          if (
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw <
+                            2419200
+                          ) {
+                            console.log(
+                              'The gap between 2 MOD vaccines is less than 28 days. FAIL',
+                            )
+
+                            // Ask for second vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'The time period between the first and second Moderna vaccines must be more than 28 days. Please try again and present second vaccination credential.',
+                              },
+                            )
+
+                            // Ask for second vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'Please, provide your second Moderna vaccination credential',
+                              },
+                            )
+
+                            setTimeout(() => {
+                              // Request presentation
+                              requestPresentation(
+                                message.connection_id,
+                                'Vaccination',
+                              )
+                            }, 1000)
+                          } else {
+                            console.log(
+                              'The gap between 2 MOD vaccines is more than 28 days. PASS',
+                            )
+                            // Create new credential row
+                            const vaccineData = {
+                              rules_pass: true,
+                              presentation: {
+                                attributes,
+                                predicates,
+                              },
+                            }
+
+                            await ConnectionsState.updateOrCreateConnectionState(
+                              contact.Connections[0].dataValues.connection_id,
+                              'vaccination_2',
+                              vaccineData,
+                            )
+
+                            // Ask for third vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'Please, provide your third Moderna vaccination credential',
+                              },
+                            )
+
+                            setTimeout(() => {
+                              // Request presentation
+                              requestPresentation(
+                                message.connection_id,
+                                'Vaccination',
+                              )
+                            }, 1000)
+                          }
+                        }
+                      }
+
+                      //  ----------Second vaccine issued earlier than 159 days ago----------
+                      else if (
+                        vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -159}).ts
+                      ) {
+                        console.log(
+                          'Second vaccine issued earlier than 159 days ago',
+                        )
+
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              "The second Moderna vaccine you've provided was issued earlier than 159 days ago. Please, try again",
+                          },
+                        )
+
+                        // Ask for third vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your second Moderna vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+
+                      //  ----------Do we have third vaccine?----------
+                      else if (
+                        vaccineOne &&
+                        vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -7}).ts
+                      ) {
+                        console.log('This is the third vaccine')
+
+                        // Check if attributes from the first vaccine match the presentation attributes
+                        const vaccinesMatch = Util.deepEqual(
+                          vaccineOne.dataValues.value.presentation.attributes,
+                          attributes,
+                        )
+
+                        const vaccinesMatch2 = Util.deepEqual(
+                          vaccineTwo.dataValues.value.presentation.attributes,
+                          attributes,
+                        )
+
+                        // If 100% match - first vaccine was presented again, send basic message
+                        if (vaccinesMatch) {
+                          console.log(
+                            'The first and third Moderna vaccines match',
+                          )
+
+                          // TODO: when swtiched to use governacne actions implement the logic below:
+                          // Q&A - would you like to present a different credential?
+                          // Q&A yes -> send a loop back and send the presentation request for the failed presentation (with the proper basic message)
+                          // Q&A no -> basic message - please, review your vaccine crendetials and try again later
+
+                          // Ask for third vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                "The third Moderna vaccine you've presented matches the first one. Please try again and present third vaccination credential.",
+                            },
+                          )
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                'Please, provide your third Moderna vaccination credential',
+                            },
+                          )
+
+                          setTimeout(() => {
+                            // Request presentation
+                            requestPresentation(
+                              message.connection_id,
+                              'Vaccination',
+                            )
+                          }, 1000)
+                        } else if (vaccinesMatch2) {
+                          console.log(
+                            'The second and third Moderna vaccines match',
+                          )
+
+                          // TODO: when swtiched to use governacne actions implement the logic below:
+                          // Q&A - would you like to present a different credential?
+                          // Q&A yes -> send a loop back and send the presentation request for the failed presentation (with the proper basic message)
+                          // Q&A no -> basic message - please, review your vaccine crendetials and try again later
+
+                          // Ask for third vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                "The third Moderna vaccine you've presented matches the second one. Please try again and present third vaccination credential.",
+                            },
+                          )
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                'Please, provide your third Moderna vaccination credential',
+                            },
+                          )
+
+                          setTimeout(() => {
+                            // Request presentation
+                            requestPresentation(
+                              message.connection_id,
+                              'Vaccination',
+                            )
+                          }, 1000)
+                        }
+                        // If no match - check if the time between vaccine administration dates is at least 152 days
+                        else {
+                          console.log(
+                            "First and second vaccine credentials didn't match. Checking the 152 days time gap.",
+                          )
+
+                          console.log(
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw,
+                          )
+
+                          if (
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw <
+                            13132800
+                          ) {
+                            console.log(
+                              'he gap between the second and third MOD vaccines is less than 152 days. FAIL',
+                            )
+
+                            // Ask for third vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'The time period between the second and the third Moderna vaccines must be more than 152 days. Please try again and present third vaccination credential.',
+                              },
+                            )
+
+                            // Ask for third vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'Please, provide your third Moderna vaccination credential',
+                              },
+                            )
+
+                            setTimeout(() => {
+                              // Request presentation
+                              requestPresentation(
+                                message.connection_id,
+                                'Vaccination',
+                              )
+                            }, 1000)
+                          } else {
+                            console.log(
+                              'The gap between the second and third MOD vaccines is more than 152 days. PASS',
+                            )
+
+                            // ----------Create new credential row---------------
+                            const vaccineData = {
+                              rules_pass: true,
+                              presentation: {
+                                attributes,
+                                predicates,
+                              },
+                            }
+
+                            await ConnectionsState.updateOrCreateConnectionState(
+                              contact.Connections[0].dataValues.connection_id,
+                              'vaccination_3',
+                              vaccineData,
+                            )
+                          }
+                        }
+                      }
+
+                      //  ----------Third vaccine issued earlier than 7 days ago----------
+                      else if (
+                        vaccineOne &&
+                        vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -7}).ts
+                      ) {
+                        console.log('This is the third vaccine')
+
+                        console.log(
+                          'Third MOD vaccine issued earlier than 7 days ago',
+                        )
+
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              "The booster Moderna vaccine you've provided was issued earlier than 7 days ago. Please, provide your third vaccination credential that is older than 7 days ago",
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+                    }
+                    // ------------------------MOD------------------------
+
+                    // ------------------------PFR------------------------
+                    else if (
+                      attributes.vaccine_manufacturer_code.raw === 'PFR'
+                    ) {
+                      console.log('Vaccine manufacturer Pfizer')
+
+                      //  ----------Was first vaccine issued at least 180 days ago?----------
+                      if (
+                        !vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -180}).ts
+                      ) {
+                        console.log(
+                          'First vaccine was issued more than 180 days ago. PASS',
+                        )
+
+                        // Create new credential row
+                        const vaccineData = {
+                          rules_pass: true,
+                          presentation: {
+                            attributes,
+                            predicates,
+                          },
+                        }
+
+                        await ConnectionsState.updateOrCreateConnectionState(
+                          contact.Connections[0].dataValues.connection_id,
+                          'vaccination_1',
+                          vaccineData,
+                        )
+
+                        // Ask for second vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your second Pfizer vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Request presentation
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+
+                      //  ----------First vaccine issued earlier than 180 days ago----------
+                      else if (
+                        !vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -180}).ts
+                      ) {
+                        console.log(
+                          'First vaccine issued earlier than 187 days ago',
+                        )
+
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              "The Pfizer vaccine you've provided was issued earlier than 180 days ago. Please, provide your first vaccination credential that is older than 180 days ago",
+                          },
+                        )
+
+                        // Ask for second vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your first vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+
+                      //  ----------Do we have second vaccine?----------
+                      else if (
+                        vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -159}).ts
+                      ) {
+                        console.log('This is the second Pfizer vaccine')
+
+                        // Check if attributes from the first vaccine match the presentation attributes
+                        const vaccinesMatch = Util.deepEqual(
+                          vaccineOne.dataValues.value.presentation.attributes,
+                          attributes,
+                        )
+
+                        // If 100% match - first vaccine was presented again, send basic message
+                        if (vaccinesMatch) {
+                          console.log(
+                            'The first and second Pfizer vaccines match',
+                          )
+                          // TODO: when swtiched to use governacne actions implement the logic below:
+                          // Q&A - would you like to present a different credential?
+                          // Q&A yes -> send a loop back and send the presentation request for the failed presentation (with the proper basic message)
+                          // Q&A no -> basic message - please, review your vaccine crendetials and try again later
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                "The second Pfizer vaccine you've presented matches the first one. Please try again and present second vaccination credential.",
+                            },
+                          )
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                'Please, provide your second Pfizer vaccination credential',
+                            },
+                          )
+
+                          setTimeout(() => {
+                            // Request presentation
+                            requestPresentation(
+                              message.connection_id,
+                              'Vaccination',
+                            )
+                          }, 1000)
+                        }
+                        // If no match - check if the time between vaccine administration dates is at least 21 days
+                        else {
+                          console.log(
+                            "First Pfizer and second Pfizer vaccine credentials didn't match. Checking the 21 days time gap.",
+                          )
+
+                          console.log(
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw,
+                          )
+
+                          if (
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw <
+                            1814400
+                          ) {
+                            console.log(
+                              'The gap between 2 PFR vaccines is less than 21 days. FAIL',
+                            )
+
+                            // Ask for second vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'The time period between the first and the second Pfizer vaccines must be more than 21 days. Please try again and present second vaccination credential.',
+                              },
+                            )
+
+                            // Ask for second vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'Please, provide your second Pfizer vaccination credential',
+                              },
+                            )
+
+                            setTimeout(() => {
+                              // Request presentation
+                              requestPresentation(
+                                message.connection_id,
+                                'Vaccination',
+                              )
+                            }, 1000)
+                          } else {
+                            console.log(
+                              'The gap between 2 PFR vaccines is more than 21 days. PASS',
+                            )
+                            // Create new credential row
+                            const vaccineData = {
+                              rules_pass: true,
+                              presentation: {
+                                attributes,
+                                predicates,
+                              },
+                            }
+
+                            await ConnectionsState.updateOrCreateConnectionState(
+                              contact.Connections[0].dataValues.connection_id,
+                              'vaccination_2',
+                              vaccineData,
+                            )
+
+                            // Ask for third vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'Please, provide your third Pfizer vaccination credential',
+                              },
+                            )
+
+                            setTimeout(() => {
+                              // Request presentation
+                              requestPresentation(
+                                message.connection_id,
+                                'Vaccination',
+                              )
+                            }, 1000)
+                          }
+                        }
+                      }
+
+                      //  ----------Second vaccine issued earlier than 159 days ago----------
+                      else if (
+                        vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -159}).ts
+                      ) {
+                        console.log(
+                          'Second Pfizer vaccine issued earlier than 159 days ago',
+                        )
+
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              "The second Pfizer vaccine you've provided was issued earlier than 159 days ago. Please, try again",
+                          },
+                        )
+
+                        // Ask for third vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your second Pfizer vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+
+                      //  ----------Do we have third vaccine?----------
+                      else if (
+                        vaccineOne &&
+                        vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -7}).ts
+                      ) {
+                        console.log('This is the third Pfizer vaccine')
+
+                        // Check if attributes from the first vaccine match the presentation attributes
+                        const vaccinesMatch = Util.deepEqual(
+                          vaccineOne.dataValues.value.presentation.attributes,
+                          attributes,
+                        )
+
+                        const vaccinesMatch2 = Util.deepEqual(
+                          vaccineTwo.dataValues.value.presentation.attributes,
+                          attributes,
+                        )
+
+                        // If 100% match - first vaccine was presented again, send basic message
+                        if (vaccinesMatch) {
+                          console.log(
+                            'The first and third Pfizer vaccines match',
+                          )
+
+                          // TODO: when swtiched to use governacne actions implement the logic below:
+                          // Q&A - would you like to present a different credential?
+                          // Q&A yes -> send a loop back and send the presentation request for the failed presentation (with the proper basic message)
+                          // Q&A no -> basic message - please, review your vaccine crendetials and try again later
+
+                          // Ask for third vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                "The third Pfizer vaccine you've presented matches the first one. Please try again and present third vaccination credential.",
+                            },
+                          )
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                'Please, provide your third Pfizer vaccination credential',
+                            },
+                          )
+
+                          setTimeout(() => {
+                            // Request presentation
+                            requestPresentation(
+                              message.connection_id,
+                              'Vaccination',
+                            )
+                          }, 1000)
+                        } else if (vaccinesMatch2) {
+                          console.log('Or the second and third vaccines match')
+
+                          // TODO: when swtiched to use governacne actions implement the logic below:
+                          // Q&A - would you like to present a different credential?
+                          // Q&A yes -> send a loop back and send the presentation request for the failed presentation (with the proper basic message)
+                          // Q&A no -> basic message - please, review your vaccine crendetials and try again later
+
+                          // Ask for third vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                "The third Pfizer vaccine you've presented matches the second one. Please try again and present third vaccination credential.",
+                            },
+                          )
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                'Please, provide your third Pfizer vaccination credential',
+                            },
+                          )
+
+                          setTimeout(() => {
+                            // Request presentation
+                            requestPresentation(
+                              message.connection_id,
+                              'Vaccination',
+                            )
+                          }, 1000)
+                        }
+                        // If no match - check if the time between vaccine administration dates is at least 152 days
+                        else {
+                          console.log(
+                            "First and second Pfizer vaccine credentials didn't match. Checking the 152 days time gap.",
+                          )
+
+                          console.log(
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw,
+                          )
+
+                          if (
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw <
+                            13132800
+                          ) {
+                            console.log(
+                              'The gap between the second and third PFR vaccines is less than 152 days. FAIL',
+                            )
+
+                            // Ask for third vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'The time period between the second and the third Pfizer vaccines must be more than 152 days. Please try again and present third vaccination credential.',
+                              },
+                            )
+
+                            // Ask for third vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'Please, provide your third Pfizer vaccination credential',
+                              },
+                            )
+
+                            setTimeout(() => {
+                              // Request presentation
+                              requestPresentation(
+                                message.connection_id,
+                                'Vaccination',
+                              )
+                            }, 1000)
+                          } else {
+                            console.log(
+                              'The gap between the second and third PFR vaccines is more than 152 days. PASS',
+                            )
+
+                            // ----------Create new credential row---------------
+                            const vaccineData = {
+                              rules_pass: true,
+                              presentation: {
+                                attributes,
+                                predicates,
+                              },
+                            }
+
+                            await ConnectionsState.updateOrCreateConnectionState(
+                              contact.Connections[0].dataValues.connection_id,
+                              'vaccination_3',
+                              vaccineData,
+                            )
+                          }
+                        }
+                      }
+
+                      //  ----------Third vaccine issued earlier than 7 days ago----------
+                      else if (
+                        vaccineOne &&
+                        vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -7}).ts
+                      ) {
+                        console.log('This is the third Pfizer vaccine')
+
+                        console.log(
+                          'Third Pfizer vaccine issued earlier than 7 days ago',
+                        )
+
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              "The third Pfizer vaccine you've provided was issued earlier than 7 days ago.",
+                          },
+                        )
+
+                        // Ask for third vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your third Pfizer vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+                    }
+                    // ------------------------PFR------------------------
+
+                    // ------------------------JSN------------------------
+                    else if (
+                      attributes.vaccine_manufacturer_code.raw === 'JSN'
+                    ) {
+                      console.log('Vaccine manufacturer Johnson')
+
+                      //  ----------Was first vaccine issued at least 68 days ago?----------
+                      if (
+                        !vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -68}).ts
+                      ) {
+                        console.log(
+                          'First vaccine was issued more than 68 days ago. PASS',
+                        )
+
+                        // Create new credential row
+                        const vaccineData = {
+                          rules_pass: true,
+                          presentation: {
+                            attributes,
+                            predicates,
+                          },
+                        }
+
+                        await ConnectionsState.updateOrCreateConnectionState(
+                          contact.Connections[0].dataValues.connection_id,
+                          'vaccination_1',
+                          vaccineData,
+                        )
+
+                        // Ask for second vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your second Johnson and Johnson vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Request presentation
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+
+                      //  ----------First vaccine issued earlier than 68 days ago----------
+                      else if (
+                        !vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -68}).ts
+                      ) {
+                        console.log(
+                          'First JSN vaccine issued earlier than 68 days ago',
+                        )
+
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              "The Johnson and Johnson vaccine you've provided was issued earlier than 68 days ago. Please, provide your first vaccination credential that is older than 68 days ago",
+                          },
+                        )
+
+                        // Ask for second vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your first vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+
+                      //  ----------Do we have second vaccine?----------
+                      else if (
+                        vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -7}).ts
+                      ) {
+                        console.log(
+                          'This is the second Johnson and Johnson vaccine',
+                        )
+
+                        // Check if attributes from the first vaccine match the presentation attributes
+                        const vaccinesMatch = Util.deepEqual(
+                          vaccineOne.dataValues.value.presentation.attributes,
+                          attributes,
+                        )
+
+                        // If 100% match - first vaccine was presented again, send basic message
+                        if (vaccinesMatch) {
+                          console.log(
+                            'The first and second Johnson and Johnson vaccines match',
+                          )
+                          // TODO: when swtiched to use governacne actions implement the logic below:
+                          // Q&A - would you like to present a different credential?
+                          // Q&A yes -> send a loop back and send the presentation request for the failed presentation (with the proper basic message)
+                          // Q&A no -> basic message - please, review your vaccine crendetials and try again later
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                "The second Johnson and Johnson vaccine you've presented matches the first one. Please try again and present second vaccination credential.",
+                            },
+                          )
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                'Please, provide your second Johnson and Johnson vaccination credential',
+                            },
+                          )
+
+                          setTimeout(() => {
+                            // Request presentation
+                            requestPresentation(
+                              message.connection_id,
+                              'Vaccination',
+                            )
+                          }, 1000)
+                        }
+                        // If no match - check if the time between vaccine administration dates is at least 61 days
+                        else {
+                          console.log(
+                            "First Johnson and Johnson and second Pfizer vaccine credentials didn't match. Checking the 61 days time gap.",
+                          )
+
+                          console.log(
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw,
+                          )
+
+                          if (
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw <
+                            5256006
+                          ) {
+                            console.log(
+                              'The gap between 2 Johnson and Johnson vaccines is less than 61 days. FAIL',
+                            )
+
+                            // Ask for second vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'The time period between the first and the second Johnson and Johnson vaccines must be more than 61 days. Please try again and present second vaccination credential.',
+                              },
+                            )
+
+                            // Ask for second vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'Please, provide your second Johnson and Johnson vaccination credential',
+                              },
+                            )
+
+                            setTimeout(() => {
+                              // Request presentation
+                              requestPresentation(
+                                message.connection_id,
+                                'Vaccination',
+                              )
+                            }, 1000)
+                          } else {
+                            console.log(
+                              'The gap between 2 Johnson and Johnson vaccines is more than 61 days. PASS',
+                            )
+                            // Create new credential row
+                            const vaccineData = {
+                              rules_pass: true,
+                              presentation: {
+                                attributes,
+                                predicates,
+                              },
+                            }
+
+                            await ConnectionsState.updateOrCreateConnectionState(
+                              contact.Connections[0].dataValues.connection_id,
+                              'vaccination_2',
+                              vaccineData,
+                            )
+                          }
+                        }
+                      }
+
+                      //  ----------Second vaccine issued earlier than 7 days ago----------
+                      else if (
+                        vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -7}).ts
+                      ) {
+                        console.log(
+                          'Second Johnson and Johnson vaccine issued earlier than 7 days ago',
+                        )
+
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              "The second Johnson and Johnson vaccine you've provided was issued earlier than 7 days ago. Please, try again",
+                          },
+                        )
+
+                        // Ask for third vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your second Johnson and Johnson vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+                    }
+                  }
+
+                  // (eldersonar) ---------- 12 - 17 y/o----------
+                  else if (
+                    attributes.patient_date_of_birth.raw * 1000 <
+                      DateTime.local().plus({years: -12}).ts &&
+                    attributes.patient_date_of_birth.raw * 1000 >
+                      DateTime.local().plus({years: -18}).ts
+                  ) {
+                    console.log('The user is older 12 to 17 years old')
+
+                    // First vaccine
+                    // ------------------------MOD------------------------
+                    if (attributes.vaccine_manufacturer_code.raw === 'MOD') {
+                      console.log('Vaccine manufacturer Moderna')
+
+                      //  ----------Was first vaccine issued at least 42 days ago?----------
+                      if (
+                        !vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -42}).ts
+                      ) {
+                        console.log(
+                          'First vaccine was issued more than 42 days ago. PASS',
+                        )
+
+                        // Create new credential row
+                        const vaccineData = {
+                          rules_pass: true,
+                          presentation: {
+                            attributes,
+                            predicates,
+                          },
+                        }
+
+                        await ConnectionsState.updateOrCreateConnectionState(
+                          contact.Connections[0].dataValues.connection_id,
+                          'vaccination_1',
+                          vaccineData,
+                        )
+
+                        // Ask for second vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your second Moderna vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Request presentation
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+
+                      //  ----------First vaccine issued earlier than 42 days ago----------
+                      else if (
+                        !vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -42}).ts
+                      ) {
+                        console.log(
+                          'First MOD vaccine issued earlier than 42 days ago',
+                        )
+
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              "The Moderna vaccine you've provided was issued earlier than 42 days ago. Please, provide your first vaccination credential that is older than 42 days ago",
+                          },
+                        )
+
+                        // Ask for second vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your first vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+
+                      //  ----------Do we have second vaccine?----------
+                      else if (
+                        vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -14}).ts
+                      ) {
+                        console.log('This is the second Moderna vaccine')
+
+                        // Check if attributes from the first vaccine match the presentation attributes
+                        const vaccinesMatch = Util.deepEqual(
+                          vaccineOne.dataValues.value.presentation.attributes,
+                          attributes,
+                        )
+
+                        // If 100% match - first vaccine was presented again, send basic message
+                        if (vaccinesMatch) {
+                          console.log(
+                            'The first and second Moderna vaccines match',
+                          )
+                          // TODO: when swtiched to use governacne actions implement the logic below:
+                          // Q&A - would you like to present a different credential?
+                          // Q&A yes -> send a loop back and send the presentation request for the failed presentation (with the proper basic message)
+                          // Q&A no -> basic message - please, review your vaccine crendetials and try again later
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                "The second Moderna vaccine you've presented matches the first one. Please try again and present second vaccination credential.",
+                            },
+                          )
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                'Please, provide your second Moderna vaccination credential',
+                            },
+                          )
+
+                          setTimeout(() => {
+                            // Request presentation
+                            requestPresentation(
+                              message.connection_id,
+                              'Vaccination',
+                            )
+                          }, 1000)
+                        }
+                        // If no match - check if the time between vaccine administration dates is at least 28 days
+                        else {
+                          console.log(
+                            "First Moderna and second Pfizer vaccine credentials didn't match. Checking the 28 days time gap.",
+                          )
+
+                          console.log(
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw,
+                          )
+
+                          if (
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw >=
+                            DateTime.local().plus({days: -28}).ts
+                          ) {
+                            console.log(
+                              'The gap between 2 Moderna vaccines is less than 28 days. FAIL',
+                            )
+
+                            // Ask for second vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'The time period between the first and the second Moderna vaccines must be more than 28 days. Please try again and present second vaccination credential.',
+                              },
+                            )
+
+                            // Ask for second vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'Please, provide your second Moderna vaccination credential',
+                              },
+                            )
+
+                            setTimeout(() => {
+                              // Request presentation
+                              requestPresentation(
+                                message.connection_id,
+                                'Vaccination',
+                              )
+                            }, 1000)
+                          } else {
+                            console.log(
+                              'The gap between 2 Moderna vaccines is more than 28 days. PASS',
+                            )
+                            // Create new credential row
+                            const vaccineData = {
+                              rules_pass: true,
+                              presentation: {
+                                attributes,
+                                predicates,
+                              },
+                            }
+
+                            await ConnectionsState.updateOrCreateConnectionState(
+                              contact.Connections[0].dataValues.connection_id,
+                              'vaccination_2',
+                              vaccineData,
+                            )
+                          }
+                        }
+                      }
+
+                      //  ----------Second vaccine issued earlier than 7 days ago----------
+                      else if (
+                        vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -7}).ts
+                      ) {
+                        console.log(
+                          'Second Moderna vaccine issued earlier than 7 days ago',
+                        )
+
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              "The second Moderna vaccine you've provided was issued earlier than 7 days ago. Please, try again",
+                          },
+                        )
+
+                        // Ask for third vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your second Moderna vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+                    }
+                    // ------------------------MOD------------------------
+
+                    // ------------------------PFR------------------------
+                    if (attributes.vaccine_manufacturer_code.raw === 'PFR') {
+                      console.log('Vaccine manufacturer Pfizer')
+
+                      //  ----------Was first vaccine issued at least 35 days ago?----------
+                      if (
+                        !vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -35}).ts
+                      ) {
+                        console.log(
+                          'First vaccine was issued more than 35 days ago. PASS',
+                        )
+
+                        // Create new credential row
+                        const vaccineData = {
+                          rules_pass: true,
+                          presentation: {
+                            attributes,
+                            predicates,
+                          },
+                        }
+
+                        await ConnectionsState.updateOrCreateConnectionState(
+                          contact.Connections[0].dataValues.connection_id,
+                          'vaccination_1',
+                          vaccineData,
+                        )
+
+                        // Ask for second vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your second Moderna vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Request presentation
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+
+                      //  ----------First vaccine issued earlier than 35 days ago----------
+                      else if (
+                        !vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -35}).ts
+                      ) {
+                        console.log(
+                          'First PFR vaccine issued earlier than 35 days ago',
+                        )
+
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              "The Pfizer vaccine you've provided was issued earlier than 35 days ago. Please, provide your first vaccination credential that is older than 35 days ago",
+                          },
+                        )
+
+                        // Ask for second vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your first vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+
+                      //  ----------Do we have second vaccine?----------
+                      else if (
+                        vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -14}).ts
+                      ) {
+                        console.log('This is the second Pfizer vaccine')
+
+                        // Check if attributes from the first vaccine match the presentation attributes
+                        const vaccinesMatch = Util.deepEqual(
+                          vaccineOne.dataValues.value.presentation.attributes,
+                          attributes,
+                        )
+
+                        // If 100% match - first vaccine was presented again, send basic message
+                        if (vaccinesMatch) {
+                          console.log(
+                            'The first and second Pfizer vaccines match',
+                          )
+                          // TODO: when swtiched to use governacne actions implement the logic below:
+                          // Q&A - would you like to present a different credential?
+                          // Q&A yes -> send a loop back and send the presentation request for the failed presentation (with the proper basic message)
+                          // Q&A no -> basic message - please, review your vaccine crendetials and try again later
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                "The second Pfizer vaccine you've presented matches the first one. Please try again and present second vaccination credential.",
+                            },
+                          )
+
+                          // Ask for second vaccine
+                          await AdminAPI.Connections.sendBasicMessage(
+                            message.connection_id,
+                            {
+                              content:
+                                'Please, provide your second Pfizer vaccination credential',
+                            },
+                          )
+
+                          setTimeout(() => {
+                            // Request presentation
+                            requestPresentation(
+                              message.connection_id,
+                              'Vaccination',
+                            )
+                          }, 1000)
+                        }
+                        // If no match - check if the time between vaccine administration dates is at least 21 days
+                        else {
+                          console.log(
+                            "First Pfizer and second Pfizer vaccine credentials didn't match. Checking the 21 days time gap.",
+                          )
+
+                          console.log(
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw,
+                          )
+
+                          if (
+                            attributes.vaccine_administration_date.raw -
+                              vaccineOne.dataValues.value.presentation
+                                .attributes.vaccine_administration_date.raw >
+                            DateTime.local().plus({days: -21}).ts
+                          ) {
+                            console.log(
+                              'The gap between 2 Pfizer vaccines is less than 21 days. FAIL',
+                            )
+
+                            // Ask for second vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'The time period between the first and the second Pfizer vaccines must be more than 21 days. Please try again and present second vaccination credential.',
+                              },
+                            )
+
+                            // Ask for second vaccine
+                            await AdminAPI.Connections.sendBasicMessage(
+                              message.connection_id,
+                              {
+                                content:
+                                  'Please, provide your second Pfizer vaccination credential',
+                              },
+                            )
+
+                            setTimeout(() => {
+                              // Request presentation
+                              requestPresentation(
+                                message.connection_id,
+                                'Vaccination',
+                              )
+                            }, 1000)
+                          } else {
+                            console.log(
+                              'The gap between 2 Pfizer vaccines is more than 21 days. PASS',
+                            )
+                            // Create new credential row
+                            const vaccineData = {
+                              rules_pass: true,
+                              presentation: {
+                                attributes,
+                                predicates,
+                              },
+                            }
+
+                            await ConnectionsState.updateOrCreateConnectionState(
+                              contact.Connections[0].dataValues.connection_id,
+                              'vaccination_2',
+                              vaccineData,
+                            )
+                          }
+                        }
+                      }
+
+                      //  ----------Second vaccine issued earlier than 7 days ago----------
+                      else if (
+                        vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -7}).ts
+                      ) {
+                        console.log(
+                          'Second Pfizer vaccine issued earlier than 7 days ago',
+                        )
+
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              "The second Pfizer vaccine you've provided was issued earlier than 7 days ago. Please, try again",
+                          },
+                        )
+
+                        // Ask for third vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your second Pfizer vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
+                    }
+                    // ------------------------PFR------------------------
+
+                    // ------------------------JSN------------------------
+                    if (attributes.vaccine_manufacturer_code.raw === 'JSN') {
+                      console.log('Vaccine manufacturer Johnson')
+
+                      //  ----------Was first vaccine issued at least 14 days ago?----------
+                      if (
+                        !vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 <
+                          DateTime.local().plus({days: -14}).ts
+                      ) {
+                        console.log(
+                          'First vaccine was issued more than 14 days ago. PASS',
+                        )
+
+                        // Create new credential row
+                        const vaccineData = {
+                          rules_pass: true,
+                          presentation: {
+                            attributes,
+                            predicates,
+                          },
+                        }
+
+                        await ConnectionsState.updateOrCreateConnectionState(
+                          contact.Connections[0].dataValues.connection_id,
+                          'vaccination_1',
+                          vaccineData,
                         )
                       }
-                    } else {
-                      console.log('no governance or insificient privilieges')
-                      await AdminAPI.Connections.sendBasicMessage(
-                        message.connection_id,
-                        {
-                          content: 'INVALID_PRIVILEGES',
-                        },
-                      )
+
+                      //  ----------First vaccine issued earlier than 14 days ago----------
+                      else if (
+                        !vaccineOne &&
+                        !vaccineTwo &&
+                        !vaccineThree &&
+                        attributes.vaccine_administration_date.raw * 1000 >
+                          DateTime.local().plus({days: -14}).ts
+                      ) {
+                        console.log(
+                          'First Johnson & Johnson vaccine issued earlier than 14 days ago',
+                        )
+
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              "The Johnson & Johnson vaccine you've provided was issued earlier than 14 days ago. Please, provide your first vaccination credential that is older than 14 days ago",
+                          },
+                        )
+
+                        // Ask for second vaccine
+                        await AdminAPI.Connections.sendBasicMessage(
+                          message.connection_id,
+                          {
+                            content:
+                              'Please, provide your first vaccination credential',
+                          },
+                        )
+
+                        setTimeout(() => {
+                          // Call presentation request to start fresh
+                          requestPresentation(
+                            message.connection_id,
+                            'Vaccination',
+                          )
+                        }, 1000)
+                      }
                     }
+                    // ------------------------JSN------------------------
+                  }
+
+                  // (eldersonar) ----------Yonger than 12----------
+                  else {
+                    console.log('Younger than 12')
+                    await AdminAPI.Connections.sendBasicMessage(
+                      message.connection_id,
+                      {
+                        content:
+                          'Users younger than 12 years old are not requred to present vaccination proof.',
+                      },
+                    )
+                  }
+
+                  // Getting vaccine doses for final validation
+                  console.log('Fetching first vaccine')
+                  vaccineOne = await ConnectionsState.getConnectionStatesByKey(
+                    contact.Connections[0].dataValues.connection_id,
+                    'vaccination_1',
+                  )
+
+                  if (vaccineOne) {
+                    console.log(vaccineOne)
+                  }
+
+                  console.log('Fetching second vaccine')
+                  vaccineTwo = await ConnectionsState.getConnectionStatesByKey(
+                    contact.Connections[0].dataValues.connection_id,
+                    'vaccination_2',
+                  )
+
+                  if (vaccineTwo) {
+                    console.log(vaccineTwo)
+                  }
+
+                  console.log('Fetching third vaccine')
+                  vaccineThree = await ConnectionsState.getConnectionStatesByKey(
+                    contact.Connections[0].dataValues.connection_id,
+                    'vaccination_3',
+                  )
+
+                  if (vaccineThree) {
+                    console.log(vaccineThree)
+                  }
+
+                  // 18+
+                  let rulesPassed = false
+
+                  if (
+                    vaccineOne &&
+                    vaccineOne.dataValues.value.presentation.attributes
+                      .patient_date_of_birth.raw *
+                      1000 <
+                      DateTime.local().plus({years: -18}).ts
+                  ) {
+                    console.log('18+ years old')
+
+                    if (
+                      vaccineOne &&
+                      vaccineOne.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'MOD' &&
+                      vaccineTwo &&
+                      vaccineTwo.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'MOD' &&
+                      vaccineThree &&
+                      vaccineThree.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'MOD'
+                    ) {
+                      credentialVerifiedAttributes = credentialAttributes
+                      rulesPassed = true
+                    } else if (
+                      vaccineOne &&
+                      vaccineOne.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'PFR' &&
+                      vaccineTwo &&
+                      vaccineTwo.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'PFR' &&
+                      vaccineThree &&
+                      vaccineThree.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'PFR'
+                    ) {
+                      credentialVerifiedAttributes = credentialAttributes
+                      rulesPassed = true
+                    } else if (
+                      vaccineOne &&
+                      vaccineOne.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'JSN' &&
+                      vaccineTwo &&
+                      vaccineTwo.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'JSN'
+                    ) {
+                      credentialVerifiedAttributes = credentialAttributes
+                      rulesPassed = true
+                    }
+                  }
+
+                  // 12-17
+                  if (
+                    vaccineOne &&
+                    vaccineOne.dataValues.value.presentation.attributes
+                      .patient_date_of_birth.raw *
+                      1000 <
+                      DateTime.local().plus({years: -12}).ts &&
+                    vaccineOne.dataValues.value.presentation.attributes
+                      .patient_date_of_birth.raw *
+                      1000 >
+                      DateTime.local().plus({years: -18}).ts
+                  ) {
+                    console.log('12 to 17 years old')
+
+                    if (
+                      vaccineOne &&
+                      vaccineOne.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'MOD' &&
+                      vaccineTwo &&
+                      vaccineTwo.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'MOD'
+                    ) {
+                      credentialVerifiedAttributes = credentialAttributes
+                      rulesPassed = true
+                    } else if (
+                      vaccineOne &&
+                      vaccineOne.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'PFR' &&
+                      vaccineTwo &&
+                      vaccineTwo.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'PFR'
+                    ) {
+                      credentialVerifiedAttributes = credentialAttributes
+                      rulesPassed = true
+                    } else if (
+                      vaccineOne &&
+                      vaccineOne.dataValues.value.presentation.attributes
+                        .vaccine_manufacturer_code.raw === 'JSN'
+                    ) {
+                      credentialVerifiedAttributes = credentialAttributes
+                      rulesPassed = true
+                    }
+                  }
+
+                  console.log(rulesPassed)
+                  if (rulesPassed) {
+                    // Update traveler's verification status
+                    await Travelers.updateVerificationStatus(
+                      contact.contact_id,
+                      true,
+                    )
+
+                    console.log('Rules validation complete!')
+
+                    await AdminAPI.Connections.sendBasicMessage(
+                      message.connection_id,
+                      {
+                        content:
+                          'Please return to your browser and press the "Continue" button to resume your ED Card application. You will receive your Happy Traveler credential when your application is complete.',
+                      },
+                    )
                   } else {
-                    console.log("Lab didn't pass...")
+                    console.log(
+                      'Rules validation failed or not all the requirments were presented!',
+                    )
+
+                    console.log("Vaccines didn't pass...")
+
+                    await AdminAPI.Connections.sendBasicMessage(
+                      message.connection_id,
+                      {
+                        content:
+                          'Presentation of health proof using vaccinations failed. Please, try again and choose another vaccinations presentation.',
+                      },
+                    )
 
                     // Update traveler's verification status
                     await Travelers.updateVerificationStatus(
@@ -1851,6 +3306,93 @@ const adminMessage = async (message) => {
                     )
                   }
                 }
+                // This is the lab
+                else if (contact.Traveler.dataValues.proof_type === 'Lab') {
+                  console.log('Validating lab proof')
+                  
+                  const labResult = attributes.lab_result.raw
+                  const labCode = attributes.lab_code.raw
+                  const labDate = attributes.lab_specimen_collected_date.raw
+                  let rulesPassed = false
+
+                  // a negative COVID-19 molecular test taken at most 3 days before departure
+                  if (
+                    labCode === 'MOL' &&
+                    labResult == 'Negative' &&
+                    labDate * 1000 > DateTime.local().plus({days: -3}).ts
+                  ) {
+                    credentialVerifiedAttributes = credentialAttributes
+                    rulesPassed = true
+                  }
+                  // a negative COVID - 19 antigen test taken at most 1 day before departure
+                  else if (
+                    labCode === 'ANT' &&
+                    labResult == 'Negative' &&
+                    labDate * 1000 > DateTime.local().plus({days: -1}).ts
+                  ) {
+                    credentialVerifiedAttributes = credentialAttributes
+                    rulesPassed = true
+                  }
+                  // a positive COVID - 19 molecular test issued at least 10 days and at most 12 weeks before arrival in Aruba.
+                  else if (
+                    labCode === 'MOL' &&
+                    labResult == 'Positive' &&
+                    labDate * 1000 < DateTime.local().plus({days: -10}).ts &&
+                    labDate * 1000 > DateTime.local().plus({days: -84}).ts
+                  ) {
+                    credentialVerifiedAttributes = credentialAttributes
+                    rulesPassed = true
+                  } else {
+                    console.log(
+                      "The lab presentation didn't meet any of the requirements.",
+                    )
+                  }
+
+                  console.log(rulesPassed)
+                  if (rulesPassed) {
+                    console.log('Rules validation complete!')
+
+                    // Update traveler's verification status
+                    await Travelers.updateVerificationStatus(
+                      contact.contact_id,
+                      true,
+                    )
+
+                    await AdminAPI.Connections.sendBasicMessage(
+                      message.connection_id,
+                      {
+                        content: "We've verified your information.",
+                      },
+                    )
+
+                    await AdminAPI.Connections.sendBasicMessage(
+                      message.connection_id,
+                      {
+                        content:
+                          'Please return to your browser and press the "Continue" button to resume your ED Card application. You will receive your Happy Traveler credential when your application is complete.',
+                      },
+                    )
+                  } else {
+                    console.log('Rules validation failed!')
+
+                    console.log("Lab didn't pass...")
+
+                    await AdminAPI.Connections.sendBasicMessage(
+                      message.connection_id,
+                      {
+                        content:
+                          'Presentation of health proof using lab failed. Please, try again and choose another lab presentation.',
+                      },
+                    )
+
+                    // Update traveler's verification status
+                    await Travelers.updateVerificationStatus(
+                      contact.contact_id,
+                      false,
+                    )
+                  }
+                }
+                // (eldersonar) Validation failed
               } else {
                 console.log('')
                 console.log('One or all the field comparison attempts failed.')
@@ -1860,460 +3402,17 @@ const adminMessage = async (message) => {
                 console.log('')
               }
             }
-
-            // Handle nested submission requirements validation
-          } else {
-            console.log(
-              '...........Handling nested submission requrements validation.................',
-            )
-
-            // TODO: fix this not to trigger issuing from_nested.length * credentials
-            for (
-              let g = 0;
-              g <
-              pdf.presentation_definition.submission_requirements[0].from_nested
-                .length;
-              g++
-            ) {
-              let chosenDescriptors = []
-
-              // Get nested descriptors
-              for (let f = 0; f < inputDescriptors.length; f++) {
-                if (
-                  inputDescriptors[f].group.includes(
-                    pdf.presentation_definition.submission_requirements[0]
-                      .from_nested[g].from,
-                  )
-                ) {
-                  chosenDescriptors.push(inputDescriptors[f])
-                }
-              }
-
-              console.log('these are the chosen descriptors')
-              console.log(g)
-              console.log(chosenDescriptors)
-
-              for (let i = 0; i < chosenDescriptors.length; i++) {
-                console.log('')
-                console.log(
-                  `Comparing proof with ${chosenDescriptors[i].name} input descriptor`,
-                )
-                console.log('')
-
-                let fields = []
-                let proofResult = false
-
-                let fieldsValidationResult = false
-
-                // (eldersonar) Execute if there are any of input descriptors match the submission requirements group value
-                if (
-                  chosenDescriptors[i].group.includes(
-                    pdf.presentation_definition.submission_requirements[0]
-                      .from_nested[g].from,
-                  )
-                ) {
-                  // Get an array of attributes
-                  for (
-                    let j = 0;
-                    j < chosenDescriptors[i].constraints.fields.length;
-                    j++
-                  ) {
-                    const fieldPath = chosenDescriptors[i].constraints.fields[
-                      j
-                    ].path
-                      .join('')
-                      .split('$.')[1] // (eldersonar) TODO: turn into a loop. This will be not valid if have more than 1 path in the array
-
-                    fields.push(fieldPath)
-                  }
-                }
-
-                // (eldersonar) Get and sort the list of proof attributes and descriptor fields
-                const proofAttributeKeys = Object.keys(attributes)
-                const proofPredicateKeys = Object.keys(predicates)
-                const predicatesAndArrays = proofAttributeKeys.concat(
-                  proofPredicateKeys,
-                )
-                const sortedProofFields = predicatesAndArrays.sort(function (
-                  a,
-                  b,
-                ) {
-                  return a.localeCompare(b)
-                })
-                const sortedDescriptorFields = fields.sort(function (a, b) {
-                  return a.localeCompare(b)
-                })
-
-                // (eldersonar) Start validation
-                if (sortedProofFields.length && sortedDescriptorFields.length) {
-                  // (eldersonar) Check if there is no array match (no credential match or no predicate match)
-                  if (
-                    JSON.stringify(sortedProofFields) !=
-                    JSON.stringify(sortedDescriptorFields)
-                  ) {
-                    console.log('comparison failed')
-
-                    // (eldersonar) Get leftover fields with the filter
-                    let nonDuplicateFields = sortedProofFields.filter(
-                      (val) => !sortedDescriptorFields.includes(val),
-                    )
-
-                    for (
-                      let k = 0;
-                      k < chosenDescriptors[i].constraints.fields.length;
-                      k++
-                    ) {
-                      // (eldersonar) Check if input descriptor has in-field conditional logic
-                      if (
-                        chosenDescriptors[i].constraints.fields[k].filter.oneOf
-                      ) {
-                        for (
-                          let l = 0;
-                          l <
-                          chosenDescriptors[i].constraints.fields[k].filter
-                            .oneOf.length;
-                          l++
-                        ) {
-                          for (let m = 0; m < nonDuplicateFields.length; m++) {
-                            const prefix = '$.'
-                            let lookupField = ''
-                            lookupField += prefix
-                            lookupField += nonDuplicateFields[m]
-
-                            // (eldersonar) If we can find the field name in the list of in-field predicates
-                            if (
-                              chosenDescriptors[i].constraints.fields[
-                                k
-                              ].filter.oneOf[
-                                l
-                              ].dependent_fields[0].path.includes(lookupField)
-                            ) {
-                              // (eldersonar) Removing predicate from the list of sorted fields
-                              const index = sortedProofFields.indexOf(
-                                nonDuplicateFields[m],
-                              )
-                              if (index > -1) {
-                                sortedProofFields.splice(index, 1)
-                              }
-
-                              console.log(sortedProofFields)
-                              console.log(sortedDescriptorFields)
-                              console.log(
-                                JSON.stringify(sortedProofFields) ===
-                                  JSON.stringify(sortedDescriptorFields),
-                              )
-
-                              // (eldersonar) Check if arrays match after the predicates were removed
-                              if (
-                                JSON.stringify(sortedProofFields) ===
-                                JSON.stringify(sortedDescriptorFields)
-                              ) {
-                                console.log('')
-                                console.log(
-                                  '_____________________________________________',
-                                )
-                                console.log(
-                                  'Validation of proof was successful.',
-                                )
-
-                                fieldsValidationResult = validateFieldByField(
-                                  attributes,
-                                  chosenDescriptors[i],
-                                )
-
-                                proofResult = true
-                              } else {
-                                // console.log("Validation failed.")
-                                proofResult = false
-                              }
-                            } else {
-                              // console.log("Validation failed. No match was found.")
-                              proofResult = false
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                  // (eldersonar) Perfect match, proof fields are validated!
-                  else {
-                    console.log('')
-                    console.log('_____________________________________________')
-                    console.log('Validation of proof was successful.')
-
-                    // (eldersonar) Value validation happens here
-                    fieldsValidationResult = validateFieldByField(
-                      attributes,
-                      chosenDescriptors[i],
-                    )
-
-                    proofResult = true
-                  }
-                } else {
-                  console.log('Error: lacking data for validation')
-                }
-
-                console.log(proofResult)
-                console.log(fieldsValidationResult)
-                console.log(chosenDescriptors[i].name)
-
-                // // Update traveler's verification status
-                // await Travelers.updateProofResultList(contact.contact_id, list)
-
-                // Check if all level validation passed
-                if (proofResult && fieldsValidationResult) {
-                  console.log('')
-                  console.log('it passed 2')
-                  console.log('')
-                  console.log('')
-
-                  // --------------------------- Handling and storing success -------------------------
-                  console.log('Original presentations array')
-                  console.log('')
-                  console.log(
-                    contact.Traveler.dataValues.proof_result_list.presentations,
-                  )
-                  console.log('')
-
-                  let successFlag = null
-
-                  for (
-                    let x = 0;
-                    x <
-                    contact.Traveler.dataValues.proof_result_list.presentations
-                      .length;
-                    x++
-                  ) {
-                    console.log(
-                      contact.Traveler.dataValues.proof_result_list
-                        .presentations[x],
-                    )
-
-                    // // Get all the object keys
-                    let keys = Object.keys(
-                      contact.Traveler.dataValues.proof_result_list
-                        .presentations[x],
-                    )
-
-                    // (eldersonar) TODO: Locate and remove redundant code here
-                    let listElement = {
-                      [inputDescriptors[i].name]: {
-                        result: true,
-                        presentation: {},
-                      },
-                    }
-
-                    console.log('listElement')
-                    console.log(listElement)
-
-                    // // Proof object reasignment
-                    let proofList =
-                      contact.Traveler.dataValues.proof_result_list
-                        .presentations[x]
-
-                    console.log('proofList')
-                    console.log(proofList)
-
-                    // Keys to string
-                    let key = keys.join()
-
-                    console.log('key')
-                    console.log(key)
-
-                    // (eldersonar) Check if we are updating correct proof element
-                    if (inputDescriptors[i].name === key) {
-                      successFlag = true
-                      proofList[keys[0]] = listElement[keys[0]]
-                      // Same thing but handles muliple keys
-                      // keys.map(y => {
-                      //   proofList[y] = listElement[y]
-                      //   console.log("map magic")
-                      //   console.log(proofList[y])
-                      // })
-                    }
-
-                    console.log('proofList')
-                    console.log(proofList)
-
-                    // console.log("this is an updated list")
-                    // console.log(proofList)
-
-                    // Proof result list (presentation ) shallow copy
-                    let presentations = [
-                      ...contact.Traveler.dataValues.proof_result_list
-                        .presentations,
-                    ]
-
-                    console.log('presentations')
-                    console.log(presentations)
-
-                    // Rebuilding object list
-                    presentations.presentations = proofList[x]
-
-                    console.log('presentations')
-                    console.log(presentations)
-
-                    // Set check result to true
-                    const list = presentations.map((item) => {
-                      if (Object.keys(item) === key) {
-                        item.result = true
-                      }
-                      return item
-                    })
-
-                    console.log('list')
-                    console.log(list)
-
-                    let finalList = {}
-                    finalList.presentations = list
-
-                    // Update traveler's proof result list
-                    await Travelers.updateProofResultList(
-                      contact.contact_id,
-                      finalList,
-                    )
-
-                    // Break out of outer loop if successfully passed val
-                    if (successFlag) {
-                      console.log('break')
-                      break
-                    }
-                  }
-
-                  // --------------------------- Handling and storing success -------------------------
-
-                  console.log('Issuing trusted traveler credential.')
-
-                  credentialVerifiedAttributes = credentialAttributes
-                  let schema_id = ''
-
-                  // (eldersonar) Validate the privileges
-                  if (
-                    governance &&
-                    privileges.includes('issue_trusted_traveler')
-                  ) {
-                    for (let i = 0; i < governance.actions.length; i++) {
-                      // (eldersonar) Get schema id for trusted traveler
-                      if (
-                        governance.actions[i].name === 'issue_trusted_traveler'
-                      ) {
-                        schema_id = governance.actions[i].details.schema
-                      }
-                    }
-
-                    // (eldersonar) Get schema information
-                    if (credentialVerifiedAttributes !== null) {
-                      let newCredential = {
-                        connectionID: message.connection_id,
-                        schemaID: schema_id,
-                        schemaVersion: schema_id.split(':')[3],
-                        schemaName: schema_id.split(':')[2],
-                        schemaIssuerDID: schema_id.split(':')[0],
-                        comment: '',
-                        attributes: credentialVerifiedAttributes,
-                      }
-
-                      // (mikekebert) Request issuance of the trusted_traveler credential
-                      console.log('ready to issue trusted traveler')
-
-                      // await Credentials.autoIssueCredential(
-                      //   newCredential.connectionID,
-                      //   undefined,
-                      //   undefined,
-                      //   newCredential.schemaID,
-                      //   newCredential.schemaVersion,
-                      //   newCredential.schemaName,
-                      //   newCredential.schemaIssuerDID,
-                      //   newCredential.comment,
-                      //   newCredential.attributes,
-                      // )
-
-                      // Update traveler's verification status
-                      await Travelers.updateVerificationStatus(
-                        contact.contact_id,
-                        true,
-                      )
-
-                      credentialVerifiedAttributes = null
-                    } else {
-                      // (mikekebert) Send a basic message saying the verification was rejected because of business logic
-                      console.log('Presentation rejected: 2019-nCoV Detected')
-                      await AdminAPI.Connections.sendBasicMessage(
-                        message.connection_id,
-                        {
-                          content: 'INVALID_PROOF',
-                        },
-                      )
-
-                      // Update traveler's verification status
-                      await Travelers.updateVerificationStatus(
-                        contact.contact_id,
-                        false,
-                      )
-                    }
-                  } else {
-                    console.log('no governance or insufficient privilieges')
-                    await AdminAPI.Connections.sendBasicMessage(
-                      message.connection_id,
-                      {
-                        content: 'INVALID_PRIVILEGES',
-                      },
-                    )
-                  }
-
-                  // (eldersonar) Validation failed
-                } else {
-                  console.log('')
-                  console.log('The field comparison failed.')
-                  console.log('')
-                }
-              }
-            }
           }
         }
       }
     } else {
       // (eldersonar) Send a basic message
-      console.log("I'm here")
+      console.log('Participant validation failed')
       await AdminAPI.Connections.sendBasicMessage(message.connection_id, {
         content:
           "We're sorry, but we don't currently recognize the issuer of your credential and cannot approve it at this time.",
       })
     }
-    // (eldersonar) Handle passport and travelers
-    // else {
-
-    //   // (eldersonar) Get contact id
-    //   let contact = await Contacts.getContactByConnection(message.connection_id, [])
-    //   console.log("----this is the contact_id ----")
-    //   console.log("contact id is: " + contact.contact_id)
-
-    //   // (edersonar) Create travelers
-    //   await Travelers.updateOrCreatePassport(
-    //     contact.contact_id,
-    //     message.presentation.requested_proof.self_attested_attrs.email,
-    //     message.presentation.requested_proof.self_attested_attrs.phone,
-    //     JSON.parse(message.presentation.requested_proof.self_attested_attrs.address),
-    //   )
-
-    //   // (eldersonar) Create passport
-    //   await Passports.updateOrCreatePassport(
-    //     contact.contact_id,
-    //     message.presentation.requested_proof.self_attested_attrs.passport_number,
-    //     message.presentation.requested_proof.self_attested_attrs.surname,
-    //     message.presentation.requested_proof.self_attested_attrs.given_names,
-    //     message.presentation.requested_proof.self_attested_attrs.sex,
-    //     message.presentation.requested_proof.self_attested_attrs.date_of_birth,
-    //     message.presentation.requested_proof.self_attested_attrs.place_of_birth,
-    //     message.presentation.requested_proof.self_attested_attrs.nationality,
-    //     message.presentation.requested_proof.self_attested_attrs.date_of_issue,
-    //     message.presentation.requested_proof.self_attested_attrs.date_of_expiration,
-    //     message.presentation.requested_proof.self_attested_attrs.type,
-    //     message.presentation.requested_proof.self_attested_attrs.code,
-    //     message.presentation.requested_proof.self_attested_attrs.authority,
-    //     message.presentation.requested_proof.self_attested_attrs.photo,
-    //   )
-    // }
   } else if (message.state === null) {
     // (mikekebert) Send a basic message saying the verification failed for technical reasons
     console.log('Validation failed for technical reasons')

@@ -26,8 +26,8 @@ const getGovernance = async () => {
       httpsAgent: agent,
       // url: 'https://government.black.indiciotech.io/api/governance-framework'
     }).then((res) => {
-      console.log('......................................')
-      console.log(res.data)
+      // console.log('......................................')
+      // console.log(res.data)
       return res.data
     })
     return response
@@ -48,7 +48,7 @@ const getPresentationDefinition = async () => {
     const governance = await getGovernance()
 
     // Presentation definition file
-    const pdfLink = governance.actions.find(
+    const pdfLink = governance.protocols.find(
       (item) => item.name === 'issue_trusted_traveler',
     ).details.presentation_definition
 
@@ -133,6 +133,35 @@ const getLabVaccinePresentationDefinition = async () => {
     // throw error
   }
 }
+
+const getVaccinePresentationDefinition = async () => {
+  try {
+    const governance = await getGovernance()
+
+    // Presentation definition file
+    const pdfLink = 'http://localhost:3100/api/vaccine-presentation-exchange'
+
+    const response = await axios({
+      method: 'GET',
+      url: pdfLink,
+      httpsAgent: agent,
+    }).then((res) => {
+      return res.data
+    })
+
+    return response
+  } catch (error) {
+    console.error('Presentation Definition File Request Error')
+    // console.log(error.response.status)
+    console.log(error)
+
+    // (eldersonar) Do we handle specific codes or handle all errors as one?
+    // if (error.response.status)
+    return undefined
+
+    // throw error
+  }
+}
 //------------ (eldersonar) TODO: remove after trial-------------
 
 // Get DID
@@ -170,14 +199,14 @@ const validateParticipant = async (schemaID, protocol, endorserDID) => {
       // (eldersonar) Preparing for presentation definition schemas extraction in future
       const schemas = [
         'RuuJwd3JMffNwZ43DcJKN1:2:Vaccination:1.4',
-        'RuuJwd3JMffNwZ43DcJKN1:2:Exemption:1.4',
+        'RuuJwd3JMffNwZ43DcJKN1:2:Vaccine_Exemption:1.4',
         'RuuJwd3JMffNwZ43DcJKN1:2:Lab_Result:1.4',
       ]
       const schemaMatch = schemas
         .filter((schema) => schema === schemaID)
         .toString()
 
-      let rule = governance.command_drive.find(
+      let rule = governance.actions.find(
         (o) => o.data.schema === schemaMatch && o.data.protocol === protocol,
       )
       let role = null
@@ -368,7 +397,7 @@ const getActions = async () => {
         console.log('the are no actions')
         return {error: 'noActions'}
       } else {
-        return governance.actions
+        return governance.protocols
       }
     }
   } catch (error) {
@@ -413,5 +442,6 @@ module.exports = {
   //------------ (eldersonar) TODO: remove after trial-------------
   getLabPresentationDefinition,
   getLabVaccinePresentationDefinition,
+  getVaccinePresentationDefinition,
   //------------ (eldersonar) TODO: remove after trial-------------
 }

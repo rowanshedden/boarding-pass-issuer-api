@@ -7,22 +7,21 @@
       "submission_requirements": [
         {
           "name": "Trusted Traveler",
-          "rule": "pick",
-          "count": 1,
+          "rule": "all",
           "from": "Health Proof Option"
         }
       ],
       "input_descriptors": [
         {
           "id": "health_input_1",
-          "name": "Lab_Result",
+          "name": "Vaccination",
           "group": [
             "Health Proof Option"
           ],
           "purpose": "stuff",
           "schema": [
             {
-              "uri": "RuuJwd3JMffNwZ43DcJKN1:2:Lab_Result:1.4",
+              "uri": "RuuJwd3JMffNwZ43DcJKN1:2:Vaccination:1.4",
               "required": "true"
             }
           ],
@@ -39,6 +38,14 @@
               {
                 "path": [
                   "$.patient_local_id"
+                ],
+                "filter": {
+                  "type": "string"
+                }
+              },
+              {
+                "path": [
+                  "$.sending_facility"
                 ],
                 "filter": {
                   "type": "string"
@@ -135,7 +142,7 @@
               },
               {
                 "path": [
-                  "$.lab_observation_date_time"
+                  "$.vaccine_record_id"
                 ],
                 "filter": {
                   "type": "string"
@@ -143,7 +150,7 @@
               },
               {
                 "path": [
-                  "$.lab_specimen_collected_date"
+                  "$.vaccine_administration_facility_id"
                 ],
                 "filter": {
                   "type": "string"
@@ -151,7 +158,7 @@
               },
               {
                 "path": [
-                  "$.lab_result"
+                  "$.vaccine_administration_facility_id_qualifier"
                 ],
                 "filter": {
                   "type": "string"
@@ -159,7 +166,7 @@
               },
               {
                 "path": [
-                  "$.lab_specimen_type"
+                  "$.vaccine_administration_facility_name"
                 ],
                 "filter": {
                   "type": "string"
@@ -167,7 +174,7 @@
               },
               {
                 "path": [
-                  "$.lab_result_status"
+                  "$.vaccine_administration_state_province_region"
                 ],
                 "filter": {
                   "type": "string"
@@ -175,7 +182,16 @@
               },
               {
                 "path": [
-                  "$.lab_coding_qualifier"
+                  "$.vaccine_administration_postalcode"
+                ],
+                "filter": {
+                  "type": "string",
+                  "pattern": "KF5cZHs1fSQpfCheXGR7NX0tXGR7NH0kKQ=="
+                }
+              },
+              {
+                "path": [
+                  "$.vaccine_administration_country"
                 ],
                 "filter": {
                   "type": "string"
@@ -183,7 +199,7 @@
               },
               {
                 "path": [
-                  "$.lab_code"
+                  "$.vaccine_administration_date"
                 ],
                 "filter": {
                   "type": "string"
@@ -191,7 +207,23 @@
               },
               {
                 "path": [
-                  "$.lab_description"
+                  "$.vaccine_dose_number"
+                ],
+                "filter": {
+                  "type": "number"
+                }
+              },
+              {
+                "path": [
+                  "$.vaccine_series_complete"
+                ],
+                "filter": {
+                  "type": "boolean"
+                }
+              },
+              {
+                "path": [
+                  "$.vaccine_lot_number"
                 ],
                 "filter": {
                   "type": "string"
@@ -199,7 +231,7 @@
               },
               {
                 "path": [
-                  "$.lab_order_id"
+                  "$.vaccine_code"
                 ],
                 "filter": {
                   "type": "string"
@@ -207,7 +239,7 @@
               },
               {
                 "path": [
-                  "$.lab_normality"
+                  "$.vaccine_code_qualifier"
                 ],
                 "filter": {
                   "type": "string"
@@ -215,7 +247,7 @@
               },
               {
                 "path": [
-                  "$.lab_comment"
+                  "$.vaccine_code_name"
                 ],
                 "filter": {
                   "type": "string"
@@ -223,7 +255,7 @@
               },
               {
                 "path": [
-                  "$.ordering_facility_id"
+                  "$.vaccine_manufacturer_code"
                 ],
                 "filter": {
                   "type": "string"
@@ -231,7 +263,7 @@
               },
               {
                 "path": [
-                  "$.ordering_facility_id_qualifier"
+                  "$.vaccine_manufacturer_code_qualifier"
                 ],
                 "filter": {
                   "type": "string"
@@ -239,7 +271,7 @@
               },
               {
                 "path": [
-                  "$.ordering_facility_name"
+                  "$.vaccine_manufacturer_code_name"
                 ],
                 "filter": {
                   "type": "string"
@@ -247,7 +279,7 @@
               },
               {
                 "path": [
-                  "$.ordering_facility_state_province_region"
+                  "$.vaccine_disease_target_code"
                 ],
                 "filter": {
                   "type": "string"
@@ -255,7 +287,7 @@
               },
               {
                 "path": [
-                  "$.ordering_facility_postalcode"
+                  "$.vaccine_disease_target_code_qualifier"
                 ],
                 "filter": {
                   "type": "string"
@@ -263,7 +295,7 @@
               },
               {
                 "path": [
-                  "$.ordering_facility_country"
+                  "$.vaccine_disease_target_name"
                 ],
                 "filter": {
                   "type": "string"
@@ -271,7 +303,7 @@
               },
               {
                 "path": [
-                  "$.performing_laboratory_id"
+                  "$.vaccine_administration_provider_id"
                 ],
                 "filter": {
                   "type": "string"
@@ -279,7 +311,7 @@
               },
               {
                 "path": [
-                  "$.performing_laboratory_id_qualifier"
+                  "$.vaccine_administration_provider_id_qualifier"
                 ],
                 "filter": {
                   "type": "string"
@@ -287,7 +319,7 @@
               },
               {
                 "path": [
-                  "$.performing_laboratory_name"
+                  "$.vaccine_administration_provider_fullname"
                 ],
                 "filter": {
                   "type": "string"
@@ -295,7 +327,7 @@
               },
               {
                 "path": [
-                  "$.performing_laboratory_state_province_region"
+                  "$.vaccine_education_reference_material"
                 ],
                 "filter": {
                   "type": "string"
@@ -303,7 +335,7 @@
               },
               {
                 "path": [
-                  "$.performing_laboratory_postalcode"
+                  "$.certificate_original_issuer"
                 ],
                 "filter": {
                   "type": "string"
@@ -311,15 +343,7 @@
               },
               {
                 "path": [
-                  "$.performing_laboratory_country"
-                ],
-                "filter": {
-                  "type": "string"
-                }
-              },
-              {
-                "path": [
-                  "$.lab_performed_by"
+                  "$.certificate_original_identifier"
                 ],
                 "filter": {
                   "type": "string"
@@ -338,7 +362,8 @@
                   "$.credential_issue_date"
                 ],
                 "filter": {
-                  "type": "string"
+                  "type": "string",
+                  "format": "date"
                 }
               }
             ]

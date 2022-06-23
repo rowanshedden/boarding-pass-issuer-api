@@ -1,5 +1,4 @@
 const crypto = require('crypto')
-
 const sendAdminMessage = require('./transport')
 const Governance = require('../agentLogic/governance')
 
@@ -58,6 +57,7 @@ const requestProof = async (
     let nonce = crypto.randomBytes(40).join('')
     console.log(nonce)
 
+    // (eldersonar) Self attested presentation doesn't use the new presentation request architecture
     let requestedAttributes = {}
     for (var i = 0; i < attributes.length; i++) {
       requestedAttributes[attributes[i]] = {

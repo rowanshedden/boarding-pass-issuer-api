@@ -52,6 +52,32 @@ function validateLogo192And512(logo) {
   return re.test(String(logo))
 }
 
+// (eldersonar) Make sure that the object is an object
+const isObject = (object) => {
+  return object != null && typeof object === 'object'
+}
+
+// (eldersonar) Deep object comparison (nested array of objects)
+const deepEqual = (object1, object2) => {
+  const keys1 = Object.keys(object1)
+  const keys2 = Object.keys(object2)
+  if (keys1.length !== keys2.length) {
+    return false
+  }
+  for (const key of keys1) {
+    const val1 = object1[key]
+    const val2 = object2[key]
+    const areObjects = isObject(val1) && isObject(val2)
+    if (
+      (areObjects && !deepEqual(val1, val2)) ||
+      (!areObjects && val1 !== val2)
+    ) {
+      return false
+    }
+  }
+  return true
+}
+
 // String AES256 (cbc) encryption
 const encrypt = (val, IV) => {
   let cipher = crypto.createCipheriv('aes-256-cbc', process.env.ENC_KEY, IV)
@@ -77,6 +103,7 @@ module.exports = {
   validateLogo,
   validateFavIcon,
   validateLogo192And512,
+  deepEqual,
   encrypt,
   decrypt,
 }

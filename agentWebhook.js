@@ -3,6 +3,8 @@ const Websockets = require('./websockets')
 const express = require('express')
 const router = express.Router()
 
+const AdminAPI = require('./adminAPI')
+
 const Contacts = require('./agentLogic/contacts')
 const Credentials = require('./agentLogic/credentials')
 const Passports = require('./agentLogic/passports')
@@ -59,11 +61,17 @@ router.post('/topic/connections', async (req, res, next) => {
 
   // (eldersonar) Send a proof request to the established connection
   if (connectionMessage.state === 'active') {
+    await AdminAPI.Connections.sendBasicMessage(
+      connectionMessage.connection_id,
+      {
+        content: 'Thank you for connecting to the Aruba Health Department',
+      },
+    )
     QuestionAnswer.askQuestion(
       connectionMessage.connection_id,
       'How would you like to share your health status?',
       'Please select a credential option below:',
-      [{text: 'Vaccination + PCR Test'}, {text: 'PCR Test Only'}],
+      [{text: 'Vaccination'}, {text: 'Lab Result'}],
       // answers
     )
 

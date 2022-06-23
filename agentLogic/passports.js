@@ -18,9 +18,9 @@ const updateOrCreatePassport = async function (
   passport_code,
   passport_authority,
 ) {
-  const dateOfIssue = new Date(passport_date_of_issue).getTime()
-  const datOfExpiration = new Date(passport_date_of_expiration).getTime()
-  const date_of_birth = new Date(passport_date_of_birth).getTime()
+  const dateOfIssue = new Date(passport_date_of_issue).getTime() / 1000
+  const datOfExpiration = new Date(passport_date_of_expiration).getTime() / 1000
+  const dateOfBirth = new Date(passport_date_of_birth).getTime() / 1000
 
   try {
     const passport = await Passports.createOrUpdatePassport(
@@ -29,7 +29,7 @@ const updateOrCreatePassport = async function (
       passport_surnames,
       passport_given_names,
       passport_gender_legal,
-      date_of_birth,
+      dateOfBirth,
       passport_place_of_birth,
       passport_nationality,
       dateOfIssue,
