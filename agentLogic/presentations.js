@@ -396,10 +396,7 @@ const handleCartesianProductSet = async (
 }
 
 // (eldersonar) Simple input descriptors handler (no in-field conditions)
-const handleSimpleDescriptors = async (
-  descriptors,
-  connectionID,
-) => {
+const handleSimpleDescriptors = async (descriptors, connectionID) => {
   try {
     const uid = uuid()
     let attributes = {}
@@ -688,10 +685,7 @@ const requestPresentation = async (connectionID, type) => {
         }
 
         // (eldersonar) TODO: Wrap into an if statement to check if the the rest of the input descriptors are part of the submission requirment group.
-        await handleSimpleDescriptors(
-          inputDescriptors,
-          connectionID,
-        )
+        await handleSimpleDescriptors(inputDescriptors, connectionID)
 
         // (eldersonar) Handle nested submission requirments
       } else {
@@ -3309,7 +3303,7 @@ const adminMessage = async (message) => {
                 // This is the lab
                 else if (contact.Traveler.dataValues.proof_type === 'Lab') {
                   console.log('Validating lab proof')
-                  
+
                   const labResult = attributes.lab_result.raw
                   const labCode = attributes.lab_code.raw
                   const labDate = attributes.lab_specimen_collected_date.raw

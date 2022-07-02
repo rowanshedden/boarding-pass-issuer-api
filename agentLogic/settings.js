@@ -1,6 +1,5 @@
 const crypto = require('crypto')
 const Settings = require('../orm/settings')
-const fs = require('fs')
 const Util = require('../util')
 
 // Perform Agent Business Logic
@@ -98,12 +97,12 @@ const setManifest = async (short_name, name, theme_color, bg_color) => {
           type: 'image/x-icon',
         },
         {
-          src: 'logo192.png',
+          src: 'icon192.png',
           type: 'image/png',
           sizes: '192x192',
         },
         {
-          src: 'logo512.png',
+          src: 'icon512.png',
           type: 'image/png',
           sizes: '512x512',
         },
@@ -114,18 +113,21 @@ const setManifest = async (short_name, name, theme_color, bg_color) => {
       background_color: bg_color,
     }
 
-    fs.writeFile(
-      'web/manifest.json',
-      JSON.stringify(manifest, 'utf8', '\t'),
-      function (err) {
-        if (err) throw err
-        console.log('complete')
-      },
-    )
+    await Settings.updateManifest(manifest)
 
     return 'success'
   } catch (error) {
     console.error('Error updating manifest.json')
+    throw error
+  }
+}
+
+const getManifest = async () => {
+  try {
+    const manifest = await Settings.readManifest()
+    return manifest
+  } catch (error) {
+    console.error('Error getting Manifest')
     throw error
   }
 }
@@ -146,6 +148,7 @@ module.exports = {
   setSMTP,
   getOrganization,
   setOrganization,
+  getManifest,
   setManifest,
   getSchemas,
 }
