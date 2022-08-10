@@ -565,17 +565,18 @@ const messageHandler = async (ws, context, type, data = {}) => {
             if (check(rules, userRoles, 'settings:update')) {
               console.log('SET_SMTP')
               const updatedSMTP = await Settings.setSMTP(data)
-              if (updatedSMTP)
+              if (updatedSMTP) {
                 sendMessage(
                   ws,
                   'SETTINGS',
                   'SETTINGS_SUCCESS',
                   'SMTP was successfully updated!',
                 )
-              else
+              } else {
                 sendMessage(ws, 'SETTINGS', 'SETTINGS_ERROR', {
                   error: "ERROR: SMTP can't be updated.",
                 })
+              }
             } else {
               sendMessage(ws, 'SETTINGS', 'SETTINGS_ERROR', {
                 error:
@@ -587,12 +588,13 @@ const messageHandler = async (ws, context, type, data = {}) => {
           case 'GET_SMTP':
             if (check(rules, userRoles, 'settings:update')) {
               const smtpConfigs = await Settings.getSMTP()
-              if (smtpConfigs)
+              if (smtpConfigs) {
                 sendMessage(ws, 'SETTINGS', 'SETTINGS_SMTP', smtpConfigs)
-              else
+              } else {
                 sendMessage(ws, 'SETTINGS', 'SETTINGS_ERROR', {
                   error: "ERROR: SMTP can't be fetched.",
                 })
+              }
             } else {
               sendMessage(ws, 'SETTINGS', 'SETTINGS_ERROR', {
                 error:
