@@ -112,6 +112,7 @@ router.post('/topic/present_proof', async (req, res, next) => {
   }
 
   res.status(200).send('Ok')
+  await Presentations.handleDTC(presMessage)
   await Presentations.adminMessage(presMessage)
 })
 

@@ -34,6 +34,7 @@ const Governance = require('./agentLogic/governance')
 const Images = require('./agentLogic/images')
 const {getOrganization} = require('./agentLogic/settings')
 const Passenger = require('./agentLogic/passenger')
+const Presentations = require('./agentLogic/presentations')
 const Users = require('./agentLogic/users')
 
 app.use(bodyParser.urlencoded({extended: false}))
@@ -407,24 +408,17 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
   try {
     // (eldersonar) Create invitation
     const invitation = await Invitations.createSingleUseInvitation()
+    let contact
 
-    if (!invitation) {
+    if (invitation) {
+      contact = await Contacts.createContact(
+        'ED Card',
+        {}, // meta_data
+      )
+    } else {
       res.json({error: 'There was a problem creating an invitation'})
     }
 
-    const fullName = data.passport_surnames + ' ' + data.passport_given_names
-
-    let contact = null
-
-    // (eldersonar) Create contact
-    if (invitation) {
-      contact = await Contacts.createContact(
-        fullName, // label
-        {}, // meta_data
-      )
-    }
-
-    // (eldersonar) Link contact to connection
     const connections = await Connections.linkContactAndConnection(
       contact.contact_id,
       invitation.connection_id,
@@ -432,19 +426,6 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
 
     if (!connections) {
       res.json({error: "Couldn't link contacts to connections"})
-    }
-
-    // (eldersonar) Write traveler and passport to the database
-    const passenger = await Passenger.addTravelerAndPassport(
-      contact.contact_id,
-      data,
-    )
-
-    if (!passenger) {
-      res.json({
-        error:
-          "Couldn't write passenger information to the government database",
-      })
     }
 
     res.status(200).json({
@@ -457,11 +438,104 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
   }
 })
 
+app.post('/api/verifications', async (req, res) => {
+  const {connection_id, schema_id, schema_attributes, timeout} = req.body
+  try {
+    // NEXT STEPS
+    // need to check for connection
+    const contact = await ContactsCompiled.readContactByConnection(
+      connection_id,
+      ['Passport'],
+    )
+
+    const presentations = await Presentations.requestSchemaPresentation(
+      connection_id,
+      schema_attributes,
+      schema_id,
+    )
+    console.log('+++++++++++++++++Presentations+++++++++++++++++++++++++++')
+    console.log(presentations)
+    console.log('+++++++++++++++++Presentations+++++++++++++++++++++++++++')
+
+    // if (!contact) {
+    //   res.json({error: "Couldn't find contact by connection id"})
+    // }
+
+    // after connecting, request presentation for DTC anoncred credential - use the code on slack
+    // - put the request presentations function inside agent logic presentations
+    // Presentations.requestPresentationBySchemaId(connectionID,requestedAttributes, schemaID)
+
+    // - put attributes and schema id in here
+    // after receiving presentation attributes, send attributes as response to ED card api
+    res.status(200).send(response)
+  } catch (error) {
+    console.error(error)
+    res.json({error: 'Unexpected error occurred'})
+  }
+})
+
+// app.post('/api/invitations', checkApiKey, async (req, res) => {
+//   console.log(req.body)
+//   const data = req.body
+//   try {
+//     // (eldersonar) Create invitation
+//     const invitation = await Invitations.createSingleUseInvitation()
+
+//     if (!invitation) {
+//       res.json({error: 'There was a problem creating an invitation'})
+//     }
+
+//     const fullName = data.passport_surnames + ' ' + data.passport_given_names
+
+//     let contact = null
+
+//     // (eldersonar) Create contact
+//     if (invitation) {
+//       contact = await Contacts.createContact(
+//         fullName, // label
+//         {}, // meta_data
+//       )
+//     }
+
+//     // (eldersonar) Link contact to connection
+//     const connections = await Connections.linkContactAndConnection(
+//       contact.contact_id,
+//       invitation.connection_id,
+//     )
+
+//     if (!connections) {
+//       res.json({error: "Couldn't link contacts to connections"})
+//     }
+
+//     // (eldersonar) Write traveler and passport to the database
+//     const passenger = await Passenger.addTravelerAndPassport(
+//       contact.contact_id,
+//       data,
+//     )
+
+//     if (!passenger) {
+//       res.json({
+//         error:
+//           "Couldn't write passenger information to the government database",
+//       })
+//     }
+
+//     res.status(200).json({
+//       connection_id: invitation.connection_id,
+//       invitation_url: invitation.invitation_url,
+//     })
+//   } catch (error) {
+//     console.error(error)
+//     res.json({error: 'Unexpected error occurred'})
+//   }
+// })
+
 // Get verification status by connection_id
 app.get('/api/verification/:id', async (req, res) => {
   try {
     console.log(req.params.id)
 
+    // use this code to check connection id
     const contact = await ContactsCompiled.readContactByConnection(
       req.params.id,
       ['Traveler'],

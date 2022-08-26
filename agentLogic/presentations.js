@@ -1,5 +1,6 @@
 const {DateTime} = require('luxon')
 const {v4: uuid} = require('uuid')
+const crypto = require('crypto')
 
 const ControllerError = require('../errors')
 
@@ -11,6 +12,7 @@ const Credentials = require('./credentials')
 const Governance = require('./governance')
 const Travelers = require('./travelers')
 const Presentations = require('../orm/presentations')
+const sendAdminMessage = require('../adminAPI/transport')
 
 const {getOrganization} = require('./settings')
 
@@ -34,6 +36,25 @@ const requestIdentityPresentation = async (connectionID) => {
     ],
   )
   return result
+}
+
+const requestSchemaPresentation = async (
+  connection_id,
+  schema_attributes,
+  schema_id,
+) => {
+  console.log(`Requesting Presentation from Connection: ${connection_id}`)
+  console.log('=========================presentationschema===================')
+  console.log(connection_id, schema_attributes, schema_id)
+  console.log('=========================presentationschema===================')
+
+  await AdminAPI.Presentations.requestPresentationBySchemaId(
+    connection_id,
+    schema_attributes,
+    schema_id,
+    'Requesting Presentation',
+    false,
+  )
 }
 
 // (Eldersonar) This function takes an array of arrays and returns the cartesian product
@@ -396,10 +417,7 @@ const handleCartesianProductSet = async (
 }
 
 // (eldersonar) Simple input descriptors handler (no in-field conditions)
-const handleSimpleDescriptors = async (
-  descriptors,
-  connectionID,
-) => {
+const handleSimpleDescriptors = async (descriptors, connectionID) => {
   try {
     const uid = uuid()
     let attributes = {}
@@ -688,10 +706,7 @@ const requestPresentation = async (connectionID, type) => {
         }
 
         // (eldersonar) TODO: Wrap into an if statement to check if the the rest of the input descriptors are part of the submission requirment group.
-        await handleSimpleDescriptors(
-          inputDescriptors,
-          connectionID,
-        )
+        await handleSimpleDescriptors(inputDescriptors, connectionID)
 
         // (eldersonar) Handle nested submission requirments
       } else {
@@ -3309,7 +3324,7 @@ const adminMessage = async (message) => {
                 // This is the lab
                 else if (contact.Traveler.dataValues.proof_type === 'Lab') {
                   console.log('Validating lab proof')
-                  
+
                   const labResult = attributes.lab_result.raw
                   const labCode = attributes.lab_code.raw
                   const labDate = attributes.lab_specimen_collected_date.raw
@@ -3498,6 +3513,18 @@ const getAll = async () => {
   }
 }
 
+const handleDTC = async (message) => {
+  try {
+    if (message.state === 'verified') {
+      console.log('++++++++++++++message+++++++++++++++++++++++++++++')
+      console.log(message)
+      console.log('++++++++++++++message+++++++++++++++++++++++++++++')
+    }
+  } catch (error) {
+    console.error('Error handling DTC presentation', error)
+  }
+}
+
 module.exports = {
   adminMessage,
   requestPresentation,
@@ -3505,4 +3532,6 @@ module.exports = {
   createPresentationReports,
   updatePresentationReports,
   getAll,
+  handleDTC,
+  requestSchemaPresentation,
 }
