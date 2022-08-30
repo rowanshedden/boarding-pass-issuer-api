@@ -1,8 +1,6 @@
 const AdminAPI = require('../adminAPI')
 const Websockets = require('../websockets.js')
 
-const Presentations = require('../agentLogic/presentations.js')
-
 let Connections = require('../orm/connections.js')
 let Contacts = require('../orm/contacts.js')
 let ContactsCompiled = require('../orm/contactsCompiled.js')
@@ -161,10 +159,6 @@ const adminMessage = async (connectionMessage) => {
         connectionMessage.inbound_connection_id,
         connectionMessage.error_msg,
       )
-    }
-
-    if (connectionMessage.state === 'active') {
-      await Presentations.requestDTCPresentation(connectionMessage.connection_id)
     }
 
     contact = await ContactsCompiled.readContactByConnection(

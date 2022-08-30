@@ -1,5 +1,7 @@
 // Invitation request API
 const Invitations = require('./invitations')
+const Presentations = require('./presentations')
+
 const Connections = require('../orm/connections')
 const Verifications = require('../orm/verifications')
 const AdminAPI = require('../adminAPI')
@@ -9,7 +11,6 @@ var deferred = require('deferred')
 var pending_verifications = {}
 
 const createVerification = async (
-  verification_id,
   // processor_id
   // merchant_id
   connection_id,
@@ -34,7 +35,6 @@ const createVerification = async (
 ) => {
   try {
     const verification = await Verifications.createVerificationRecord(
-      verification_id,
       // processor_id
       // merchant_id
       connection_id,
@@ -121,6 +121,8 @@ const createVerification = async (
 // }
 
 const startRule = async (verification) => {
+  console.log('======================Start Rule================')
+
   // we call this here to get the presentation id before getting webhook notifications
   /*
     TODO this workflow doesn't work right now. By not having the 
@@ -152,13 +154,28 @@ const startRule = async (verification) => {
     )
 */
 
+      console.log('=============request presentation==========')
   // TODO This workflow may contain a race condition
-  const result = await AdminAPI.Presentations.requestPresentation(
+  const result = await Presentations.requestSchemaPresentation(
     verification.connection_id,
-    ['date_of_birth'],
-    'MzGj69GREx94fR2af2xYEC:2:Drivers_License:1.0',
-    'Requesting Presentation',
-    false,
+    [      
+    "created-date",
+    "document-type",
+    "issue-date",
+    "document-number",
+    "issuing-state",
+    "gender",
+    "date-of-birth",
+    "chip-photo",
+    "family-name",
+    "given-names",
+    "dtc",
+    "upk",
+    "expiry-date",
+    "issuing-authority",
+    "nationality",
+  ],
+  process.env.SCHEMA_DTC_TYPE1_IDENTITY,
   )
 
   await verification.update({
@@ -186,77 +203,49 @@ const handleConnection = async (connectionMessage) => {
 }
 
 const handlePresentation = async (presMessage) => {
-  verification = await Verifications.Verification.findOne({
+  var verification = await Verifications.Verification.findOne({
     where: {
       connection_id: presMessage['connection_id'],
       presentation_exchange_id: presMessage['presentation_exchange_id'],
     },
   })
 
-  if (null == verification) return
+  if (null == verification) return false
 
   await verification.update({
     proof_state: presMessage['state'],
   })
-
-  const {revealed_attrs} = presMessage.presentation.requested_proof
-
-  var result_data = []
-
-  Object.keys(revealed_attrs).forEach((key) => {
-    if (verification.rule == 'age' && key == 'date_of_birth') {
-      var date_of_birth = parseInt(revealed_attrs[key]['raw'])
-      var dates = {
-        18: Math.floor(
-          new Date(new Date().setFullYear(new Date().getFullYear() - 18)) /
-            1000,
-        ),
-        21: Math.floor(
-          new Date(new Date().setFullYear(new Date().getFullYear() - 21)) /
-            1000,
-        ),
-        60: Math.floor(
-          new Date(new Date().setFullYear(new Date().getFullYear() - 60)) /
-            1000,
-        ),
-      }
-
-      console.log(date_of_birth)
-      var age_values = []
-
-      Object.keys(dates).forEach((date_key) => {
-        var over = date_of_birth < dates[date_key]
-
-        age_values.push({
-          age: date_key,
-          over: over,
-        })
-      })
-
+  
+  if (presMessage.state === 'verified') {
+    const {revealed_attrs} = presMessage.presentation.requested_proof
+  
+    var result_data = []
+  
+    Object.keys(revealed_attrs).forEach((key) => {
       result_data.push({
-        name: 'ages',
-        value: age_values,
+        name: key,
+        value: revealed_attrs[key]['raw'],
       })
+    })
+  
+    if ('verified' == presMessage['state']) {
+      console.log('================complete true=================')
+      await verification.update({
+        complete: true,
+        result: true,
+        result_string: 'Verified',
+        result_data: result_data,
+      })
+  
+      console.log(verification)
+
+      try {
+        pending_verifications[verification.verification_id].resolve(true)
+      } catch (e) {} // we may attempted notifying a record that no longer exists.
     }
-
-    result_data.push({
-      name: key,
-      value: revealed_attrs[key]['raw'],
-    })
-  })
-
-  if ('verified' == presMessage['state']) {
-    await verification.update({
-      complete: true,
-      result: true,
-      result_string: 'Verified',
-      result_data: result_data,
-    })
-
-    try {
-      pending_verifications[verification.connection_id].resolve(true)
-    } catch (e) {} // we may attempted notifying a record that no longer exists.
   }
+
+  return true
 }
 
 const verify = async (data) => {
@@ -271,6 +260,7 @@ const verify = async (data) => {
       )
 
       if (connection == null) {
+        console.log('=============create verification request=======')
         // create error record and exit
         var verification_request = {
           connection_id: data.connection_id,
@@ -294,11 +284,6 @@ const verify = async (data) => {
 
         return verification
       }
-    } else {
-      connection = await Invitations.acceptInvitation(
-        data.connection_data,
-        false,
-      )
     }
 
     // create db record to work with
@@ -344,16 +329,13 @@ const verify = async (data) => {
 
     var def = deferred()
 
-    pending_verifications[verification.connection_id] = def
+    console.log('-------verifications:', verification)
 
-    if ('active' != connection.state) {
-      // activate connection
-      connection = await Invitations.acceptExistingInvitation(
-        connection.connection_id,
-      )
-    } else {
+    pending_verifications[verification.verification_id] = def
+
+    if ('active' === connection.state) {
       // we already have an active connection, so send presentation request
-      await startRule(verification)
+        await startRule(verification)
     }
 
     // we need to wait for the presentation
@@ -362,7 +344,7 @@ const verify = async (data) => {
     value = await Promise.race([TimeDelay, def.promise])
 
     // remove deferred object from webhook handling
-    delete pending_verifications[verification.connection_id]
+    delete pending_verifications[verification.verification_id]
 
     // get latest verification state
     verification = await Verifications.Verification.findOne({
@@ -394,6 +376,7 @@ const retrieve = async (verification_id) => {
 }
 
 module.exports = {
+  createVerification,
   handleConnection,
   handlePresentation,
   retrieve,

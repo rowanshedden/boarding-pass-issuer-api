@@ -6,7 +6,6 @@ const ControllerError = require('../errors')
 
 const AdminAPI = require('../adminAPI')
 const Websockets = require('../websockets')
-const Contacts = require('./contacts')
 const ConnectionsState = require('../agentLogic/connectionsState')
 const Credentials = require('./credentials')
 const Governance = require('./governance')
@@ -44,11 +43,8 @@ const requestSchemaPresentation = async (
   schema_id,
 ) => {
   console.log(`Requesting Presentation from Connection: ${connection_id}`)
-  console.log('=========================presentationschema===================')
-  console.log(connection_id, schema_attributes, schema_id)
-  console.log('=========================presentationschema===================')
 
-  await AdminAPI.Presentations.requestPresentationBySchemaId(
+  return await AdminAPI.Presentations.requestPresentationBySchemaId(
     connection_id,
     schema_attributes,
     schema_id,
@@ -3522,3 +3518,5 @@ module.exports = {
   getAll,
   requestSchemaPresentation,
 }
+
+const Contacts = require('./contacts')

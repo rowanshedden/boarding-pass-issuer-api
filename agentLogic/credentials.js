@@ -233,7 +233,7 @@ const autoIssueCredential = async (
     // Perform Validations
 
     // Validate Connection
-    const connection = await Contacts.fetchConnection(connectionID)
+    const connection = await AdminAPI.Connections.fetchConnection(connectionID)
 
     if (!connection) {
       console.error('Connection Not Present')

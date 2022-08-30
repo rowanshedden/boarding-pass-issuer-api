@@ -58,7 +58,7 @@
   "participants": [
     {
       "name": "Aruba Government",
-      "id": "ST4drocHbLyBSasWfrARPr",
+      "id": "6YNtFaz4jybTxvR5Zk1bRw",
       "describe": {
         "label": "Aruba",
         "sublabel": "Aruba Government",
@@ -68,7 +68,7 @@
     },
     {
       "name": "General Obeorthot Hospital of Aruba",
-      "id": "BNvuWDTCNEvr4qX451JuiJ",
+      "id": "B4kugxxFRf7K2gD624DwaC",
       "describe": {
         "label": "Obeorthot Hospital",
         "sublabel": "General Obeorthot Hospital of Aruba",
@@ -103,7 +103,7 @@
       "when": {
         "any": [
           {"id": "did:example:hospital"},
-          {"id": "BNvuWDTCNEvr4qX451JuiJ"}
+          {"id": "B4kugxxFRf7K2gD624DwaC"}
         ]
       }
     },
@@ -113,7 +113,7 @@
       ],
       "when": {
         "any": [
-          {"id": "ST4drocHbLyBSasWfrARPr"}
+          {"id": "6YNtFaz4jybTxvR5Zk1bRw"}
         ]
       }
     },
@@ -123,7 +123,7 @@
       ],
       "when": {
         "any": [
-          {"id": "ST4drocHbLyBSasWfrARPr"}
+          {"id": "6YNtFaz4jybTxvR5Zk1bRw"}
         ]
       }
     },
@@ -133,7 +133,7 @@
       ],
       "when": {
         "any": [
-          {"id": "ST4drocHbLyBSasWfrARPr"}
+          {"id": "6YNtFaz4jybTxvR5Zk1bRw"}
         ]
       }
     },

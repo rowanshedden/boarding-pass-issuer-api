@@ -73,6 +73,7 @@ app.use(
 // Invitation request API
 const Invitations = require('./agentLogic/invitations')
 const Connections = require('./orm/connections')
+const { Verification } = require('./orm/verifications')
 
 app.use(
   '/api/presentation-exchange',
@@ -444,21 +445,34 @@ app.post('/api/verifications', checkApiKey, async (req, res) => {
 
   try {
     const connection = await Connections.readConnection(data.connection_id)
-    console.log('========================contact================')
-    console.log(connection)
-    console.log('========================contact=================')
+    // console.log('========================contact================')
+    // console.log(connection)
+    // console.log('========================contact=================')
 
-    if (connection.state === 'active') {
+    // if (connection.state === 'active') {
     //     const presentation = await Presentations.requestSchemaPresentation(
     //       data.connection_id,
     //       data.schema_attributes,
     //       data.schema_id
     //     )
-    }
+
+    //     const verification = await Verifications.createVerification(
+    //       data.connection_id,
+    //       data.contact_id,
+    //       data.invitation_id,
+    //       data.schema_id,
+    //       data.schema_attributes,
+    //     )
+
+    // // Create verification here if we need it.
+    // }
 
     // data.connection_id = invitation.connection_id
-
     const verification = await Verifications.verify(data)
+
+    console.log('==========================Verification Gov========')
+    console.log(verification)
+    console.log('==========================Verification Gov========')
 
     res.status(200).send(verification)
   } catch (error) {
