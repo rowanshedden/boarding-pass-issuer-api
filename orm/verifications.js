@@ -21,7 +21,7 @@ Verification.init(
     connection_id: {
       type: DataTypes.STRING,
     },
-    user_id: {
+    contact_id: {
       type: DataTypes.STRING,
     },
     invitation_id: {
@@ -87,11 +87,10 @@ Verification.init(
 )
 
 const createVerificationRecord = async function (
-  verification_id,
   // processor_id
   // merchant_id
   connection_id,
-  user_id,
+  contact_id,
   invitation_id,
   // connection_state
   schema_id,
@@ -112,11 +111,10 @@ const createVerificationRecord = async function (
 ) {
   try {
     const verificationRecord = await Verification.upsert({
-      verification_id: verification_id,
       // processor_id: processor_id,
       // merchant_id: merchant_id,
       connection_id: connection_id,
-      user_id: user_id,
+      contact_id: contact_id,
       invitation_id: invitation_id,
       // connection_state: connection_state,
       schema_id: schema_id,
@@ -134,12 +132,15 @@ const createVerificationRecord = async function (
       // result: result,
       created_at: created_at,
       updated_at: updated_at,
+    },
+    {
+      returning: true
     })
 
     console.log('Verification saved successfully.')
-    return verificationRecord[0]
+    return verificationRecord
   } catch (error) {
-    console.error('Error saving verfication record to the database: ', error)
+    console.error('Error saving verification record to the database: ', error)
   }
 }
 

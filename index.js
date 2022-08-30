@@ -26,16 +26,17 @@ module.exports.server = server
 // Websockets required to make APIs work and avoid circular dependency
 let Websocket = require('./websockets.js')
 
-const Contacts = require('./orm/contacts')
-const ConnectionsAPI = require('./adminAPI/connections')
-const ContactsCompiled = require('./orm/contactsCompiled')
 const Credentials = require('./agentLogic/credentials')
+const Contacts = require('./orm/contacts')
+const ContactsCompiled = require('./orm/contactsCompiled')
+const ConnectionsAPI = require('./adminAPI/connections')
 const Governance = require('./agentLogic/governance')
 const Images = require('./agentLogic/images')
 const {getOrganization} = require('./agentLogic/settings')
 const Passenger = require('./agentLogic/passenger')
 const Presentations = require('./agentLogic/presentations')
 const Users = require('./agentLogic/users')
+const Verifications = require('./agentLogic/verifications')
 
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
@@ -438,36 +439,28 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
   }
 })
 
-app.post('/api/verifications', async (req, res) => {
-  const {connection_id, schema_id, schema_attributes, timeout} = req.body
+app.post('/api/verifications', checkApiKey, async (req, res) => {
+  const data = req.body
+
   try {
-    // NEXT STEPS
-    // need to check for connection
-    const contact = await ContactsCompiled.readContactByConnection(
-      connection_id,
-      ['Passport'],
-    )
+    const connection = await Connections.readConnection(data.connection_id)
+    console.log('========================contact================')
+    console.log(connection)
+    console.log('========================contact=================')
 
-    const presentations = await Presentations.requestSchemaPresentation(
-      connection_id,
-      schema_attributes,
-      schema_id,
-    )
-    console.log('+++++++++++++++++Presentations+++++++++++++++++++++++++++')
-    console.log(presentations)
-    console.log('+++++++++++++++++Presentations+++++++++++++++++++++++++++')
+    if (connection.state === 'active') {
+    //     const presentation = await Presentations.requestSchemaPresentation(
+    //       data.connection_id,
+    //       data.schema_attributes,
+    //       data.schema_id
+    //     )
+    }
 
-    // if (!contact) {
-    //   res.json({error: "Couldn't find contact by connection id"})
-    // }
+    // data.connection_id = invitation.connection_id
 
-    // after connecting, request presentation for DTC anoncred credential - use the code on slack
-    // - put the request presentations function inside agent logic presentations
-    // Presentations.requestPresentationBySchemaId(connectionID,requestedAttributes, schemaID)
+    const verification = await Verifications.verify(data)
 
-    // - put attributes and schema id in here
-    // after receiving presentation attributes, send attributes as response to ED card api
-    res.status(200).send(response)
+    res.status(200).send(verification)
   } catch (error) {
     console.error(error)
     res.json({error: 'Unexpected error occurred'})
@@ -618,11 +611,21 @@ app.get('/api/verification/:id', async (req, res) => {
   }
 })
 
-// Credential request API
+// // Credential request API
 app.post('/api/credentials', checkApiKey, async (req, res) => {
   console.log(req.body)
   const data = req.body
   try {
+    // (eldersonar) Write traveler and passport to the database
+    const passenger = await Passenger.addTravelerAndPassport(
+      contact.contact_id,
+      data,
+    )
+
+    console.log('===============================passenger===========================')
+    console.log(passenger)
+    console.log('===============================passenger===========================')
+
     // (mikekebert) Find the contact
     const contact = await ContactsCompiled.readContactByConnection(
       data.connection_id,
@@ -734,6 +737,113 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
     console.error(error)
     res.json({
       error: "Unexpected error occurred, couldn't issue Trusted Traveler",
+    })
+  }
+})
+
+// ============Remove After Testing=============
+app.post('/api/dtc-credentials', checkApiKey, async (req, res) => {
+  console.log(req.body)
+  const data = req.body
+
+  console.log('====================dta======================')
+  console.log(data)
+  console.log('====================dta======================')
+
+  try {
+    let credentialAttributes = [
+      {
+        name: 'created-date',
+        value: data.attributes.created_date || '',
+      },
+      {
+        name: 'document-type',
+        value: data.attributes.document_type || '',
+      },
+      {
+        name: 'issue-date',
+        value: data.attributes.issue_date || '',
+      },
+      {
+        name: 'document-number',
+        value: data.attributes.document_number || '',
+      },
+      {
+        name: 'issuing-state',
+        value: data.attributes.issuing_state || '',
+      },
+      {
+        name: 'gender',
+        value: data.attributes.gender || '',
+      },
+      {
+        name: 'date-of-birth',
+        value: data.attributes.date_of_birth || '',
+      },
+      {
+        name: 'chip-photo',
+        value: data.attributes.chip_photo || '',
+      },
+      {
+        name: 'family-name',
+        value: data.attributes.family_name || '',
+      },
+      {
+        name: 'given-names',
+        value: data.attributes.given_names || '',
+      },
+      {
+        name: 'dtc',
+        value: data.attributes.dtc || '',
+      },
+      {
+        name: 'upk',
+        value: data.attributes.upk || '',
+      },
+      {
+        name: 'expiry-date',
+        value: data.attributes.expiry_date || '',
+      },
+      {
+        name: 'issuing-authority',
+        value: data.attributes.issuing_authority || '',
+      },
+      {
+        name: 'nationality',
+        value: data.attributes.nationality || '',
+      },
+    ]
+
+    const schema_id = process.env.SCHEMA_DTC_TYPE1_IDENTITY
+
+    let newCredential = {
+      connectionID: data.connection_id,
+      schemaID: schema_id,
+      schemaVersion: schema_id.split(':')[3],
+      schemaName: schema_id.split(':')[2],
+      schemaIssuerDID: schema_id.split(':')[0],
+      comment: '',
+      attributes: credentialAttributes,
+    }
+
+    await Credentials.autoIssueCredential(
+      newCredential.connectionID,
+      undefined,
+      undefined,
+      newCredential.schemaID,
+      newCredential.schemaVersion,
+      newCredential.schemaName,
+      newCredential.schemaIssuerDID,
+      newCredential.comment,
+      newCredential.attributes,
+    )
+
+    const response = {success: 'DTC issued'}
+    res.status(200).send(response)
+  } catch (error) {
+    console.error(error)
+    res.json({
+      error: "Unexpected error occurred, couldn't issue DTC Credential",
     })
   }
 })

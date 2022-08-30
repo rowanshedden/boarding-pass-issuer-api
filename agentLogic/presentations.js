@@ -3513,18 +3513,6 @@ const getAll = async () => {
   }
 }
 
-const handleDTC = async (message) => {
-  try {
-    if (message.state === 'verified') {
-      console.log('++++++++++++++message+++++++++++++++++++++++++++++')
-      console.log(message)
-      console.log('++++++++++++++message+++++++++++++++++++++++++++++')
-    }
-  } catch (error) {
-    console.error('Error handling DTC presentation', error)
-  }
-}
-
 module.exports = {
   adminMessage,
   requestPresentation,
@@ -3532,6 +3520,5 @@ module.exports = {
   createPresentationReports,
   updatePresentationReports,
   getAll,
-  handleDTC,
   requestSchemaPresentation,
 }

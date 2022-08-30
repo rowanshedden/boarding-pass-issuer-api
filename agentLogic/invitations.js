@@ -112,6 +112,21 @@ const acceptInvitation = async (invitation_url) => {
   }
 }
 
+const acceptExistingInvitation = async (connection_id) => {
+  try {
+    // Decoding the invitation url
+    const invitationMessage = await AdminAPI.Connections.acceptExistingInvitation(
+      connection_id,
+    )
+
+    // Return some info about the new connection formed by accepting the invite so we can take further action
+    return invitationMessage
+  } catch (error) {
+    console.error('Error Accepting Invitation')
+    throw error
+  }
+}
+
 const createOutOfBandInvitation = async () => {
   try {
     const OOBMessage = await AdminAPI.OOB.createOOBInvitation()
@@ -145,6 +160,7 @@ module.exports = {
   createSingleUseInvitation,
   createPersistentSingleUseInvitation,
   acceptInvitation,
+  acceptExistingInvitation,
   createOutOfBandInvitation,
   acceptOutOfBandInvitation,
 }

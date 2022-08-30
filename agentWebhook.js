@@ -12,6 +12,7 @@ const BasicMessages = require('./agentLogic/basicMessages')
 const Governance = require('./agentLogic/governance')
 const Presentations = require('./agentLogic/presentations')
 const QuestionAnswer = require('./agentLogic/questionAnswer')
+const Verifications = require('./agentLogic/verifications')
 
 router.post('/topic/connections', async (req, res, next) => {
   console.log('Aries Cloud Agent Webhook Message----Connection------')
@@ -112,7 +113,7 @@ router.post('/topic/present_proof', async (req, res, next) => {
   }
 
   res.status(200).send('Ok')
-  await Presentations.handleDTC(presMessage)
+  // await Verifications.handleVerification(presMessage)
   await Presentations.adminMessage(presMessage)
 })
 
