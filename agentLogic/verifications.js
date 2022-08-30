@@ -260,7 +260,6 @@ const verify = async (data) => {
       )
 
       if (connection == null) {
-        console.log('=============create verification request=======')
         // create error record and exit
         var verification_request = {
           connection_id: data.connection_id,
@@ -363,7 +362,7 @@ const verify = async (data) => {
 
 const retrieve = async (verification_id) => {
   try {
-    verification = await Verifications.Verification.findOne({
+    const verification = await Verifications.Verification.findOne({
       where: {
         verification_id: verification_id,
       },

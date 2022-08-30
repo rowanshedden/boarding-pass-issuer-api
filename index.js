@@ -481,6 +481,17 @@ app.post('/api/verifications', checkApiKey, async (req, res) => {
   }
 })
 
+app.get('/api/verifications/:id', checkApiKey, async (req, res) => {
+  try {
+    const verification = await Verifications.retrieve(req.params.id)
+
+    res.status(200).json(verification)
+  } catch (error) {
+    console.error(error)
+    res.json({error: 'There was a problem retrieving a verification'})
+  }
+})
+
 // app.post('/api/invitations', checkApiKey, async (req, res) => {
 //   console.log(req.body)
 //   const data = req.body
