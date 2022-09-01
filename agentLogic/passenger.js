@@ -32,12 +32,12 @@ const addTravelerAndPassport = async function (contact_id, data) {
       data.passport_given_names,
       data.passport_gender_legal,
       data.passport_date_of_birth,
-      data.passport_place_of_birth,
+      // data.passport_place_of_birth,
       data.passport_nationality,
       data.passport_date_of_issue,
       data.passport_date_of_expiration,
-      data.passport_type,
-      data.passport_code,
+      // data.passport_type,
+      // data.passport_code,
       data.passport_authority,
     )
     console.log('Successfully added traveler and passport')

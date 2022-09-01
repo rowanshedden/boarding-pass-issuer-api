@@ -73,7 +73,7 @@ app.use(
 // Invitation request API
 const Invitations = require('./agentLogic/invitations')
 const Connections = require('./orm/connections')
-const { Verification } = require('./orm/verifications')
+const {Verification} = require('./orm/verifications')
 
 app.use(
   '/api/presentation-exchange',
@@ -639,10 +639,12 @@ app.get('/api/verification/:id', async (req, res) => {
 // // Credential request API
 app.post('/api/credentials', checkApiKey, async (req, res) => {
   console.log(req.body)
-  const data = req.body
-  try {
-    const connectionId = data.connectionId
+  const {dtcData, travelerData, connectionId} = req.body
 
+  console.log('====================gov data===========')
+  console.log(dtcData, travelerData, connectionId)
+
+  try {
     // (mikekebert) Load the governance
     const governance = await Governance.getGovernance()
 
@@ -653,31 +655,31 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
     let credentialAttributes = [
       {
         name: 'traveler_surnames',
-        value: data.passport_surnames || '',
+        value: dtcData['family-name'] || '',
       },
       {
         name: 'traveler_given_names',
-        value: data.passport_given_names || '',
+        value: dtcData['given-names'] || '',
       },
       {
         name: 'traveler_date_of_birth',
-        value: data.passport_date_of_birth || '',
+        value: dtcData['date-of-birth'] || '',
       },
       {
         name: 'traveler_gender_legal',
-        value: data.passport_gender_legal || '',
+        value: dtcData['gender'] || '',
       },
       {
         name: 'traveler_country',
-        value: data.passport_country || '',
+        value: travelerData.traveler_country || '',
       },
       {
         name: 'traveler_origin_country',
-        value: data.traveler_country_of_origin || '',
+        value: travelerData.traveler_country_of_origin || '',
       },
       {
         name: 'traveler_email',
-        value: data.traveler_email || '',
+        value: travelerData.traveler_email || '',
       },
       {
         name: 'trusted_traveler_id',

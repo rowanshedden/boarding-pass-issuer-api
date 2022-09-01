@@ -154,28 +154,28 @@ const startRule = async (verification) => {
     )
 */
 
-      console.log('=============request presentation==========')
+  console.log('=============request presentation==========')
   // TODO This workflow may contain a race condition
   const result = await Presentations.requestSchemaPresentation(
     verification.connection_id,
-    [      
-    "created-date",
-    "document-type",
-    "issue-date",
-    "document-number",
-    "issuing-state",
-    "gender",
-    "date-of-birth",
-    "chip-photo",
-    "family-name",
-    "given-names",
-    "dtc",
-    "upk",
-    "expiry-date",
-    "issuing-authority",
-    "nationality",
-  ],
-  process.env.SCHEMA_DTC_TYPE1_IDENTITY,
+    [
+      'created-date',
+      'document-type',
+      'issue-date',
+      'document-number',
+      'issuing-state',
+      'gender',
+      'date-of-birth',
+      'chip-photo',
+      'family-name',
+      'given-names',
+      'dtc',
+      'upk',
+      'expiry-date',
+      'issuing-authority',
+      'nationality',
+    ],
+    process.env.SCHEMA_DTC_TYPE1_IDENTITY,
   )
 
   await verification.update({
@@ -215,19 +215,19 @@ const handlePresentation = async (presMessage) => {
   await verification.update({
     proof_state: presMessage['state'],
   })
-  
+
   if (presMessage.state === 'verified') {
     const {revealed_attrs} = presMessage.presentation.requested_proof
-  
+
     var result_data = []
-  
+
     Object.keys(revealed_attrs).forEach((key) => {
       result_data.push({
         name: key,
         value: revealed_attrs[key]['raw'],
       })
     })
-  
+
     if ('verified' == presMessage['state']) {
       console.log('================complete true=================')
       await verification.update({
@@ -236,7 +236,7 @@ const handlePresentation = async (presMessage) => {
         result_string: 'Verified',
         result_data: result_data,
       })
-  
+
       console.log(verification)
 
       try {
@@ -334,7 +334,7 @@ const verify = async (data) => {
 
     if ('active' === connection.state) {
       // we already have an active connection, so send presentation request
-        await startRule(verification)
+      await startRule(verification)
     }
 
     // we need to wait for the presentation
