@@ -641,25 +641,7 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
   console.log(req.body)
   const data = req.body
   try {
-    // (eldersonar) Write traveler and passport to the database
-    const passenger = await Passenger.addTravelerAndPassport(
-      contact.contact_id,
-      data,
-    )
-
-    console.log('===============================passenger===========================')
-    console.log(passenger)
-    console.log('===============================passenger===========================')
-
-    // (mikekebert) Find the contact
-    const contact = await ContactsCompiled.readContactByConnection(
-      data.connection_id,
-      ['Traveler', 'Passport'],
-    )
-
-    console.log(contact)
-    const passport = contact.Passport.dataValues
-    const traveler = contact.Traveler.dataValues
+    const connectionId = data.connectionId
 
     // (mikekebert) Load the governance
     const governance = await Governance.getGovernance()
@@ -671,31 +653,31 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
     let credentialAttributes = [
       {
         name: 'traveler_surnames',
-        value: passport.passport_surnames || '',
+        value: data.passport_surnames || '',
       },
       {
         name: 'traveler_given_names',
-        value: passport.passport_given_names || '',
+        value: data.passport_given_names || '',
       },
       {
         name: 'traveler_date_of_birth',
-        value: passport.passport_date_of_birth || '',
+        value: data.passport_date_of_birth || '',
       },
       {
         name: 'traveler_gender_legal',
-        value: passport.passport_gender_legal || '',
+        value: data.passport_gender_legal || '',
       },
       {
         name: 'traveler_country',
-        value: passport.passport_country || '',
+        value: data.passport_country || '',
       },
       {
         name: 'traveler_origin_country',
-        value: traveler.traveler_country_of_origin || '',
+        value: data.traveler_country_of_origin || '',
       },
       {
         name: 'traveler_email',
-        value: traveler.traveler_email || '',
+        value: data.traveler_email || '',
       },
       {
         name: 'trusted_traveler_id',
@@ -732,7 +714,7 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
 
     // (mikekebert) Issue the trusted_traveler to this contact
     let newCredential = {
-      connectionID: data.connection_id,
+      connectionID: connectionId,
       schemaID: schema_id,
       schemaVersion: schema_id.split(':')[3],
       schemaName: schema_id.split(':')[2],
