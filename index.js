@@ -638,13 +638,20 @@ app.get('/api/verification/:id', async (req, res) => {
 
 // // Credential request API
 app.post('/api/credentials', checkApiKey, async (req, res) => {
-  console.log(req.body)
-  const {dtcData, travelerData, connectionId} = req.body
-
-  console.log('====================gov data===========')
-  console.log(dtcData, travelerData, connectionId)
-
   try {
+    const {dtcData, travelerData, connectionId} = req.body
+    
+    // const contact = await ContactsCompiled.readContactByConnection(
+    //   data.connection_id,
+    //   [],
+    // )
+
+    // // (eldersonar) Write traveler and passport to the database
+    // await Passenger.addTravelerAndPassport(
+    //   contact.contact_id,
+    //   data,
+    // )
+
     // (mikekebert) Load the governance
     const governance = await Governance.getGovernance()
 
@@ -724,8 +731,6 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
       comment: '',
       attributes: credentialAttributes,
     }
-
-    console.log(newCredential)
 
     // (mikekebert) Request issuance of the trusted_traveler credential
     await Credentials.autoIssueCredential(
