@@ -640,7 +640,7 @@ app.get('/api/verification/:id', async (req, res) => {
 app.post('/api/credentials', checkApiKey, async (req, res) => {
   try {
     const {dtcData, travelerData, connectionId} = req.body
-    
+
     // const contact = await ContactsCompiled.readContactByConnection(
     //   data.connection_id,
     //   [],

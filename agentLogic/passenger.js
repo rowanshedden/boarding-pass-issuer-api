@@ -24,22 +24,6 @@ const addTravelerAndPassport = async function (contact_id, data) {
       null,
     )
     console.log('Creating passport')
-    // (eldersonar) Create passport
-//     0: {name: 'nationality', value: 'what nationality'}
-// 1: {name: 'document-number', value: 'Passport number'}
-// 2: {name: 'given-names', value: 'my given name'}
-// 3: {name: 'issuing-state', value: 'issue state'}
-// 4: {name: 'document-type', value: 'document'}
-// 5: {name: 'dtc', value: 'some dtc stuff'}
-// 6: {name: 'chip-photo', value: 'chip photo'}
-// 7: {name: 'gender', value: 'gender'}
-// 8: {name: 'issue-date', value: 'issue data'}
-// 9: {name: 'issuing-authority', value: 'issued authority'}
-// 10: {name: 'upk', value: 'some upk stuff'}
-// 11: {name: 'created-date', value: 'schema creation date'}
-// 12: {name: 'expiry-date', value: 'expried when'}
-// 13: {name: 'date-of-birth', value: 'date of birth'}
-// 14: {name: 'family-name', value: 'name of family'}
 
     const passport = await Passports.updateOrCreatePassport(
       contact_id,
@@ -56,7 +40,7 @@ const addTravelerAndPassport = async function (contact_id, data) {
       data['dtc'],
       data['upk'],
       data['chip-photo'],
-      data['created-date']
+      data['created-date'],
     )
 
     // const passport = await Passports.updateOrCreatePassport(
@@ -74,7 +58,7 @@ const addTravelerAndPassport = async function (contact_id, data) {
     //   // data.passport_code,
     //   data.passport_authority,
     // )
-    
+
     console.log('Successfully added traveler and passport')
 
     if (traveler && passport) {
