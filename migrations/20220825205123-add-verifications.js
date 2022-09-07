@@ -19,7 +19,7 @@ exports.setup = function (options, seedLink) {
 exports.up = function (db) {
   return db.createTable('verifications', {
     verification_id: {type: 'int', primaryKey: true, autoIncrement: true},
-    invitation_id: 'text',
+    invitation_id: 'int',
     connection_id: 'text',
     contact_id: 'text',
     schema_id: 'text',

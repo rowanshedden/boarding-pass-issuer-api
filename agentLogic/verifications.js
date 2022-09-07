@@ -1,5 +1,6 @@
 // Invitation request API
 const Invitations = require('./invitations')
+// const Contacts = require('./contacts')
 const Presentations = require('./presentations')
 
 const Connections = require('../orm/connections')
@@ -7,118 +8,11 @@ const Verifications = require('../orm/verifications')
 const AdminAPI = require('../adminAPI')
 
 var deferred = require('deferred')
+const {NIL} = require('uuid')
+const {Invitation} = require('../orm/invitations')
+const {Contact} = require('../orm/contacts')
 
 var pending_verifications = {}
-
-const createVerification = async (
-  // processor_id
-  // merchant_id
-  connection_id,
-  contact_id,
-  invitation_id,
-  // connection_state
-  schema_id,
-  schema_attributes,
-  timeout,
-  rules,
-  meta_data,
-  complete,
-  results,
-  result_string,
-  result_data,
-  // proof_state
-  presentation_exchange_id,
-  error,
-  // result
-  created_at,
-  updated_at,
-) => {
-  try {
-    const verification = await Verifications.createVerificationRecord(
-      // processor_id
-      // merchant_id
-      connection_id,
-      contact_id,
-      invitation_id,
-      // connection_state
-      schema_id,
-      schema_attributes,
-      timeout,
-      rules,
-      meta_data,
-      complete,
-      results,
-      result_string,
-      result_data,
-      // proof_state
-      presentation_exchange_id,
-      error,
-      // result
-      created_at,
-      updated_at,
-    )
-
-    return verification
-  } catch (error) {
-    console.error('Could not create verification', error)
-  }
-}
-
-// const getVerification = async (verification_id) => {
-//   try {
-//     const verification = await Verifications.readVerifications(verification_id)
-//     return verification
-//   } catch (error) {
-//     console.error('Could not retrieve verification record', error)
-//   }
-// }
-
-// const handleVerification = async (message) => {
-//   try {
-//     let schemaID
-//     if (message.state === 'verified')
-//     schemaID = message.presentation.identifiers[0].schema_id
-
-//     let revealedAttributes;
-//     let verifiedAttributes = {};
-//     if (message.presentation && message.presentation.requested_proof) {
-//       revealedAttributes = message.presentation.requested_proof.revealed_attrs
-
-//       for (const key in revealedAttributes) {
-//         verifiedAttributes[key] = revealedAttributes[key].raw
-//       }
-//     }
-
-//     const verification = await createVerification(
-//       message.connection_id,
-//       undefined,
-//       undefined,
-//       schemaID,
-//       JSON.stringify(verifiedAttributes),
-//       null,
-//       undefined,
-//       undefined,
-//       undefined,
-//       message.verified,
-//       message.state,
-//       undefined,
-//       message.presentation_exchange_id,
-//       undefined,
-//     )
-
-//     console.log('--------------Verification Record------------')
-//     console.log(verification)
-//     console.log('--------------Verification Record------------')
-
-//     console.log('=====================Verification Message==============')
-//     console.log(message)
-//     // console.log('===============----================')
-//     // console.log(message.presentation.requested_proof.revealed_attrs)
-//     console.log('=====================Verification Message==============')
-//   } catch (err) {
-//     console.log(err)
-//   }
-// }
 
 const startRule = async (verification) => {
   console.log('======================Start Rule================')
@@ -154,10 +48,13 @@ const startRule = async (verification) => {
     )
 */
 
+  let invitation = await Invitations.getInvitation(verification.invitation_id)
+
   console.log('=============request presentation==========')
   // TODO This workflow may contain a race condition
+  // TODO: move lookup for connections by invitation or contact here.
   const result = await Presentations.requestSchemaPresentation(
-    verification.connection_id,
+    invitation.connection_id,
     [
       'created-date',
       'document-type',
@@ -185,35 +82,52 @@ const startRule = async (verification) => {
 }
 
 const handleConnection = async (connectionMessage) => {
-  var verification = await Verifications.Verification.findOne({
-    where: {
-      connection_id: connectionMessage['connection_id'],
-    },
-  })
+  console.log('VERIFICATIONS - handle connection')
 
-  if (null == verification) return
+  const invitation = await Invitations.getInvitationByConnectionId(
+    connectionMessage.connection_id,
+  )
+
+  let verification = await Verifications.readVerificationsByInvitationId(
+    invitation.invitation_id,
+  )
+
+  if (verification === null) {
+    console.log(
+      'There is no verification record found... end of verification flow',
+    )
+    return
+  }
 
   await verification.update({
-    connection_state: connectionMessage['state'],
+    connection_state: connectionMessage.state,
   })
 
-  if ('active' == connectionMessage['state']) {
+  if (connectionMessage.state === 'active') {
+    console.log('STARTING THE RULE')
     startRule(verification)
+  } else {
+    console.log('NOT STARTING THE RULE')
+    console.log(connectionMessage['state'])
   }
 }
 
 const handlePresentation = async (presMessage) => {
-  var verification = await Verifications.Verification.findOne({
-    where: {
-      connection_id: presMessage['connection_id'],
-      presentation_exchange_id: presMessage['presentation_exchange_id'],
-    },
-  })
+  const invitation = await Invitations.getInvitationByConnectionId(
+    presMessage.connection_id,
+  )
 
-  if (null == verification) return false
+  let verification = await Verifications.readVerificationsByInvitationAndPresExchangeId(
+    invitation.invitation_id,
+    presMessage.presentation_exchange_id,
+  )
+
+  if (verification === null) {
+    return false
+  }
 
   await verification.update({
-    proof_state: presMessage['state'],
+    proof_state: presMessage.state,
   })
 
   if (presMessage.state === 'verified') {
@@ -224,24 +138,36 @@ const handlePresentation = async (presMessage) => {
     Object.keys(revealed_attrs).forEach((key) => {
       result_data.push({
         name: key,
-        value: revealed_attrs[key]['raw'],
+        value: revealed_attrs[key].raw,
       })
     })
 
-    if ('verified' == presMessage['state']) {
-      console.log('================complete true=================')
+    if (presMessage.state === 'verified') {
+      console.log('Presentation Verified')
       await verification.update({
         complete: true,
         result: true,
         result_string: 'Verified',
         result_data: result_data,
+        connection_id: presMessage.connection_id,
       })
 
-      console.log(verification)
+      console.log('Updated virifiaction: ', verification)
 
       try {
         pending_verifications[verification.verification_id].resolve(true)
       } catch (e) {} // we may attempted notifying a record that no longer exists.
+    } else {
+      console.log('Presentation not Verified')
+      await verification.update({
+        complete: true,
+        result: false,
+        result_string: 'Not Verified',
+        result_data: null,
+        connection_id: presMessage.connection_id,
+      })
+
+      console.log('Updated virifiaction: ', verification)
     }
   }
 
@@ -252,109 +178,121 @@ const verify = async (data) => {
   console.log('test verification')
 
   try {
-    var connection = null
+    let verification = null
+    let connection = null
 
-    if (data.connection_id) {
-      connection = await AdminAPI.Connections.fetchConnection(
-        data.connection_id,
-      )
-
-      if (connection == null) {
-        // create error record and exit
-        var verification_request = {
-          connection_id: data.connection_id,
-          contact_id: data.contact_id,
-          invitation_id: data.invitation_id,
-          schema_id: data.schema_id,
-          schema_attributes: data.attributes,
-          timeout: data.timeout,
-          rule: data.rule,
-          meta_data: data.meta_data,
-          complete: true,
-          result: false,
-          result_string: null,
-          result_data: null,
-          error: 'Invalid connection_id',
-        }
-
-        var verification = await Verifications.Verification.create(
-          verification_request,
-        )
-
-        return verification
-      }
-    }
-
-    // create db record to work with
-    var verification_request = {
-      connection_id: data.connection_id,
-      contact_id: data.contact_id,
-      invitation_id: data.invitation_id,
+    let verification_request = {
+      connection_id: null,
+      contact_id: data.contact_id ? data.contact_id : null,
+      invitation_id: data.invitation_id ? data.invitation_id : null,
       schema_id: data.schema_id,
       schema_attributes: data.attributes,
       timeout: data.timeout,
       rule: data.rule,
       meta_data: data.meta_data,
       complete: false,
-      result: null,
+      result: false,
       result_string: null,
       result_data: null,
-      error: null,
+      error: '',
     }
 
-    var verification = await Verifications.Verification.create(
+    verification = await Verifications.createOrUpdateVerificationRecord(
       verification_request,
     )
 
-    // register to listen for notifications
+    if (data.contact_id || data.invitation_id) {
+      // (eldersonar) The contact_id path is not implemented and shouldn't be used for now
+      // Get connection by contact_id
+      if (data.contact_id) {
+        console.log('Fetching contact')
+        const contact = await Contacts.getContact(data.contact_id)
 
-    var timeout = 0
+        console.log('contact is: ', contact)
+        if (contact && contact.connection_id) {
+          console.log('Fetching connection by connection id')
+          console.log(contact.connection_id)
+          connection = await AdminAPI.Connections.fetchConnection(
+            contact.connection_id,
+          )
+        } else {
+          console.log('No connections were found')
+        }
+      }
+      // Get connection by invitation_id
+      else if (data.invitation_id) {
+        console.log('Fetching invitation')
+        const invitation = await Invitations.getInvitation(data.invitation_id)
 
-    // Ensure timeout has a valid value. Zero is acceptable.
-    if (null == data.timeout || 0 > data.timeout) {
-      timeout = 0
+        if (invitation && invitation.connection_id) {
+          console.log('Fetching connection by connection id')
+          console.log(invitation.connection_id)
+          connection = await AdminAPI.Connections.fetchConnection(
+            invitation.connection_id,
+          )
+        } else {
+          console.log('No connections were found...')
+        }
+      } else {
+        console.log('There is nothing to fetch connections with...')
+      }
+
+      let timeout = 0
+
+      // Ensure timeout has a valid value. Zero is acceptable.
+      if (null == data.timeout || 0 > data.timeout) {
+        timeout = 0
+      } else {
+        timeout = data.timeout * 1000 // API is in seconds, so multiple by 1000 milliseconds
+      }
+
+      if (timeout > 60000 * 5) {
+        // Limit timeout to five minutes
+        timeout = 60000 * 5
+      }
+
+      const TimeDelay = new Promise((resolve, reject) => {
+        setTimeout(resolve, timeout, true)
+      })
+
+      let def = deferred()
+
+      console.log('Verification record is: ', verification)
+
+      if (verification) {
+        pending_verifications[verification.verification_id] = def
+
+        console.log('Connection record is: ', connection)
+
+        if (connection && connection.state === 'active') {
+          // we already have an active connection, so send presentation request
+          await startRule(verification)
+        }
+
+        // we need to wait for the presentation
+        // we also need to consider the timeout...
+        // so we wait for which everone finishes first
+        value = await Promise.race([TimeDelay, def.promise])
+
+        // remove deferred object from webhook handling
+        delete pending_verifications[verification.verification_id]
+
+        // get latest verification state
+        // TODO: use the agent logic function instead
+        verification = await Verifications.Verification.findOne({
+          where: {
+            verification_id: verification.verification_id,
+          },
+        })
+
+        return verification
+      } else {
+        console.log('No verification record found. Return...')
+        return
+      }
     } else {
-      timeout = data.timeout * 1000 // API is in seconds, so multiple by 1000 milliseconds
+      console.log('No contact id or invitation id was provided')
     }
-
-    if (timeout > 60000 * 5) {
-      // Limit timeout to five minutes
-      timeout = 60000 * 5
-    }
-
-    const TimeDelay = new Promise((resolve, reject) => {
-      setTimeout(resolve, timeout, true)
-    })
-
-    var def = deferred()
-
-    console.log('-------verifications:', verification)
-
-    pending_verifications[verification.verification_id] = def
-
-    if ('active' === connection.state) {
-      // we already have an active connection, so send presentation request
-      await startRule(verification)
-    }
-
-    // we need to wait for the presentation
-    // we also need to consider the timeout...
-    // so we wait for which everone finishes first
-    value = await Promise.race([TimeDelay, def.promise])
-
-    // remove deferred object from webhook handling
-    delete pending_verifications[verification.verification_id]
-
-    // get latest verification state
-    verification = await Verifications.Verification.findOne({
-      where: {
-        verification_id: verification.verification_id,
-      },
-    })
-
-    console.log('Reached verification return')
-
-    return verification
   } catch (e) {
     console.log(e)
   }
@@ -375,7 +313,6 @@ const retrieve = async (verification_id) => {
 }
 
 module.exports = {
-  createVerification,
   handleConnection,
   handlePresentation,
   retrieve,

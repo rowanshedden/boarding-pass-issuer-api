@@ -3,7 +3,7 @@ const {Sequelize, DataTypes, Model} = require('sequelize')
 const init = require('./init.js')
 sequelize = init.connect()
 
-const {Contact, readBaseContact} = require('./contacts.js')
+const {Contact} = require('./contacts.js')
 
 class Connection extends Model {}
 
@@ -63,6 +63,9 @@ Connection.init(
     error_msg: {
       type: DataTypes.TEXT,
     },
+    contact_id: {
+      type: DataTypes.TEXT,
+    },
     created_at: {
       type: DataTypes.DATE,
     },
@@ -78,26 +81,8 @@ Connection.init(
   },
 )
 
-const Contact_Connection = sequelize.define(
-  'connections_to_contacts',
-  {
-    contact_id: DataTypes.INTEGER,
-    connection_id: DataTypes.TEXT,
-  },
-  {
-    timestamps: false,
-  },
-)
-
-Contact.belongsToMany(Connection, {
-  through: Contact_Connection,
+Contact.hasMany(Connection, {
   foreignKey: 'contact_id',
-  otherKey: 'connection_id',
-})
-Connection.belongsToMany(Contact, {
-  through: Contact_Connection,
-  foreignKey: 'connection_id',
-  otherKey: 'contact_id',
 })
 
 const createConnection = async function (
@@ -169,6 +154,7 @@ const createOrUpdateConnection = async function (
   routing_state,
   inbound_connection_id,
   error_msg,
+  contact_id,
 ) {
   try {
     const connection = await sequelize.transaction(
@@ -205,6 +191,7 @@ const createOrUpdateConnection = async function (
             routing_state: routing_state,
             inbound_connection_id: inbound_connection_id,
             error_msg: error_msg,
+            contact_id,
             created_at: timestamp,
             updated_at: timestamp,
           })
@@ -229,6 +216,7 @@ const createOrUpdateConnection = async function (
               routing_state: routing_state,
               inbound_connection_id: inbound_connection_id,
               error_msg: error_msg,
+              contact_id,
               updated_at: timestamp,
             },
             {
@@ -250,20 +238,21 @@ const createOrUpdateConnection = async function (
   }
 }
 
-const linkContactAndConnection = async function (contact_id, connection_id) {
+const readConnection = async function (connection_id) {
   try {
-    const contact = await readBaseContact(contact_id)
-    const connection = await readConnection(connection_id)
-    const addedConnection = await contact.addConnection(connection, {})
+    const connection = await Connection.findAll({
+      where: {
+        connection_id: connection_id,
+      },
+    })
 
-    console.log('Successfully linked contact and connection')
-    return addedConnection
+    return connection[0]
   } catch (error) {
-    console.error('Error linking contact and connection', error)
+    console.error('Could not find connection in the database: ', error)
   }
 }
 
-const readConnection = async function (connection_id) {
+const readConnectionWithContact = async function (connection_id) {
   try {
     const connection = await Connection.findAll({
       where: {
@@ -283,26 +272,6 @@ const readConnection = async function (connection_id) {
   }
 }
 
-// const linkConnectionToUserId = async function (user_id, connection_id) {
-//   try {
-//     const timestamp = Date.now()
-
-//     const connection = await Connection.update(
-//       {
-//         user_id,
-//         updated_at: timestamp,
-//       },
-//       {
-//         where: {
-//           connection_id,
-//         },
-//       },
-//     )
-//   } catch (error) {
-//     console.error('Could not link connection to userId: ', error)
-//   }
-// }
-
 const readConnections = async function () {
   try {
     const connections = await Connection.findAll({
@@ -319,30 +288,6 @@ const readConnections = async function () {
     console.error('Could not find connections in the database: ', error)
   }
 }
-
-// const readConnectionsByUserId = async function (user_id) {
-//   try {
-//     const connections = await Connection.findAll({
-//       include: [
-//         {
-//           model: Contact,
-//           required: false,
-//         },
-//       ],
-//       where: {
-//         user_id,
-//       },
-//     })
-
-//     console.log(
-//       'All connections with userId: ' + user_id,
-//       JSON.stringify(connections, null, 2),
-//     )
-//     return connections
-//   } catch (error) {
-//     console.error('Could not find connections in the database: ', error)
-//   }
-// }
 
 const readInvitations = async function (connection_id) {
   try {
@@ -450,12 +395,10 @@ module.exports = {
   Connection,
   createConnection,
   createOrUpdateConnection,
-  linkContactAndConnection,
-  // linkConnectionToUserId,
   readConnection,
+  readConnectionWithContact,
   readConnections,
   readInvitationByAlias,
-  // readConnectionsByUserId,
   readInvitations,
   updateConnection,
   deleteConnection,

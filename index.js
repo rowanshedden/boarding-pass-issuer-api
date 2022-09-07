@@ -164,7 +164,6 @@ const verifySession = (req, res, next) => {
     sessionId = sessionId.split('s%3A')[1]
 
     if (sessionId === req.sessionID) {
-      // console.log('100% session ID match')
       next()
     } else {
       console.log('Unauthorized')
@@ -408,35 +407,64 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
   console.log(req.body)
   const data = req.body
   try {
-    // (eldersonar) Create invitation
-    const invitation = await Invitations.createSingleUseInvitation()
-    let contact
-
-    if (invitation) {
-      contact = await Contacts.createContact(
-        'ED Card',
-        {}, // meta_data
+    if (data.invitation_type === 'OOB') {
+      console.log('OOB invitation workflow')
+      const oob = await Invitations.createOutOfBandInvitation(
+        data.contact_id,
+        data.handshake_protocol,
+        data.alias,
+        data.invitation_mode,
+        data.accept,
+        data.public,
+        data.invitation_role,
+        data.invitation_label,
+        data.invitation_status,
+        data.invitation_description,
+        data.invitation_active_starting_at,
+        data.invitation_active_ending_at,
+        data.uses_allowed ? data.uses_allowed : '',
       )
+
+      const connectionInterval = setInterval(async () => {
+        const invByOOB = await Invitations.getInvitationByOOBId(
+          oob.oobInv.oob_id,
+        )
+
+        if (invByOOB) {
+          clearInterval(connectionInterval)
+          res.status(200).json({
+            invitation_url: invByOOB.invitation_url,
+            invitation_id: invByOOB.invitation_id,
+            contact_id: invByOOB.contact_id,
+          })
+        }
+      }, 1500)
     } else {
-      res.json({error: 'There was a problem creating an invitation'})
+      console.log('CV1 invitation workflow')
+      const invitation = await Invitations.createInvitation(
+        data.contact_id,
+        data.alias,
+        data.invitation_mode,
+        data.accept,
+        data.public,
+        data.invitation_role,
+        data.invitation_label,
+        data.invitation_status,
+        data.invitation_description,
+        data.invitation_active_starting_at,
+        data.invitation_active_ending_at,
+        data.uses_allowed ? data.uses_allowed : '',
+      )
+
+      res.status(200).json({
+        invitation_url: invitation.newInv.invitation_url,
+        invitation_id: invitation.newInv.invitation_id,
+        contact_id: invitation.newInv.contact_id,
+      })
     }
-
-    const connections = await Connections.linkContactAndConnection(
-      contact.contact_id,
-      invitation.connection_id,
-    )
-
-    if (!connections) {
-      res.json({error: "Couldn't link contacts to connections"})
-    }
-
-    res.status(200).json({
-      connection_id: invitation.connection_id,
-      invitation_url: invitation.invitation_url,
-    })
   } catch (error) {
     console.error(error)
-    res.json({error: 'Unexpected error occurred'})
+    res.json({error: 'There was a problem creating an invitation'})
   }
 })
 
@@ -444,35 +472,7 @@ app.post('/api/verifications', checkApiKey, async (req, res) => {
   const data = req.body
 
   try {
-    const connection = await Connections.readConnection(data.connection_id)
-    // console.log('========================contact================')
-    // console.log(connection)
-    // console.log('========================contact=================')
-
-    // if (connection.state === 'active') {
-    //     const presentation = await Presentations.requestSchemaPresentation(
-    //       data.connection_id,
-    //       data.schema_attributes,
-    //       data.schema_id
-    //     )
-
-    //     const verification = await Verifications.createVerification(
-    //       data.connection_id,
-    //       data.contact_id,
-    //       data.invitation_id,
-    //       data.schema_id,
-    //       data.schema_attributes,
-    //     )
-
-    // // Create verification here if we need it.
-    // }
-
-    // data.connection_id = invitation.connection_id
     const verification = await Verifications.verify(data)
-
-    console.log('==========================Verification Gov========')
-    console.log(verification)
-    console.log('==========================Verification Gov========')
 
     res.status(200).send(verification)
   } catch (error) {
@@ -492,64 +492,8 @@ app.get('/api/verifications/:id', checkApiKey, async (req, res) => {
   }
 })
 
-// app.post('/api/invitations', checkApiKey, async (req, res) => {
-//   console.log(req.body)
-//   const data = req.body
-//   try {
-//     // (eldersonar) Create invitation
-//     const invitation = await Invitations.createSingleUseInvitation()
-
-//     if (!invitation) {
-//       res.json({error: 'There was a problem creating an invitation'})
-//     }
-
-//     const fullName = data.passport_surnames + ' ' + data.passport_given_names
-
-//     let contact = null
-
-//     // (eldersonar) Create contact
-//     if (invitation) {
-//       contact = await Contacts.createContact(
-//         fullName, // label
-//         {}, // meta_data
-//       )
-//     }
-
-//     // (eldersonar) Link contact to connection
-//     const connections = await Connections.linkContactAndConnection(
-//       contact.contact_id,
-//       invitation.connection_id,
-//     )
-
-//     if (!connections) {
-//       res.json({error: "Couldn't link contacts to connections"})
-//     }
-
-//     // (eldersonar) Write traveler and passport to the database
-//     const passenger = await Passenger.addTravelerAndPassport(
-//       contact.contact_id,
-//       data,
-//     )
-
-//     if (!passenger) {
-//       res.json({
-//         error:
-//           "Couldn't write passenger information to the government database",
-//       })
-//     }
-
-//     res.status(200).json({
-//       connection_id: invitation.connection_id,
-//       invitation_url: invitation.invitation_url,
-//     })
-//   } catch (error) {
-//     console.error(error)
-//     res.json({error: 'Unexpected error occurred'})
-//   }
-// })
-
 // Get verification status by connection_id
-app.get('/api/verification/:id', async (req, res) => {
+app.get('/api/verifications/:id', async (req, res) => {
   try {
     console.log(req.params.id)
 
@@ -641,17 +585,6 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
   try {
     const {dtcData, travelerData, connectionId} = req.body
 
-    // const contact = await ContactsCompiled.readContactByConnection(
-    //   data.connection_id,
-    //   [],
-    // )
-
-    // // (eldersonar) Write traveler and passport to the database
-    // await Passenger.addTravelerAndPassport(
-    //   contact.contact_id,
-    //   data,
-    // )
-
     // (mikekebert) Load the governance
     const governance = await Governance.getGovernance()
 
@@ -678,7 +611,7 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
       },
       {
         name: 'traveler_country',
-        value: travelerData.traveler_country || '',
+        value: dtcData.nationality || '',
       },
       {
         name: 'traveler_origin_country',
@@ -755,14 +688,9 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
   }
 })
 
-// ============Remove After Testing=============
 app.post('/api/dtc-credentials', checkApiKey, async (req, res) => {
   console.log(req.body)
   const data = req.body
-
-  console.log('====================dta======================')
-  console.log(data)
-  console.log('====================dta======================')
 
   try {
     let credentialAttributes = [
