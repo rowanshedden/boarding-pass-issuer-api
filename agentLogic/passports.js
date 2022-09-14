@@ -10,17 +10,19 @@ const updateOrCreatePassport = async function (
   passport_given_names,
   passport_gender_legal,
   passport_date_of_birth,
-  passport_place_of_birth,
   passport_nationality,
   passport_date_of_issue,
   passport_date_of_expiration,
-  passport_type,
-  passport_code,
   passport_authority,
+  passport_issuing_state,
+  passport_dtc,
+  passport_upk,
+  passport_created_date,
 ) {
-  const dateOfIssue = new Date(passport_date_of_issue).getTime() / 1000
-  const datOfExpiration = new Date(passport_date_of_expiration).getTime() / 1000
-  const dateOfBirth = new Date(passport_date_of_birth).getTime() / 1000
+  const dateOfIssue = new Date(passport_date_of_issue).getTime()
+  const datOfExpiration = new Date(passport_date_of_expiration).getTime()
+  const dateOfBirth = new Date(passport_date_of_birth).getTime()
+  const passportCreatedDate = new Date(passport_created_date).getTime()
 
   try {
     const passport = await Passports.createOrUpdatePassport(
@@ -30,13 +32,14 @@ const updateOrCreatePassport = async function (
       passport_given_names,
       passport_gender_legal,
       dateOfBirth,
-      passport_place_of_birth,
       passport_nationality,
       dateOfIssue,
       datOfExpiration,
-      passport_type,
-      passport_code,
       passport_authority,
+      passport_issuing_state,
+      passport_dtc,
+      passport_upk,
+      passportCreatedDate,
     )
 
     const contact = await ContactsCompiled.readContact(contact_id, [

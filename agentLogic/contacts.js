@@ -170,14 +170,15 @@ const adminMessage = async (connectionMessage) => {
         connectionMessage.error_msg,
         contact_id,
       )
+
+      contact = await ContactsCompiled.readContact(contact_id, [
+        'Traveler',
+        'Passport',
+      ])
+
+      //(AmmonBurgi) Send contact/connection only on active connection state
+      Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: [contact]})
     }
-
-    contact = await ContactsCompiled.readContactByConnection(
-      connectionMessage.connection_id,
-      ['Traveler', 'Passport'],
-    )
-
-    Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: [contact]})
   } catch (error) {
     console.error('Error Storing Connection Message')
     throw error

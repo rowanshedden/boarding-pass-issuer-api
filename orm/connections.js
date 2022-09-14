@@ -338,6 +338,7 @@ const updateConnection = async function (
   routing_state,
   inbound_connection_id,
   error_msg,
+  contact_id,
 ) {
   try {
     const timestamp = Date.now()
@@ -361,12 +362,14 @@ const updateConnection = async function (
         routing_state: routing_state,
         inbound_connection_id: inbound_connection_id,
         error_msg: error_msg,
+        contact_id: contact_id,
         updated_at: timestamp,
       },
       {
         where: {
           connection_id: connection_id,
         },
+        returning: true,
       },
     )
 

@@ -447,13 +447,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
       case 'TRAVELERS':
         switch (type) {
           case 'UPDATE_OR_CREATE':
-            if (
-              check(
-                rules,
-                userRoles,
-                'demographics:create, demographics:update',
-              )
-            ) {
+            if (check(rules, userRoles, 'travelers:create, travelers:update')) {
               await Travelers.updateOrCreateTraveler(
                 data.contact_id,
                 data.traveler_email,
@@ -496,13 +490,14 @@ const messageHandler = async (ws, context, type, data = {}) => {
               data.passport_given_names,
               data.passport_gender_legal,
               data.passport_date_of_birth,
-              data.passport_place_of_birth,
               data.passport_nationality,
               data.passport_date_of_issue,
               data.passport_date_of_expiration,
-              data.passport_type,
-              data.passport_code,
               data.passport_authority,
+              data.passport_issuing_state,
+              data.passport_dtc,
+              data.passport_upk,
+              data.passport_created_date,
               // data.photo,
             )
             break

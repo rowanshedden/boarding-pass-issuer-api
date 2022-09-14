@@ -88,6 +88,14 @@ const handleConnection = async (connectionMessage) => {
     connectionMessage.connection_id,
   )
 
+  if (!invitation) {
+    // TODO: Use a contact_id instead of a invitation_id to find the verification record
+    console.log(
+      'There is no invitation record found... end of verification flow',
+    )
+    return
+  }
+
   let verification = await Verifications.readVerificationsByInvitationId(
     invitation.invitation_id,
   )
