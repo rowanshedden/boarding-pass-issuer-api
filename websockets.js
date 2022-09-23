@@ -387,7 +387,10 @@ const messageHandler = async (ws, context, type, data = {}) => {
         switch (type) {
           case 'GET_ALL':
             if (check(rules, userRoles, 'contacts:read')) {
-              const contacts = await Contacts.getAll(data.additional_tables)
+              const contacts = await Contacts.getAll(
+                data.params,
+                data.additional_tables,
+              )
               sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts})
             } else {
               sendMessage(ws, 'CONTACTS', 'CONTACTS_ERROR', {

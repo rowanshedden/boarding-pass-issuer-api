@@ -54,9 +54,12 @@ const getContactByConnection = async (connectionID, additionalTables) => {
   }
 }
 
-const getAll = async (additionalTables) => {
+const getAll = async (params, additionalTables) => {
   try {
-    const contacts = await ContactsCompiled.readContacts(additionalTables)
+    const contacts = await ContactsCompiled.readContacts(
+      params,
+      additionalTables,
+    )
 
     console.log('Got All Contacts')
 
@@ -97,7 +100,7 @@ const adminMessage = async (connectionMessage) => {
       return
     }
 
-    var contact
+    let contact
 
     if (
       connectionMessage.state === 'request' ||
@@ -124,6 +127,19 @@ const adminMessage = async (connectionMessage) => {
         connectionMessage.inbound_connection_id,
         connectionMessage.error_msg,
       )
+
+      const pendingConnections = await Connections.readConnections({
+        sort: [['updated_at', 'DESC']],
+        pageSize: '10',
+      })
+
+      console.log('============pending connections================')
+      console.log(pendingConnections)
+      console.log('============pending connections================')
+
+      Websockets.sendMessageToAll('CONNECTIONS', 'PENDING_CONNECTION', {
+        pendingConnections: {...pendingConnections},
+      })
     } else {
       console.log('State - After Response (e.g. active)')
       // (mikekebert) Only when we have an active connection can we create a new contact
@@ -171,13 +187,24 @@ const adminMessage = async (connectionMessage) => {
         contact_id,
       )
 
-      contact = await ContactsCompiled.readContact(contact_id, [
-        'Traveler',
-        'Passport',
-      ])
+      const allContacts = await ContactsCompiled.readContacts(
+        {sort: [['updated_at', 'DESC']], pageSize: '10'},
+        ['Traveler', 'Passport'],
+      )
+
+      // contact = await ContactsCompiled.readContact(contact_id, [
+      //   'Traveler',
+      //   'Passport',
+      // ])
+
+      console.log('============allContacts==============')
+      console.log(allContacts)
+      console.log('============allContacts==============')
 
       //(AmmonBurgi) Send contact/connection only on active connection state
-      Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: [contact]})
+      Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {
+        contacts: {...allContacts},
+      })
     }
   } catch (error) {
     console.error('Error Storing Connection Message')
