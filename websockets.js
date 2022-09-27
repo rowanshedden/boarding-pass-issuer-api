@@ -414,6 +414,24 @@ const messageHandler = async (ws, context, type, data = {}) => {
         }
         break
 
+      case 'CONNECTIONS':
+        switch (type) {
+          case 'PENDING_CONNECTIONS':
+            const pendingConnections = await Connections.getAllPendingConnections(
+              data.params,
+            )
+            sendMessage(ws, 'CONNECTIONS', 'PENDING_CONNECTIONS', {
+              pendingConnections,
+            })
+            break
+
+          default:
+            console.error(`Unrecognized Message Type: ${type}`)
+            sendErrorMessage(ws, 1, 'Unrecognized Message Type')
+            break
+        }
+        break
+
       case 'OUT_OF_BAND':
         switch (type) {
           case 'CREATE_INVITATION':
@@ -1049,6 +1067,7 @@ const Invitations = require('./agentLogic/invitations')
 const Travelers = require('./agentLogic/travelers')
 const Passports = require('./agentLogic/passports')
 const Contacts = require('./agentLogic/contacts')
+const Connections = require('./agentLogic/connections')
 const Credentials = require('./agentLogic/credentials')
 const Images = require('./agentLogic/images')
 const Governance = require('./agentLogic/governance')

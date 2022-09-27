@@ -1,4 +1,4 @@
-const {Sequelize, DataTypes, Model} = require('sequelize')
+const {Sequelize, DataTypes, Model, Op} = require('sequelize')
 
 const init = require('./init.js')
 sequelize = init.connect()
@@ -273,24 +273,24 @@ const readConnectionWithContact = async function (connection_id) {
   }
 }
 
-// const readConnections = async function () {
-//   try {
-//     const connections = await Connection.findAll({
-//       include: [
-//         {
-//           model: Contact,
-//           required: false,
-//         },
-//       ],
-//     })
+const readConnections = async function () {
+  try {
+    const connections = await Connection.findAll({
+      include: [
+        {
+          model: Contact,
+          required: false,
+        },
+      ],
+    })
 
-//     return connections
-//   } catch (error) {
-//     console.error('Could not find connections in the database: ', error)
-//   }
-// }
+    return connections
+  } catch (error) {
+    console.error('Could not find connections in the database: ', error)
+  }
+}
 
-const readConnections = async function (params = {}) {
+const readPendingConnections = async function (params = {}) {
   try {
     const sort = params.sort ? params.sort : [['updated_at', 'ASC']]
     const pageSize = params.pageSize ? params.pageSize : 2
@@ -299,6 +299,11 @@ const readConnections = async function (params = {}) {
     const itemCount = params.itemCount ? params.itemCount : undefined
 
     const rawConnections = await Connection.findAndCountAll({
+      where: {
+        state: {
+          [Op.notIn]: ['active', 'completed'],
+        },
+      },
       order: sort,
       offset: await findOffset(pageSize, currentPage, itemCount),
       limit: pageSize,
@@ -439,6 +444,7 @@ module.exports = {
   readConnection,
   readConnectionWithContact,
   readConnections,
+  readPendingConnections,
   readInvitationByAlias,
   readInvitations,
   updateConnection,

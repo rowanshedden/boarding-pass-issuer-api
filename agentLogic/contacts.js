@@ -5,6 +5,8 @@ let Connections = require('../orm/connections.js')
 let Contacts = require('../orm/contacts.js')
 let ContactsCompiled = require('../orm/contactsCompiled.js')
 
+const {getAllPendingConnections} = require('./connections')
+
 const {v4: uuid} = require('uuid')
 
 // Perform Agent Business Logic
@@ -128,17 +130,13 @@ const adminMessage = async (connectionMessage) => {
         connectionMessage.error_msg,
       )
 
-      const pendingConnections = await Connections.readConnections({
+      const pendingConnections = await Connections.readPendingConnections({
         sort: [['updated_at', 'DESC']],
         pageSize: '10',
       })
 
-      console.log('============pending connections================')
-      console.log(pendingConnections)
-      console.log('============pending connections================')
-
-      Websockets.sendMessageToAll('CONNECTIONS', 'PENDING_CONNECTION', {
-        pendingConnections: {...pendingConnections},
+      Websockets.sendMessageToAll('CONNECTIONS', 'PENDING_CONNECTIONS', {
+        pendingConnections,
       })
     } else {
       console.log('State - After Response (e.g. active)')
