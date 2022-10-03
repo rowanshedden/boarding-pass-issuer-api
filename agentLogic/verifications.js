@@ -100,7 +100,7 @@ const handleConnection = async (connectionMessage) => {
     invitation.invitation_id,
   )
 
-  if (verification === null) {
+  if (!verification) {
     console.log(
       'There is no verification record found... end of verification flow',
     )

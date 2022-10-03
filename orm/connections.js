@@ -224,6 +224,7 @@ const createOrUpdateConnection = async function (
               where: {
                 connection_id: connection_id,
               },
+              returning: true,
             },
           )
         }

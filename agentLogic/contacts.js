@@ -5,8 +5,6 @@ let Connections = require('../orm/connections.js')
 let Contacts = require('../orm/contacts.js')
 let ContactsCompiled = require('../orm/contactsCompiled.js')
 
-const {getAllPendingConnections} = require('./connections')
-
 const {v4: uuid} = require('uuid')
 
 // Perform Agent Business Logic

@@ -10,6 +10,7 @@ const Credentials = require('./agentLogic/credentials')
 const Passports = require('./agentLogic/passports')
 const BasicMessages = require('./agentLogic/basicMessages')
 const Governance = require('./agentLogic/governance')
+const Invitations = require('./agentLogic/invitations')
 const Presentations = require('./agentLogic/presentations')
 const QuestionAnswer = require('./agentLogic/questionAnswer')
 const Verifications = require('./agentLogic/verifications')
@@ -199,6 +200,42 @@ router.post('/topic/questionanswer', async (req, res, next) => {
   if (answer.state === 'answered') {
     await QuestionAnswer.adminMessage(answer)
   }
+})
+
+router.post('/topic/connection_reuse', async (req, res, next) => {
+  console.log('Aries Cloud Agent Webhook Message----Connection Reuse------')
+
+  console.log(req.body)
+  Contacts.handleConnectionReuse(req.body)
+
+  res.status(200).send('Ok')
+})
+
+router.post('/topic/connection_reuse_accepted', async (req, res, next) => {
+  console.log(
+    'Aries Cloud Agent Webhook Message----Connection Reuse Accepted------',
+  )
+
+  console.log(req.body)
+  Contacts.handleConnectionReuse(req.body)
+
+  res.status(200).send('Ok')
+})
+
+router.post('/topic/mediation/', async (req, res, next) => {
+  console.log('Aries Cloud Agent Webhook Message----Mediation------')
+  console.log('Message Details:', req.body)
+
+  res.status(200).send('Ok')
+})
+
+router.post('/topic/out_of_band/', async (req, res, next) => {
+  console.log('Aries Cloud Agent Webhook Message----Out of Band------')
+  console.log(req.body)
+
+  Invitations.updateAvailableOOBInvitation(req.body)
+
+  res.status(200).send('Ok')
 })
 
 module.exports = router

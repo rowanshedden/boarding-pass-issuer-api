@@ -1,61 +1,12 @@
-const Util = require('../util')
 const AdminAPI = require('../adminAPI')
+const Websockets = require('../websockets')
 
 let Connections = require('../orm/connections.js')
 let Invitations = require('../orm/invitations.js')
 
+const Settings = require('./settings')
+
 const base64url = require('base64url')
-
-// Perform Agent Business Logic
-
-// Create an invitation
-const createSingleUseInvitation = async (
-  alias = 'default',
-  autoAccept = true,
-  multiUse = false,
-  public = false,
-) => {
-  try {
-    const invitationMessage = await AdminAPI.Connections.createInvitation(
-      alias,
-      autoAccept,
-      multiUse,
-      public,
-    )
-    console.log(invitationMessage)
-
-    await Connections.createOrUpdateConnection(
-      invitationMessage.connection_id,
-      'invitation',
-      null,
-      invitationMessage.alias,
-      null,
-      null,
-      null,
-      invitationMessage.invitation_url,
-      invitationMessage.invitation,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-    )
-
-    // (JamesKEbert) TODO: Strategy of invitations, specifically broadcasting to users
-    const invitation = await Connections.readConnection(
-      invitationMessage.connection_id,
-    )
-
-    // Return to the user that triggered the generation of that invitation
-    return invitation
-  } catch (error) {
-    console.error('Error Creating Invitation')
-    throw error
-  }
-}
 
 const acceptInvitation = async (invitation_url) => {
   try {
@@ -176,43 +127,6 @@ const createInvitation = async (
   }
 }
 
-const getAll = async (params) => {
-  try {
-    const invitationsList = await Invitations.readInvitations(params)
-
-    console.log('Got All Invitations')
-
-    return invitationsList
-  } catch (error) {
-    console.error('Error Fetching Invitations')
-    throw error
-  }
-}
-
-const getInvitation = async (invitation_id) => {
-  try {
-    const invitationRecord = await Invitations.readInvitationByInvitationId(
-      invitation_id,
-    )
-
-    console.log('Invitation Record:', invitationRecord)
-
-    return invitationRecord
-  } catch (error) {
-    console.error('Error Fetching Invitation Record')
-    throw error
-  }
-}
-
-const getInvitationsByContactId = async function (contact_id) {
-  try {
-    const invitations = await Invitations.readInvitationsByContactId(contact_id)
-    return invitations
-  } catch (error) {
-    console.error('Invitations were not found', error)
-  }
-}
-
 const deleteInvitation = async function (invitationId) {
   try {
     const deletedInvitation = await Invitations.deleteInvitation(invitationId)
@@ -322,6 +236,34 @@ const createOutOfBandInvitation = async (
   }
 }
 
+const getAll = async (params) => {
+  try {
+    const invitationsList = await Invitations.readInvitations(params)
+
+    console.log('Got All Invitations')
+
+    return invitationsList
+  } catch (error) {
+    console.error('Error Fetching Invitations')
+    throw error
+  }
+}
+
+const getInvitation = async (invitation_id) => {
+  try {
+    const invitationRecord = await Invitations.readInvitationByInvitationId(
+      invitation_id,
+    )
+
+    console.log('Invitation Record:', invitationRecord)
+
+    return invitationRecord
+  } catch (error) {
+    console.error('Error Fetching Invitation Record')
+    throw error
+  }
+}
+
 const getInvitationByOOBId = async (oob_id) => {
   try {
     const invitationRecord = await Invitations.readInvitationByOOBId(oob_id)
@@ -420,8 +362,9 @@ const updateAvailableOOBInvitation = async (message) => {
 
       if (invRecord) {
         await updateOOBInvRecord(
-          message.connection_id,
           message.oob_id,
+          undefined,
+          message.connection_id,
           undefined,
           undefined,
           undefined,
@@ -453,7 +396,6 @@ const updateAvailableOOBInvitation = async (message) => {
 }
 
 module.exports = {
-  createSingleUseInvitation,
   acceptInvitation,
   acceptExistingInvitation,
   acceptOutOfBandInvitation,
@@ -462,7 +404,6 @@ module.exports = {
   deleteInvitation,
   getAll,
   getInvitation,
-  getInvitationsByContactId,
   getInvitationByOOBId,
   getInvitationByConnectionId,
   updateOOBInvRecord,

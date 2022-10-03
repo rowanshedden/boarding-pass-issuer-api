@@ -346,19 +346,46 @@ const messageHandler = async (ws, context, type, data = {}) => {
 
       case 'INVITATIONS':
         switch (type) {
-          case 'CREATE_SINGLE_USE':
-            if (check(rules, userRoles, 'invitations:create')) {
-              let invitation
-              if (data.workflow) {
-                invitation = await Invitations.createPersistentSingleUseInvitation(
-                  data.workflow,
-                )
-              } else {
-                invitation = await Invitations.createSingleUseInvitation()
-              }
-              sendMessage(ws, 'INVITATIONS', 'INVITATION', {
-                invitation_record: invitation,
+          case 'GET_ALL':
+            const invitationRecords = await Invitations.getAll(data.params)
+            sendMessage(ws, 'INVITATIONS', 'INVITATIONS', invitationRecords)
+            break
+
+          case 'GET':
+            if (check(rules, userRoles, 'invitations:read')) {
+              const invitationRecords = await Invitations.readInvitationByInvitationId(
+                data.invitation_id,
+              )
+              sendMessage(ws, 'INVITATIONS', 'INVITATIONS', {
+                invitationRecords: [invitationRecords],
               })
+            }
+            break
+
+          case 'CREATE':
+            if (check(rules, userRoles, 'invitations:create')) {
+              const invitation = await Invitations.createInvitation(
+                null,
+                data.alias,
+                data.invitationMode,
+                data.accept,
+                data.public,
+                data.invitationRole,
+                data.invitationLabel,
+                data.invitationStatus,
+                data.invitationDescription,
+                data.invitationActiveStartingAt,
+                data.invitationActiveEndingAt,
+                data.usesAllowed,
+              )
+
+              sendMessage(
+                ws,
+                'INVITATIONS',
+                'INVITATIONS',
+                invitation.invitation_record,
+              )
+              sendMessage(ws, 'INVITATIONS', 'INVITATION', invitation.newInv)
             } else {
               sendMessage(ws, 'INVITATIONS', 'INVITATIONS_ERROR', {
                 error: 'ERROR: You are not authorized to create invitations.',
@@ -372,6 +399,28 @@ const messageHandler = async (ws, context, type, data = {}) => {
             } else {
               sendMessage(ws, 'INVITATIONS', 'INVITATIONS_ERROR', {
                 error: 'ERROR: You are not authorized to accept invitations.',
+              })
+            }
+            break
+
+          case 'DELETE':
+            if (check(rules, userRoles, 'invitations:delete')) {
+              const deletedInvitation = await Invitations.deleteInvitation(data)
+              if (deletedInvitation === true) {
+                sendMessage(
+                  ws,
+                  'INVITATIONS',
+                  'INVITATIONS_SUCCESS',
+                  'Invitation was successfully deleted!',
+                )
+              } else
+                sendMessage(ws, 'INVITATIONS', 'INVITATION_ERROR', {
+                  error:
+                    "ERROR: The invitation couldn't be deleted. Please try again.",
+                })
+            } else {
+              sendMessage(ws, 'INVITATIONS', 'INVITATION_ERROR', {
+                error: 'ERROR: You are not authorized to delete invitations.',
               })
             }
             break
@@ -436,11 +485,29 @@ const messageHandler = async (ws, context, type, data = {}) => {
         switch (type) {
           case 'CREATE_INVITATION':
             if (check(rules, userRoles, 'invitations:create')) {
-              let invitation = await Invitations.createOutOfBandInvitation()
+              const invitation = await Invitations.createOutOfBandInvitation(
+                null,
+                data.handshakeProtocol,
+                data.alias,
+                data.invitationMode,
+                data.accept,
+                data.public,
+                data.invitationRole,
+                data.invitationLabel,
+                data.invitationStatus,
+                data.invitationDescription,
+                data.invitationActiveStartingAt,
+                data.invitationActiveEndingAt,
+                data.usesAllowed,
+              )
 
-              sendMessage(ws, 'OUT_OF_BAND', 'INVITATION', {
-                invitation_record: invitation,
-              })
+              sendMessage(
+                ws,
+                'INVITATIONS',
+                'INVITATIONS',
+                invitation.invitation_record,
+              )
+              sendMessage(ws, 'OUT_OF_BAND', 'INVITATION', invitation.oobInv)
             } else {
               sendMessage(ws, 'OUT_OF_BAND', 'INVITATIONS_ERROR', {
                 error: 'ERROR: You are not authorized to create invitations.',
