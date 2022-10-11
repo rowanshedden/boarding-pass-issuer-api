@@ -1,7 +1,8 @@
 const AdminAPI = require('../adminAPI')
 const Websockets = require('../websockets')
 
-let Connections = require('../orm/connections.js')
+const Connections = require('./connections')
+
 let Invitations = require('../orm/invitations.js')
 
 const Settings = require('./settings')
@@ -67,7 +68,7 @@ const createInvitation = async (
       public,
     )
 
-    await Connections.createOrUpdateConnection(
+    await Connections.updateOrCreateConnection(
       invitationMessage.connection_id,
       'invitation',
       null,

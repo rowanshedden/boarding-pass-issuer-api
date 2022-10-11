@@ -72,7 +72,6 @@ app.use(
 
 // Invitation request API
 const Invitations = require('./agentLogic/invitations')
-const Connections = require('./orm/connections')
 const {Verification} = require('./orm/verifications')
 
 app.use(

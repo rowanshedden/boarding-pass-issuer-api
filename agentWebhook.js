@@ -6,6 +6,7 @@ const router = express.Router()
 const AdminAPI = require('./adminAPI')
 
 const Contacts = require('./agentLogic/contacts')
+const Connections = require('./agentLogic/connections')
 const Credentials = require('./agentLogic/credentials')
 const Passports = require('./agentLogic/passports')
 const BasicMessages = require('./agentLogic/basicMessages')
@@ -206,7 +207,7 @@ router.post('/topic/connection_reuse', async (req, res, next) => {
   console.log('Aries Cloud Agent Webhook Message----Connection Reuse------')
 
   console.log(req.body)
-  Contacts.handleConnectionReuse(req.body)
+  Connections.handleConnectionReuse(req.body)
 
   res.status(200).send('Ok')
 })
@@ -217,7 +218,7 @@ router.post('/topic/connection_reuse_accepted', async (req, res, next) => {
   )
 
   console.log(req.body)
-  Contacts.handleConnectionReuse(req.body)
+  Connections.handleConnectionReuse(req.body)
 
   res.status(200).send('Ok')
 })

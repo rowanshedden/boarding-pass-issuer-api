@@ -1,7 +1,8 @@
 const AdminAPI = require('../adminAPI')
 const Websockets = require('../websockets.js')
 
-let Connections = require('../orm/connections.js')
+const Connections = require('../agentLogic/connections')
+
 let Contacts = require('../orm/contacts.js')
 let ContactsCompiled = require('../orm/contactsCompiled.js')
 
@@ -77,7 +78,7 @@ const adminMessage = async (connectionMessage) => {
     if (connectionMessage.state === 'invitation') {
       console.log('State - Invitation')
 
-      await Connections.createOrUpdateConnection(
+      await Connections.updateOrCreateConnection(
         connectionMessage.connection_id,
         connectionMessage.state,
         connectionMessage.my_did,
@@ -108,7 +109,7 @@ const adminMessage = async (connectionMessage) => {
     ) {
       console.log('State - Request or Response')
 
-      await Connections.updateConnection(
+      await Connections.updateExistingConnection(
         connectionMessage.connection_id,
         connectionMessage.state,
         connectionMessage.my_did,
@@ -128,7 +129,7 @@ const adminMessage = async (connectionMessage) => {
         connectionMessage.error_msg,
       )
 
-      const pendingConnections = await Connections.readPendingConnections({
+      const pendingConnections = await Connections.getAllPendingConnections({
         sort: [['updated_at', 'DESC']],
         pageSize: '10',
       })
@@ -139,7 +140,7 @@ const adminMessage = async (connectionMessage) => {
     } else {
       console.log('State - After Response (e.g. active)')
       // (mikekebert) Only when we have an active connection can we create a new contact
-      let connection = await Connections.readConnection(
+      let connection = await Connections.getConnection(
         connectionMessage.connection_id,
       )
 
@@ -162,7 +163,7 @@ const adminMessage = async (connectionMessage) => {
         console.log('Provided contact_id: ', contact_id)
       }
 
-      await Connections.updateConnection(
+      await Connections.updateExistingConnection(
         connectionMessage.connection_id,
         connectionMessage.state,
         connectionMessage.my_did,
