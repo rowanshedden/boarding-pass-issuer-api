@@ -453,7 +453,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
               data.contact_id,
               data.additional_tables,
             )
-            sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts: [contact]})
+            sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts: contact})
             break
 
           default:

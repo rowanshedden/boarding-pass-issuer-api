@@ -31,8 +31,6 @@ const getAllPendingConnections = async (params = {}) => {
     console.log('Error while fetching pending connections:')
     console.error(error)
   }
-
-  //send websocket message
 }
 
 const updateOrCreateConnection = async (

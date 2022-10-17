@@ -25,7 +25,7 @@ const updateOrCreateTraveler = async function (
   const departureDate = new Date(departure_date).getTime()
 
   try {
-    await Travelers.createOrUpdateTraveler(
+    const travelers = await Travelers.createOrUpdateTraveler(
       contact_id,
       traveler_email,
       traveler_phone,
@@ -33,12 +33,12 @@ const updateOrCreateTraveler = async function (
       traveler_country_of_origin,
       arrival_airline,
       arrival_flight_number,
-      arrivalDate,
+      arrivalDate ? arrivalDate : null,
       arrival_destination_port_code,
       arrival_destination_country_code,
       departure_airline,
       departure_flight_number,
-      departureDate,
+      departureDate ? departureDate : null,
       departure_destination_port_code,
       departure_destination_country_code,
       verification_status,
@@ -49,7 +49,7 @@ const updateOrCreateTraveler = async function (
       'Passport',
     ])
 
-    Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: [contact]})
+    Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: contact})
 
     return contact
   } catch (error) {

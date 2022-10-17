@@ -20,7 +20,7 @@ const updateOrCreatePassport = async function (
   passport_created_date,
 ) {
   const dateOfIssue = new Date(passport_date_of_issue).getTime()
-  const datOfExpiration = new Date(passport_date_of_expiration).getTime()
+  const dateOfExpiration = new Date(passport_date_of_expiration).getTime()
   const dateOfBirth = new Date(passport_date_of_birth).getTime()
   const passportCreatedDate = new Date(passport_created_date).getTime()
 
@@ -31,15 +31,15 @@ const updateOrCreatePassport = async function (
       passport_surnames,
       passport_given_names,
       passport_gender_legal,
-      dateOfBirth,
+      dateOfBirth ? dateOfBirth : null,
       passport_nationality,
-      dateOfIssue,
-      datOfExpiration,
+      dateOfIssue ? dateOfIssue : null,
+      dateOfExpiration ? dateOfExpiration : null,
       passport_authority,
       passport_issuing_state,
       passport_dtc,
       passport_upk,
-      passportCreatedDate,
+      passportCreatedDate ? passportCreatedDate : null,
     )
 
     const contact = await ContactsCompiled.readContact(contact_id, [
@@ -47,7 +47,7 @@ const updateOrCreatePassport = async function (
       'Passport',
     ])
 
-    Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: [contact]})
+    Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: contact})
 
     return passport
   } catch (error) {
