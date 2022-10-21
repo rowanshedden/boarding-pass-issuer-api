@@ -583,7 +583,7 @@ app.get('/api/verifications/:id', async (req, res) => {
 // // Credential request API
 app.post('/api/credentials', checkApiKey, async (req, res) => {
   try {
-    const {dtcData, travelerData, connectionId} = req.body
+    const {credentialData, formData, connectionId} = req.body
 
     // (mikekebert) Load the governance
     const governance = await Governance.getGovernance()
@@ -594,62 +594,110 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
     // (mikekebert) Build the credential
     let credentialAttributes = [
       {
-        name: 'traveler_surnames',
-        value: dtcData['family-name'] || '',
+        name: 'passenger_given_names',
+        value: credentialData['given-names'] || '', //DTC cred
       },
       {
-        name: 'traveler_given_names',
-        value: dtcData['given-names'] || '',
+        name: 'passenger_family_names',
+        value: credentialData['family-name'] || '', //DTC cred
       },
       {
-        name: 'traveler_date_of_birth',
-        value: dtcData['date-of-birth'] || '',
+        name: 'passenger_image',
+        value: credentialData['chip-photo'] || '', //DTC cred
       },
       {
-        name: 'traveler_gender_legal',
-        value: dtcData['gender'] || '',
+        name: 'airline_alliance',
+        value: formData['airline_alliance'] || '',
       },
       {
-        name: 'traveler_country',
-        value: dtcData.nationality || '',
+        name: 'passenger_tsa_precheck',
+        value: formData['passenger_tsa_precheck'] || '',
       },
       {
-        name: 'traveler_origin_country',
-        value: travelerData.traveler_country_of_origin || '',
+        name: 'booking_reference_number',
+        value: formData['booking_reference_number'] || '',
       },
       {
-        name: 'traveler_email',
-        value: travelerData.traveler_email || '',
+        name: 'ticket_eticket_number',
+        value: formData['ticket_eticket_number'] || '',
       },
       {
-        name: 'trusted_traveler_id',
-        value: uuid(),
+        name: 'ticket_designated_carrier',
+        value: formData['ticket_designated_carrier'] || '',
       },
       {
-        name: 'trusted_traveler_issue_date_time',
-        value: Math.round(DateTime.fromISO(new Date()).ts / 1000).toString(),
+        name: 'ticket_operating_carrier',
+        value: formData['ticket_operating_carrier'] || '',
       },
       {
-        name: 'trusted_traveler_expiration_date_time',
-        value: Math.round(
-          DateTime.local().plus({days: 30}).ts / 1000,
-        ).toString(),
+        name: 'ticket_flight_number',
+        value: formData['ticket_flight_number'] || '',
       },
       {
-        name: 'governance_applied',
-        value: governance.name + ' v' + governance.version,
+        name: 'ticket_class',
+        value: formData['ticket_class'] || '',
       },
       {
-        name: 'credential_issuer_name',
-        value: issuerName.dataValues.value.organizationName || '',
+        name: 'ticket_seat_number',
+        value: formData['ticket_seat_number'] || '',
       },
       {
-        name: 'credential_issue_date',
-        value: Math.round(DateTime.fromISO(new Date()).ts / 1000).toString(),
+        name: 'ticket_exit_row*',
+        value: formData['ticket_exit_row*'] || '',
+      },
+      {
+        name: 'ticket_origin',
+        value: formData['ticket_origin'] || '',
+      },
+      {
+        name: 'ticket_destination',
+        value: formData['ticket_destination'] || '',
+      },
+      {
+        name: 'ticket_special_service_request',
+        value: formData['ticket_special_service_request'] || '',
+      },
+      {
+        name: 'ticket_with_infant',
+        value: formData['ticket_with_infant'] || '',
+      },
+      {
+        name: 'boarding_gate',
+        value: formData['boarding_gate'] || '',
+      },
+      {
+        name: 'boarding_zone_group',
+        value: formData['boarding_zone_group'] || '',
+      },
+      {
+        name: 'boarding_secondary_screening',
+        value: formData['boarding_secondary_screening'] || '',
+      },
+      {
+        name: 'boarding_date_time',
+        value: formData['boarding_date_time'] || '',
+      },
+      {
+        name: 'boarding_departure_date_time',
+        value: formData['boarding_departure_date_time'] || '',
+      },
+      {
+        name: 'boarding_arrival_date_time',
+        value: formData['boarding_arrival_date_time'] || '',
+      },
+      {
+        name: 'frequent_flyer_airline',
+        value: formData['frequent_flyer_airline'] || '',
+      },
+      {
+        name: 'frequent_flyer_number',
+        value: formData['frequent_flyer_number'] || '',
+      },
+      {
+        name: 'frequent_flyer_status',
+        value: formData['frequent_flyer_status'] || '',
       },
     ]
-
-    console.log(credentialAttributes)
 
     // (mikekebert) Get schema id for trusted traveler
     const schema_id = process.env.SCHEMA_TRUSTED_TRAVELER
@@ -757,6 +805,99 @@ app.post('/api/dtc-credentials', checkApiKey, async (req, res) => {
     ]
 
     const schema_id = process.env.SCHEMA_DTC_TYPE1_IDENTITY
+
+    let newCredential = {
+      connectionID: data.connection_id,
+      schemaID: schema_id,
+      schemaVersion: schema_id.split(':')[3],
+      schemaName: schema_id.split(':')[2],
+      schemaIssuerDID: schema_id.split(':')[0],
+      comment: '',
+      attributes: credentialAttributes,
+    }
+
+    await Credentials.autoIssueCredential(
+      newCredential.connectionID,
+      undefined,
+      undefined,
+      newCredential.schemaID,
+      newCredential.schemaVersion,
+      newCredential.schemaName,
+      newCredential.schemaIssuerDID,
+      newCredential.comment,
+      newCredential.attributes,
+    )
+
+    const response = {success: 'DTC issued'}
+    res.status(200).send(response)
+  } catch (error) {
+    console.error(error)
+    res.json({
+      error: "Unexpected error occurred, couldn't issue DTC Credential",
+    })
+  }
+})
+app.post('/api/trusted-traveler', checkApiKey, async (req, res) => {
+  console.log(req.body)
+  const data = req.body
+
+  try {
+    let credentialAttributes = [
+      {
+        name: 'traveler_email',
+        value: data.attributes.traveler_email || '',
+      },
+      {
+        name: 'credential_issue_date',
+        value: data.attributes.credential_issue_date || '',
+      },
+      {
+        name: 'credential_issuer_name',
+        value: data.attributes.credential_issuer_name || '',
+      },
+      {
+        name: 'traveler_date_of_birth',
+        value: data.attributes.traveler_date_of_birth || '',
+      },
+      {
+        name: 'traveler_gender_legal',
+        value: data.attributes.traveler_gender_legal || '',
+      },
+      {
+        name: 'governance_applied',
+        value: data.attributes.governance_applied || '',
+      },
+      {
+        name: 'trusted_traveler_issue_date_time',
+        value: data.attributes.trusted_traveler_issue_date_time || '',
+      },
+      {
+        name: 'traveler_origin_country',
+        value: data.attributes.traveler_origin_country || '',
+      },
+      {
+        name: 'traveler_given_names',
+        value: data.attributes.traveler_given_names || '',
+      },
+      {
+        name: 'trusted_traveler_expiration_date_time',
+        value: data.attributes.trusted_traveler_expiration_date_time || '',
+      },
+      {
+        name: 'traveler_surnames',
+        value: data.attributes.traveler_surnames || '',
+      },
+      {
+        name: 'traveler_country',
+        value: data.attributes.traveler_country || '',
+      },
+      {
+        name: 'trusted_traveler_id',
+        value: data.attributes.trusted_traveler_id || '',
+      },
+    ]
+
+    const schema_id = process.env.SCHEMA_TRUSTED_TRAVELER
 
     let newCredential = {
       connectionID: data.connection_id,

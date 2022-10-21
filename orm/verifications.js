@@ -198,7 +198,7 @@ const readVerificationsByInvitationId = async function (invitation_id) {
         invitation_id,
       },
     })
-    return verification[0]
+    return verification
   } catch (error) {
     console.error('Could not find verification record in the database: ', error)
   }
