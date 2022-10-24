@@ -74,9 +74,6 @@ const createInvitation = async function (
   uses_allowed,
   uses_remaining,
 ) {
-  console.log('++++++++++++++++++ORM+++++++++++++++++++++')
-  console.log(contact_id)
-  console.log('+++++++++++++++++++ORM++++++++++++++++++++')
   try {
     const timestamp = Date.now()
 
