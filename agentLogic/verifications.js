@@ -242,10 +242,7 @@ const verify = async (data) => {
 
       let deferredArray = []
 
-      console.log('Verification records: ', verificationList)
-
       if (verificationList) {
-        // pending_verifications[verification.verification_id] = def
         verificationList.forEach((verRecord) => {
           const def = deferred()
           deferredArray.push(def)

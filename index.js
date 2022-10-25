@@ -583,124 +583,120 @@ app.get('/api/verifications/:id', async (req, res) => {
 // // Credential request API
 app.post('/api/credentials', checkApiKey, async (req, res) => {
   try {
-    const {credentialData, formData, connectionId} = req.body
+    const {credentialData, connectionId} = req.body
 
-    // (mikekebert) Load the governance
-    const governance = await Governance.getGovernance()
+    // // (mikekebert) Load the governance
+    // const governance = await Governance.getGovernance()
 
-    // (mikekebert) Load the organization name
-    const issuerName = await getOrganization()
-
-    // (mikekebert) Build the credential
     let credentialAttributes = [
       {
         name: 'passenger_given_names',
-        value: credentialData['given-names'] || '', //DTC cred
+        value: credentialData['passenger_given_names'] || '', //DTC cred
       },
       {
         name: 'passenger_family_names',
-        value: credentialData['family-name'] || '', //DTC cred
+        value: credentialData['passenger_family_names'] || '', //DTC cred
       },
       {
         name: 'passenger_image',
-        value: credentialData['chip-photo'] || '', //DTC cred
+        value: credentialData['passenger_image'] || '', //DTC cred
       },
       {
         name: 'airline_alliance',
-        value: formData['airline_alliance'] || '',
+        value: credentialData['airline_alliance'] || '',
       },
       {
         name: 'passenger_tsa_precheck',
-        value: formData['passenger_tsa_precheck'] || '',
+        value: credentialData['passenger_tsa_precheck'] || '',
       },
       {
         name: 'booking_reference_number',
-        value: formData['booking_reference_number'] || '',
+        value: credentialData['booking_reference_number'] || '',
       },
       {
         name: 'ticket_eticket_number',
-        value: formData['ticket_eticket_number'] || '',
+        value: credentialData['ticket_eticket_number'] || '',
       },
       {
         name: 'ticket_designated_carrier',
-        value: formData['ticket_designated_carrier'] || '',
+        value: credentialData['ticket_designated_carrier'] || '',
       },
       {
         name: 'ticket_operating_carrier',
-        value: formData['ticket_operating_carrier'] || '',
+        value: credentialData['ticket_operating_carrier'] || '',
       },
       {
         name: 'ticket_flight_number',
-        value: formData['ticket_flight_number'] || '',
+        value: credentialData['ticket_flight_number'] || '',
       },
       {
         name: 'ticket_class',
-        value: formData['ticket_class'] || '',
+        value: credentialData['ticket_class'] || '',
       },
       {
         name: 'ticket_seat_number',
-        value: formData['ticket_seat_number'] || '',
+        value: credentialData['ticket_seat_number'] || '',
       },
       {
         name: 'ticket_exit_row*',
-        value: formData['ticket_exit_row*'] || '',
+        value: credentialData['ticket_exit_row*'] || '',
       },
       {
         name: 'ticket_origin',
-        value: formData['ticket_origin'] || '',
+        value: credentialData['ticket_origin'] || '',
       },
       {
         name: 'ticket_destination',
-        value: formData['ticket_destination'] || '',
+        value: credentialData['ticket_destination'] || '',
       },
       {
         name: 'ticket_special_service_request',
-        value: formData['ticket_special_service_request'] || '',
+        value: credentialData['ticket_special_service_request'] || '',
       },
       {
         name: 'ticket_with_infant',
-        value: formData['ticket_with_infant'] || '',
+        value: credentialData['ticket_with_infant'] || '',
       },
       {
         name: 'boarding_gate',
-        value: formData['boarding_gate'] || '',
+        value: credentialData['boarding_gate'] || '',
       },
       {
         name: 'boarding_zone_group',
-        value: formData['boarding_zone_group'] || '',
+        value: credentialData['boarding_zone_group'] || '',
       },
       {
         name: 'boarding_secondary_screening',
-        value: formData['boarding_secondary_screening'] || '',
+        value: credentialData['boarding_secondary_screening'] || '',
       },
       {
         name: 'boarding_date_time',
-        value: formData['boarding_date_time'] || '',
+        value: credentialData['boarding_date_time'] || '',
       },
       {
         name: 'boarding_departure_date_time',
-        value: formData['boarding_departure_date_time'] || '',
+        value: credentialData['boarding_departure_date_time'] || '',
       },
       {
         name: 'boarding_arrival_date_time',
-        value: formData['boarding_arrival_date_time'] || '',
+        value: credentialData['boarding_arrival_date_time'] || '',
       },
       {
         name: 'frequent_flyer_airline',
-        value: formData['frequent_flyer_airline'] || '',
+        value: credentialData['frequent_flyer_airline'] || '',
       },
       {
         name: 'frequent_flyer_number',
-        value: formData['frequent_flyer_number'] || '',
+        value: credentialData['frequent_flyer_number'] || '',
       },
       {
         name: 'frequent_flyer_status',
-        value: formData['frequent_flyer_status'] || '',
+        value: credentialData['frequent_flyer_status'] || '',
       },
     ]
 
     // (mikekebert) Get schema id for trusted traveler
-    const schema_id = process.env.SCHEMA_TRUSTED_TRAVELER
+    const schema_id = process.env.SCHEMA_BOARDING_PASS
 
     // (mikekebert) Issue the trusted_traveler to this contact
     let newCredential = {
