@@ -44,20 +44,27 @@ const startRule = async (id, verificationList) => {
   // TODO This workflow may contain a race condition
   let invitation = await Invitations.getInvitation(id)
 
-  await Promise.all(
-    verificationList.map(async (verRecord) => {
-      const result = await Presentations.requestSchemaPresentation(
-        invitation.connection_id,
-        verRecord.schema_attributes,
-        verRecord.schema_id,
-      )
+  let iteration = 0;
+  const requestPresentationByVerification = async () => {
+    const result = await Presentations.requestSchemaPresentation(
+      invitation.connection_id,
+      verificationList[iteration].schema_attributes,
+      verificationList[iteration].schema_id,
+    )
 
-      await verRecord.update({
+    if (result) {
+      await verificationList[iteration].update({
         presentation_exchange_id: result.presentation_exchange_id,
         proof_state: result.state,
       })
-    }),
-  )
+    }
+    if (iteration !== verificationList.length - 1) {
+      iteration++
+      requestPresentationByVerification()
+    }
+  }
+
+  await requestPresentationByVerification()
 }
 
 const handleConnection = async (connectionMessage) => {
