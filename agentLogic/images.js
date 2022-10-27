@@ -1,6 +1,4 @@
-const fs = require('fs')
 const Util = require('../util')
-
 let Images = require('../orm/images')
 
 // Perform Agent Business Logic
@@ -34,6 +32,17 @@ const getImagesByType = async (type) => {
     return images
   } catch (error) {
     console.error('Error Fetching Images by Type')
+    throw error
+  }
+}
+
+const getImageByName = async (name) => {
+  try {
+    const images = await Images.readImageByName(name)
+    console.log('Images:', images)
+    return images
+  } catch (error) {
+    console.error('Error Fetching Images by Name')
     throw error
   }
 }
@@ -102,12 +111,10 @@ const setFavicon = async (name, type, image) => {
   }
 
   try {
-    // Decode and write the file
+    await Images.updateImage('favicon.ico', type, image)
+    const updatedImage = await Images.readImageByName('favicon.ico')
 
-    const decodedImage = Util.encodeBase64Image(image)
-    fs.writeFileSync('web/favicon.ico', decodedImage)
-
-    return 'success'
+    return updatedImage
   } catch (error) {
     console.error('Error updating favicon')
     throw error
@@ -136,12 +143,15 @@ const setLogo192 = async (name, type, image) => {
   }
 
   try {
-    // Decode and write the file
+    await Images.updateImage('icon192.png', type, image)
+    const updatedImage = await Images.readImageByName('icon192.png')
 
-    const decodedImage = Util.encodeBase64Image(image)
-    fs.writeFileSync('web/logo192.png', decodedImage)
-
-    return 'success'
+    // return updatedImage
+    if (updatedImage && updatedImage.length) {
+      return 'success'
+    } else {
+      return 'error'
+    }
   } catch (error) {
     console.error('Error updating logo192')
     throw error
@@ -170,12 +180,15 @@ const setLogo512 = async (name, type, image) => {
   }
 
   try {
-    // Decode and write the file
+    await Images.updateImage('icon512.png', type, image)
+    const updatedImage = await Images.readImageByName('icon512.png')
 
-    const decodedImage = Util.encodeBase64Image(image)
-    fs.writeFileSync('web/logo512.png', decodedImage)
-
-    return 'success'
+    // return updatedImage
+    if (updatedImage && updatedImage.length) {
+      return 'success'
+    } else {
+      return 'error'
+    }
   } catch (error) {
     console.error('Error updating logo512')
     throw error
@@ -190,4 +203,5 @@ module.exports = {
   setLogo192,
   setLogo512,
   getImagesByType,
+  getImageByName,
 }

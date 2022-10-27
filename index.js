@@ -32,6 +32,7 @@ const ContactsCompiled = require('./orm/contactsCompiled')
 const ConnectionsAPI = require('./adminAPI/connections')
 const Governance = require('./agentLogic/governance')
 const Images = require('./agentLogic/images')
+const Settings = require('./agentLogic/settings')
 const {getOrganization} = require('./agentLogic/settings')
 const Passenger = require('./agentLogic/passenger')
 const Presentations = require('./agentLogic/presentations')
@@ -69,6 +70,39 @@ app.use(
   '/api/governance-framework',
   express.static('governance-framework.json'),
 )
+
+app.use('/favicon.ico', async (req, res) => {
+  console.log('Favicon route')
+  const favicon = await Images.getImageByName('favicon.ico')
+  const base64Image = Util.decodeBase64(favicon[0].dataValues.image)
+  const buffer = Buffer.from(base64Image.split(',')[1], 'base64')
+  res.contentType('image/x-icon')
+  res.status(200).send(buffer)
+})
+
+app.use('/icon192.png', async (req, res) => {
+  console.log('Icon192 route')
+  const icon192 = await Images.getImageByName('icon192.png')
+  const base64Image = Util.decodeBase64(icon192[0].dataValues.image)
+  const buffer = Buffer.from(base64Image.split(',')[1], 'base64')
+  res.contentType('image/png')
+  res.status(200).send(buffer)
+})
+
+app.use('/icon512.png', async (req, res) => {
+  console.log('Icon512 route')
+  const icon512 = await Images.getImageByName('icon512.png')
+  const base64Image = Util.decodeBase64(icon512[0].dataValues.image)
+  const buffer = Buffer.from(base64Image.split(',')[1], 'base64')
+  res.contentType('image/png')
+  res.status(200).send(buffer)
+})
+
+app.use('/manifest.json', async (req, res) => {
+  console.log('Manifest route')
+  const manifest = await Settings.getManifest()
+  res.status(200).send(manifest)
+})
 
 // Invitation request API
 const Invitations = require('./agentLogic/invitations')

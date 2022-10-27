@@ -117,6 +117,36 @@ updateOrganization = async function (value) {
   }
 }
 
+// Manifest
+readManifest = async function () {
+  try {
+    const manifest = await Setting.findAll({
+      where: {
+        key: 'manifest',
+      },
+    })
+    return manifest[0]
+  } catch (error) {
+    console.error('Could not find manifest file in the database: ', error)
+  }
+}
+
+updateManifest = async function (value) {
+  try {
+    await Setting.update(
+      {value},
+      {
+        where: {
+          key: 'manifest',
+        },
+      },
+    )
+    return manifest[0]
+  } catch (error) {
+    console.error('Could not find manifest file in the database: ', error)
+  }
+}
+
 module.exports = {
   readTheme,
   updateTheme,
@@ -124,4 +154,6 @@ module.exports = {
   updateSMTP,
   readOrganization,
   updateOrganization,
+  readManifest,
+  updateManifest,
 }
