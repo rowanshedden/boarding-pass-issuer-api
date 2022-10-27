@@ -610,8 +610,8 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
         value: credentialData['passenger_tsa_precheck'] || '',
       },
       {
-        name: 'booking_reference_number',
-        value: credentialData['booking_reference_number'] || '',
+        name: 'pnr',
+        value: credentialData['pnr'] || '',
       },
       {
         name: 'ticket_eticket_number',
@@ -638,8 +638,8 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
         value: credentialData['ticket_seat_number'] || '',
       },
       {
-        name: 'ticket_exit_row*',
-        value: credentialData['ticket_exit_row*'] || '',
+        name: 'ticket_exit_row',
+        value: credentialData['ticket_exit_row'] || '',
       },
       {
         name: 'ticket_origin',
@@ -648,6 +648,10 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
       {
         name: 'ticket_destination',
         value: credentialData['ticket_destination'] || '',
+      },
+      {
+        name: 'ticket_luggage',
+        value: credentialData['ticket_luggage'] || '',
       },
       {
         name: 'ticket_special_service_request',
@@ -671,29 +675,51 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
       },
       {
         name: 'boarding_date_time',
-        value: credentialData['boarding_date_time'] || '',
+        value: Math.round(DateTime.fromISO(credentialData['boarding_date_time']).ts / 1000).toString() || '',
       },
       {
         name: 'boarding_departure_date_time',
-        value: credentialData['boarding_departure_date_time'] || '',
+        value: Math.round(DateTime.fromISO(credentialData['boarding_departure_date_time']).ts / 1000).toString() || '',
       },
       {
         name: 'boarding_arrival_date_time',
-        value: credentialData['boarding_arrival_date_time'] || '',
-      },
-      {
-        name: 'frequent_flyer_airline',
-        value: credentialData['frequent_flyer_airline'] || '',
+        value: Math.round(DateTime.fromISO(credentialData['boarding_arrival_date_time']).ts / 1000).toString() || '',
       },
       {
         name: 'frequent_flyer_number',
         value: credentialData['frequent_flyer_number'] || '',
       },
       {
+        name: 'frequent_flyer_airline',
+        value: credentialData['frequent_flyer_airline'] || '',
+      },
+      {
         name: 'frequent_flyer_status',
         value: credentialData['frequent_flyer_status'] || '',
       },
+      {
+        name: 'standby_status',
+        value: credentialData['standby_status'] || '',
+      },
+      {
+        name: 'standby_boarding_date',
+        value: Math.round(DateTime.fromISO(credentialData['standby_boarding_date']).ts / 1000).toString() || '',
+      },
+      {
+        name: 'standby_priority',
+        value: credentialData['standby_priority'] || '',
+      },
+      {
+        name: 'sequence_number',
+        value: credentialData['sequence_number'] || '',
+      },
     ]
+
+    console.log('==================TIMESTAMP=========================')
+    console.log(credentialAttributes)
+    console.log('==================TIMESTAMP=========================')
+
+
 
     // (mikekebert) Get schema id for trusted traveler
     const schema_id = process.env.SCHEMA_BOARDING_PASS
