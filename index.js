@@ -395,10 +395,10 @@ app.get('/api/renew-session', verifySession, async (req, res) => {
 })
 
 const checkApiKey = function (req, res, next) {
-  if (req.header('x-api-key') != process.env.APIKEY) {
-    res.sendStatus(401)
-  } else {
+  if (req.header('x-api-key') === process.env.APIKEY) {
     next()
+  } else {
+    res.sendStatus(401)
   }
 }
 
@@ -917,12 +917,13 @@ app.post('/api/trusted-traveler', checkApiKey, async (req, res) => {
       newCredential.attributes,
     )
 
-    const response = {success: 'DTC issued'}
+    const response = {success: 'Trusted Traveler issued'}
     res.status(200).send(response)
   } catch (error) {
     console.error(error)
     res.json({
-      error: "Unexpected error occurred, couldn't issue DTC Credential",
+      error:
+        "Unexpected error occurred, couldn't issue Trusted Traveler Credential",
     })
   }
 })

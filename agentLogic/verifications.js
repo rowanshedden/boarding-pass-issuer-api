@@ -44,7 +44,7 @@ const startRule = async (id, verificationList) => {
   // TODO This workflow may contain a race condition
   let invitation = await Invitations.getInvitation(id)
 
-  let iteration = 0;
+  let iteration = 0
   const requestPresentationByVerification = async () => {
     const result = await Presentations.requestSchemaPresentation(
       invitation.connection_id,
