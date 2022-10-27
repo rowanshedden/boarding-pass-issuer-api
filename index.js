@@ -715,12 +715,6 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
       },
     ]
 
-    console.log('==================TIMESTAMP=========================')
-    console.log(credentialAttributes)
-    console.log('==================TIMESTAMP=========================')
-
-
-
     // (mikekebert) Get schema id for trusted traveler
     const schema_id = process.env.SCHEMA_BOARDING_PASS
 
