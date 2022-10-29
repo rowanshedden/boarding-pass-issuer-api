@@ -54,6 +54,26 @@ const acceptInvitation = async (invitation) => {
   }
 }
 
+const acceptExistingInvitation = async (connection_id) => {
+  try {
+    console.log(
+      `Accepting Existing Invitation with connectionID: ${connection_id}`,
+    )
+
+    const invitationMessage = await sendAdminMessage(
+      'post',
+      `/connections/${connection_id}/accept-invitation`,
+      {},
+      {},
+    )
+
+    return invitationMessage
+  } catch (error) {
+    console.error('Invitation Acceptance Error')
+    throw error
+  }
+}
+
 // Fetch a Connection request message to be sent to the Cloud Agent Adminstration API
 const fetchConnection = async (connectionID) => {
   try {
@@ -151,6 +171,7 @@ const sendBasicMessage = async (connectionID, body) => {
 module.exports = {
   createInvitation,
   acceptInvitation,
+  acceptExistingInvitation,
   fetchConnection,
   queryConnections,
   sendBasicMessage,

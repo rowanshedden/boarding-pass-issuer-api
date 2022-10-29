@@ -1,18 +1,30 @@
 const sendAdminMessage = require('./transport')
 
 //Send an out-of-band message
-const createOOBInvitation = async () => {
+const createOOBInvitation = async (
+  // TODO: create a config that supports the array of protocols with first being used by default
+  protocol = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/didexchange/1.0',
+  alias = 'OOB Invitation',
+  multiUse = false,
+  autoAccept = true,
+  public = true,
+  label,
+) => {
   try {
     console.log('Generate OOB Message:')
 
     const response = await sendAdminMessage(
       'post',
       '/out-of-band/create-invitation',
-      {},
       {
-        //(AmmonBurgi) The Connections protocol and/or the DIDExchange protocol can be listed below. If both protocols are listed the order does matter.
-        handshake_protocols: ['https://didcomm.org/connections/1.0'],
-        use_public_did: false,
+        auto_accept: autoAccept,
+        multi_use: multiUse,
+      },
+      {
+        alias: alias,
+        handshake_protocols: [protocol],
+        my_label: label,
+        use_public_did: public,
       },
     )
 

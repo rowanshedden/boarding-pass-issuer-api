@@ -15,6 +15,7 @@ See also: https://mit-license.org/
 * [connect-session-sequelize](https://github.com/mweibel/connect-session-sequelize)
 * [db-migrate](https://github.com/db-migrate/node-db-migrate)
 * [db-migrate-pg](https://github.com/db-migrate/pg)
+* [deferred](https://github.com/medikoo/deferred)
 * [express-session](https://github.com/expressjs/session)
 * [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken)
 * [luxon](https://github.com/moment/luxon)

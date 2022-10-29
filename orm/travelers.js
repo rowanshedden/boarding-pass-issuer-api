@@ -8,7 +8,7 @@ class Traveler extends Model {}
 Traveler.init(
   {
     contact_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.TEXT,
       primaryKey: true,
       // allowNull: false,
     },

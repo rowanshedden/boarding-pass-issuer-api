@@ -1,8 +1,11 @@
 const AdminAPI = require('../adminAPI')
 const Websockets = require('../websockets.js')
+
 let Connections = require('../orm/connections.js')
 let Contacts = require('../orm/contacts.js')
 let ContactsCompiled = require('../orm/contactsCompiled.js')
+
+const {v4: uuid} = require('uuid')
 
 // Perform Agent Business Logic
 
@@ -96,21 +99,55 @@ const adminMessage = async (connectionMessage) => {
 
     var contact
 
-    if (connectionMessage.state === 'request') {
-      console.log('State - Request')
-      console.log('Creating Contact')
+    if (
+      connectionMessage.state === 'request' ||
+      connectionMessage.state === 'response'
+    ) {
+      console.log('State - Request or Response')
 
-      // (mikekebert) We need to check and see if a contact has already been created by the API;
-      // If so, use it; if not, create a new contact
-      contact = await ContactsCompiled.readContactByConnection(
+      await Connections.updateConnection(
         connectionMessage.connection_id,
-        {},
+        connectionMessage.state,
+        connectionMessage.my_did,
+        connectionMessage.alias,
+        connectionMessage.request_id,
+        connectionMessage.invitation_key,
+        connectionMessage.invitation_mode,
+        connectionMessage.invitation_url,
+        connectionMessage.invitation,
+        connectionMessage.accept,
+        connectionMessage.initiator,
+        connectionMessage.their_role,
+        connectionMessage.their_did,
+        connectionMessage.their_label,
+        connectionMessage.routing_state,
+        connectionMessage.inbound_connection_id,
+        connectionMessage.error_msg,
       )
-      if (!contact) {
+    } else {
+      console.log('State - After Response (e.g. active)')
+      // (mikekebert) Only when we have an active connection can we create a new contact
+      let connection = await Connections.readConnection(
+        connectionMessage.connection_id,
+      )
+
+      let contact_id = ''
+      if (!connection || !connection.contact_id) {
+        console.log('No contact id - creating a new one')
+        // (mikekebert) If we don't have a contact_id for this now active connection, then we need to generate one.
+        contact_id = uuid()
+        console.log('Generated contact_id: ', contact_id)
+
         contact = await Contacts.createContact(
+          contact_id,
           connectionMessage.their_label, // label
           {}, // meta_data
         )
+      } else {
+        console.log('Reusing existing contact id')
+        // (mikekebert) If we have a contact_id already, we should use it
+        contact_id = connection.contact_id
+        console.log('Provided contact_id: ', contact_id)
       }
 
       await Connections.updateConnection(
@@ -131,32 +168,7 @@ const adminMessage = async (connectionMessage) => {
         connectionMessage.routing_state,
         connectionMessage.inbound_connection_id,
         connectionMessage.error_msg,
-      )
-
-      await Connections.linkContactAndConnection(
-        contact.contact_id,
-        connectionMessage.connection_id,
-      )
-    } else {
-      console.log('State - Response or later')
-      await Connections.updateConnection(
-        connectionMessage.connection_id,
-        connectionMessage.state,
-        connectionMessage.my_did,
-        connectionMessage.alias,
-        connectionMessage.request_id,
-        connectionMessage.invitation_key,
-        connectionMessage.invitation_mode,
-        connectionMessage.invitation_url,
-        connectionMessage.invitation,
-        connectionMessage.accept,
-        connectionMessage.initiator,
-        connectionMessage.their_role,
-        connectionMessage.their_did,
-        connectionMessage.their_label,
-        connectionMessage.routing_state,
-        connectionMessage.inbound_connection_id,
-        connectionMessage.error_msg,
+        contact_id,
       )
     }
 

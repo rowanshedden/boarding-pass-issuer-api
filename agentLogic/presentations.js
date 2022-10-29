@@ -1,16 +1,17 @@
 const {DateTime} = require('luxon')
 const {v4: uuid} = require('uuid')
+const crypto = require('crypto')
 
 const ControllerError = require('../errors')
 
 const AdminAPI = require('../adminAPI')
 const Websockets = require('../websockets')
-const Contacts = require('./contacts')
 const ConnectionsState = require('../agentLogic/connectionsState')
 const Credentials = require('./credentials')
 const Governance = require('./governance')
 const Travelers = require('./travelers')
 const Presentations = require('../orm/presentations')
+const sendAdminMessage = require('../adminAPI/transport')
 
 const {getOrganization} = require('./settings')
 
@@ -34,6 +35,22 @@ const requestIdentityPresentation = async (connectionID) => {
     ],
   )
   return result
+}
+
+const requestSchemaPresentation = async (
+  connection_id,
+  schema_attributes,
+  schema_id,
+) => {
+  console.log(`Requesting Presentation from Connection: ${connection_id}`)
+
+  return await AdminAPI.Presentations.requestPresentationBySchemaId(
+    connection_id,
+    schema_attributes,
+    schema_id,
+    'Requesting Presentation',
+    false,
+  )
 }
 
 // (Eldersonar) This function takes an array of arrays and returns the cartesian product
@@ -3499,4 +3516,7 @@ module.exports = {
   createPresentationReports,
   updatePresentationReports,
   getAll,
+  requestSchemaPresentation,
 }
+
+const Contacts = require('./contacts')

@@ -24,22 +24,41 @@ const addTravelerAndPassport = async function (contact_id, data) {
       null,
     )
     console.log('Creating passport')
-    // (eldersonar) Create passport
+
     const passport = await Passports.updateOrCreatePassport(
       contact_id,
-      data.passport_number,
-      data.passport_surnames,
-      data.passport_given_names,
-      data.passport_gender_legal,
-      data.passport_date_of_birth,
-      data.passport_place_of_birth,
-      data.passport_nationality,
-      data.passport_date_of_issue,
-      data.passport_date_of_expiration,
-      data.passport_type,
-      data.passport_code,
-      data.passport_authority,
+      data['document-number'],
+      data['family-name'],
+      data['given-names'],
+      data['gender'],
+      data['date-of-birth'],
+      data['nationality'],
+      data['issue-date'],
+      data['expiry-date'],
+      data['issuing-authority'],
+      data['issuing-state'],
+      data['dtc'],
+      data['upk'],
+      data['chip-photo'],
+      data['created-date'],
     )
+
+    // const passport = await Passports.updateOrCreatePassport(
+    //   contact_id,
+    //   data.passport_number,
+    //   data.passport_surnames,
+    //   data.passport_given_names,
+    //   data.passport_gender_legal,
+    //   data.passport_date_of_birth,
+    //   // data.passport_place_of_birth,
+    //   data.passport_nationality,
+    //   data.passport_date_of_issue,
+    //   data.passport_date_of_expiration,
+    //   // data.passport_type,
+    //   // data.passport_code,
+    //   data.passport_authority,
+    // )
+
     console.log('Successfully added traveler and passport')
 
     if (traveler && passport) {

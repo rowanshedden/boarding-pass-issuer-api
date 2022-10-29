@@ -26,16 +26,18 @@ module.exports.server = server
 // Websockets required to make APIs work and avoid circular dependency
 let Websocket = require('./websockets.js')
 
-const Contacts = require('./orm/contacts')
-const ConnectionsAPI = require('./adminAPI/connections')
-const ContactsCompiled = require('./orm/contactsCompiled')
 const Credentials = require('./agentLogic/credentials')
+const Contacts = require('./orm/contacts')
+const ContactsCompiled = require('./orm/contactsCompiled')
+const ConnectionsAPI = require('./adminAPI/connections')
 const Governance = require('./agentLogic/governance')
 const Images = require('./agentLogic/images')
 const Settings = require('./agentLogic/settings')
 const {getOrganization} = require('./agentLogic/settings')
 const Passenger = require('./agentLogic/passenger')
+const Presentations = require('./agentLogic/presentations')
 const Users = require('./agentLogic/users')
+const Verifications = require('./agentLogic/verifications')
 
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
@@ -105,6 +107,7 @@ app.use('/manifest.json', async (req, res) => {
 // Invitation request API
 const Invitations = require('./agentLogic/invitations')
 const Connections = require('./orm/connections')
+const {Verification} = require('./orm/verifications')
 
 app.use(
   '/api/presentation-exchange',
@@ -195,7 +198,6 @@ const verifySession = (req, res, next) => {
     sessionId = sessionId.split('s%3A')[1]
 
     if (sessionId === req.sessionID) {
-      // console.log('100% session ID match')
       next()
     } else {
       console.log('Unauthorized')
@@ -427,10 +429,10 @@ app.get('/api/renew-session', verifySession, async (req, res) => {
 })
 
 const checkApiKey = function (req, res, next) {
-  if (req.header('x-api-key') != process.env.APIKEY) {
-    res.sendStatus(401)
-  } else {
+  if (req.header('x-api-key') === process.env.APIKEY) {
     next()
+  } else {
+    res.sendStatus(401)
   }
 }
 
@@ -439,63 +441,97 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
   console.log(req.body)
   const data = req.body
   try {
-    // (eldersonar) Create invitation
-    const invitation = await Invitations.createSingleUseInvitation()
-
-    if (!invitation) {
-      res.json({error: 'There was a problem creating an invitation'})
-    }
-
-    const fullName = data.passport_surnames + ' ' + data.passport_given_names
-
-    let contact = null
-
-    // (eldersonar) Create contact
-    if (invitation) {
-      contact = await Contacts.createContact(
-        fullName, // label
-        {}, // meta_data
+    if (data.invitation_type === 'OOB') {
+      console.log('OOB invitation workflow')
+      const oob = await Invitations.createOutOfBandInvitation(
+        data.contact_id,
+        data.handshake_protocol,
+        data.alias,
+        data.invitation_mode,
+        data.accept,
+        data.public,
+        data.invitation_role,
+        data.invitation_label,
+        data.invitation_status,
+        data.invitation_description,
+        data.invitation_active_starting_at,
+        data.invitation_active_ending_at,
+        data.uses_allowed ? data.uses_allowed : '',
       )
-    }
 
-    // (eldersonar) Link contact to connection
-    const connections = await Connections.linkContactAndConnection(
-      contact.contact_id,
-      invitation.connection_id,
-    )
+      const connectionInterval = setInterval(async () => {
+        const invByOOB = await Invitations.getInvitationByOOBId(
+          oob.oobInv.oob_id,
+        )
 
-    if (!connections) {
-      res.json({error: "Couldn't link contacts to connections"})
-    }
+        if (invByOOB) {
+          clearInterval(connectionInterval)
+          res.status(200).json({
+            invitation_url: invByOOB.invitation_url,
+            invitation_id: invByOOB.invitation_id,
+            contact_id: invByOOB.contact_id,
+          })
+        }
+      }, 1500)
+    } else {
+      console.log('CV1 invitation workflow')
+      const invitation = await Invitations.createInvitation(
+        data.contact_id,
+        data.alias,
+        data.invitation_mode,
+        data.accept,
+        data.public,
+        data.invitation_role,
+        data.invitation_label,
+        data.invitation_status,
+        data.invitation_description,
+        data.invitation_active_starting_at,
+        data.invitation_active_ending_at,
+        data.uses_allowed ? data.uses_allowed : '',
+      )
 
-    // (eldersonar) Write traveler and passport to the database
-    const passenger = await Passenger.addTravelerAndPassport(
-      contact.contact_id,
-      data,
-    )
-
-    if (!passenger) {
-      res.json({
-        error:
-          "Couldn't write passenger information to the government database",
+      res.status(200).json({
+        invitation_url: invitation.newInv.invitation_url,
+        invitation_id: invitation.newInv.invitation_id,
+        contact_id: invitation.newInv.contact_id,
       })
     }
+  } catch (error) {
+    console.error(error)
+    res.json({error: 'There was a problem creating an invitation'})
+  }
+})
 
-    res.status(200).json({
-      connection_id: invitation.connection_id,
-      invitation_url: invitation.invitation_url,
-    })
+app.post('/api/verifications', checkApiKey, async (req, res) => {
+  const data = req.body
+
+  try {
+    const verification = await Verifications.verify(data)
+
+    res.status(200).send(verification)
   } catch (error) {
     console.error(error)
     res.json({error: 'Unexpected error occurred'})
   }
 })
 
+app.get('/api/verifications/:id', checkApiKey, async (req, res) => {
+  try {
+    const verification = await Verifications.retrieve(req.params.id)
+
+    res.status(200).json(verification)
+  } catch (error) {
+    console.error(error)
+    res.json({error: 'There was a problem retrieving a verification'})
+  }
+})
+
 // Get verification status by connection_id
-app.get('/api/verification/:id', async (req, res) => {
+app.get('/api/verifications/:id', async (req, res) => {
   try {
     console.log(req.params.id)
 
+    // use this code to check connection id
     const contact = await ContactsCompiled.readContactByConnection(
       req.params.id,
       ['Traveler'],
@@ -578,93 +614,147 @@ app.get('/api/verification/:id', async (req, res) => {
   }
 })
 
-// Credential request API
+// // Credential request API
 app.post('/api/credentials', checkApiKey, async (req, res) => {
-  console.log(req.body)
-  const data = req.body
   try {
-    // (mikekebert) Find the contact
-    const contact = await ContactsCompiled.readContactByConnection(
-      data.connection_id,
-      ['Traveler', 'Passport'],
-    )
+    const {credentialData, connectionId} = req.body
 
-    console.log(contact)
-    const passport = contact.Passport.dataValues
-    const traveler = contact.Traveler.dataValues
+    // // (mikekebert) Load the governance
+    // const governance = await Governance.getGovernance()
 
-    // (mikekebert) Load the governance
-    const governance = await Governance.getGovernance()
-
-    // (mikekebert) Load the organization name
-    const issuerName = await getOrganization()
-
-    // (mikekebert) Build the credential
     let credentialAttributes = [
       {
-        name: 'traveler_surnames',
-        value: passport.passport_surnames || '',
+        name: 'passenger_given_names',
+        value: credentialData['passenger_given_names'] || '', //DTC cred
       },
       {
-        name: 'traveler_given_names',
-        value: passport.passport_given_names || '',
+        name: 'passenger_family_names',
+        value: credentialData['passenger_family_names'] || '', //DTC cred
       },
       {
-        name: 'traveler_date_of_birth',
-        value: passport.passport_date_of_birth || '',
+        name: 'passenger_image',
+        value: credentialData['passenger_image'] || '', //DTC cred
       },
       {
-        name: 'traveler_gender_legal',
-        value: passport.passport_gender_legal || '',
+        name: 'airline_alliance',
+        value: credentialData['airline_alliance'] || '',
       },
       {
-        name: 'traveler_country',
-        value: passport.passport_country || '',
+        name: 'passenger_tsa_precheck',
+        value: credentialData['passenger_tsa_precheck'] || '',
       },
       {
-        name: 'traveler_origin_country',
-        value: traveler.traveler_country_of_origin || '',
+        name: 'pnr',
+        value: credentialData['pnr'] || '',
       },
       {
-        name: 'traveler_email',
-        value: traveler.traveler_email || '',
+        name: 'ticket_eticket_number',
+        value: credentialData['ticket_eticket_number'] || '',
       },
       {
-        name: 'trusted_traveler_id',
-        value: uuid(),
+        name: 'ticket_designated_carrier',
+        value: credentialData['ticket_designated_carrier'] || '',
       },
       {
-        name: 'trusted_traveler_issue_date_time',
-        value: Math.round(DateTime.fromISO(new Date()).ts / 1000).toString(),
+        name: 'ticket_operating_carrier',
+        value: credentialData['ticket_operating_carrier'] || '',
       },
       {
-        name: 'trusted_traveler_expiration_date_time',
-        value: Math.round(
-          DateTime.local().plus({days: 30}).ts / 1000,
-        ).toString(),
+        name: 'ticket_flight_number',
+        value: credentialData['ticket_flight_number'] || '',
       },
       {
-        name: 'governance_applied',
-        value: governance.name + ' v' + governance.version,
+        name: 'ticket_class',
+        value: credentialData['ticket_class'] || '',
       },
       {
-        name: 'credential_issuer_name',
-        value: issuerName.dataValues.value.organizationName || '',
+        name: 'ticket_seat_number',
+        value: credentialData['ticket_seat_number'] || '',
       },
       {
-        name: 'credential_issue_date',
-        value: Math.round(DateTime.fromISO(new Date()).ts / 1000).toString(),
+        name: 'ticket_exit_row',
+        value: credentialData['ticket_exit_row'] || '',
+      },
+      {
+        name: 'ticket_origin',
+        value: credentialData['ticket_origin'] || '',
+      },
+      {
+        name: 'ticket_destination',
+        value: credentialData['ticket_destination'] || '',
+      },
+      {
+        name: 'ticket_luggage',
+        value: credentialData['ticket_luggage'] || '',
+      },
+      {
+        name: 'ticket_special_service_request',
+        value: credentialData['ticket_special_service_request'] || '',
+      },
+      {
+        name: 'ticket_with_infant',
+        value: credentialData['ticket_with_infant'] || '',
+      },
+      {
+        name: 'boarding_gate',
+        value: credentialData['boarding_gate'] || '',
+      },
+      {
+        name: 'boarding_zone_group',
+        value: credentialData['boarding_zone_group'] || '',
+      },
+      {
+        name: 'boarding_secondary_screening',
+        value: credentialData['boarding_secondary_screening'] || '',
+      },
+      {
+        name: 'boarding_date_time',
+        value: Math.round(DateTime.fromISO(credentialData['boarding_date_time']).ts / 1000).toString() || '',
+      },
+      {
+        name: 'boarding_departure_date_time',
+        value: Math.round(DateTime.fromISO(credentialData['boarding_departure_date_time']).ts / 1000).toString() || '',
+      },
+      {
+        name: 'boarding_arrival_date_time',
+        value: Math.round(DateTime.fromISO(credentialData['boarding_arrival_date_time']).ts / 1000).toString() || '',
+      },
+      {
+        name: 'frequent_flyer_number',
+        value: credentialData['frequent_flyer_number'] || '',
+      },
+      {
+        name: 'frequent_flyer_airline',
+        value: credentialData['frequent_flyer_airline'] || '',
+      },
+      {
+        name: 'frequent_flyer_status',
+        value: credentialData['frequent_flyer_status'] || '',
+      },
+      {
+        name: 'standby_status',
+        value: credentialData['standby_status'] || '',
+      },
+      {
+        name: 'standby_boarding_date',
+        value: Math.round(DateTime.fromISO(credentialData['standby_boarding_date']).ts / 1000).toString() || '',
+      },
+      {
+        name: 'standby_priority',
+        value: credentialData['standby_priority'] || '',
+      },
+      {
+        name: 'sequence_number',
+        value: credentialData['sequence_number'] || '',
       },
     ]
 
-    console.log(credentialAttributes)
-
     // (mikekebert) Get schema id for trusted traveler
-    const schema_id = process.env.SCHEMA_TRUSTED_TRAVELER
+    const schema_id = process.env.SCHEMA_BOARDING_PASS
 
     // (mikekebert) Issue the trusted_traveler to this contact
     let newCredential = {
-      connectionID: data.connection_id,
+      connectionID: connectionId,
       schemaID: schema_id,
       schemaVersion: schema_id.split(':')[3],
       schemaName: schema_id.split(':')[2],
@@ -672,8 +762,6 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
       comment: '',
       attributes: credentialAttributes,
     }
-
-    console.log(newCredential)
 
     // (mikekebert) Request issuance of the trusted_traveler credential
     await Credentials.autoIssueCredential(
@@ -694,6 +782,202 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
     console.error(error)
     res.json({
       error: "Unexpected error occurred, couldn't issue Trusted Traveler",
+    })
+  }
+})
+
+app.post('/api/dtc-credentials', checkApiKey, async (req, res) => {
+  console.log(req.body)
+  const data = req.body
+
+  try {
+    let credentialAttributes = [
+      {
+        name: 'created-date',
+        value: data.attributes.created_date || '',
+      },
+      {
+        name: 'document-type',
+        value: data.attributes.document_type || '',
+      },
+      {
+        name: 'issue-date',
+        value: data.attributes.issue_date || '',
+      },
+      {
+        name: 'document-number',
+        value: data.attributes.document_number || '',
+      },
+      {
+        name: 'issuing-state',
+        value: data.attributes.issuing_state || '',
+      },
+      {
+        name: 'gender',
+        value: data.attributes.gender || '',
+      },
+      {
+        name: 'date-of-birth',
+        value: data.attributes.date_of_birth || '',
+      },
+      {
+        name: 'chip-photo',
+        value: data.attributes.chip_photo || '',
+      },
+      {
+        name: 'family-name',
+        value: data.attributes.family_name || '',
+      },
+      {
+        name: 'given-names',
+        value: data.attributes.given_names || '',
+      },
+      {
+        name: 'dtc',
+        value: data.attributes.dtc || '',
+      },
+      {
+        name: 'upk',
+        value: data.attributes.upk || '',
+      },
+      {
+        name: 'expiry-date',
+        value: data.attributes.expiry_date || '',
+      },
+      {
+        name: 'issuing-authority',
+        value: data.attributes.issuing_authority || '',
+      },
+      {
+        name: 'nationality',
+        value: data.attributes.nationality || '',
+      },
+    ]
+
+    const schema_id = process.env.SCHEMA_DTC_TYPE1_IDENTITY
+
+    let newCredential = {
+      connectionID: data.connection_id,
+      schemaID: schema_id,
+      schemaVersion: schema_id.split(':')[3],
+      schemaName: schema_id.split(':')[2],
+      schemaIssuerDID: schema_id.split(':')[0],
+      comment: '',
+      attributes: credentialAttributes,
+    }
+
+    await Credentials.autoIssueCredential(
+      newCredential.connectionID,
+      undefined,
+      undefined,
+      newCredential.schemaID,
+      newCredential.schemaVersion,
+      newCredential.schemaName,
+      newCredential.schemaIssuerDID,
+      newCredential.comment,
+      newCredential.attributes,
+    )
+
+    const response = {success: 'DTC issued'}
+    res.status(200).send(response)
+  } catch (error) {
+    console.error(error)
+    res.json({
+      error: "Unexpected error occurred, couldn't issue DTC Credential",
+    })
+  }
+})
+app.post('/api/trusted-traveler', checkApiKey, async (req, res) => {
+  console.log(req.body)
+  const data = req.body
+
+  try {
+    let credentialAttributes = [
+      {
+        name: 'traveler_email',
+        value: data.attributes.traveler_email || '',
+      },
+      {
+        name: 'credential_issue_date',
+        value: data.attributes.credential_issue_date || '',
+      },
+      {
+        name: 'credential_issuer_name',
+        value: data.attributes.credential_issuer_name || '',
+      },
+      {
+        name: 'traveler_date_of_birth',
+        value: data.attributes.traveler_date_of_birth || '',
+      },
+      {
+        name: 'traveler_gender_legal',
+        value: data.attributes.traveler_gender_legal || '',
+      },
+      {
+        name: 'governance_applied',
+        value: data.attributes.governance_applied || '',
+      },
+      {
+        name: 'trusted_traveler_issue_date_time',
+        value: data.attributes.trusted_traveler_issue_date_time || '',
+      },
+      {
+        name: 'traveler_origin_country',
+        value: data.attributes.traveler_origin_country || '',
+      },
+      {
+        name: 'traveler_given_names',
+        value: data.attributes.traveler_given_names || '',
+      },
+      {
+        name: 'trusted_traveler_expiration_date_time',
+        value: data.attributes.trusted_traveler_expiration_date_time || '',
+      },
+      {
+        name: 'traveler_surnames',
+        value: data.attributes.traveler_surnames || '',
+      },
+      {
+        name: 'traveler_country',
+        value: data.attributes.traveler_country || '',
+      },
+      {
+        name: 'trusted_traveler_id',
+        value: data.attributes.trusted_traveler_id || '',
+      },
+    ]
+
+    const schema_id = process.env.SCHEMA_TRUSTED_TRAVELER
+
+    let newCredential = {
+      connectionID: data.connection_id,
+      schemaID: schema_id,
+      schemaVersion: schema_id.split(':')[3],
+      schemaName: schema_id.split(':')[2],
+      schemaIssuerDID: schema_id.split(':')[0],
+      comment: '',
+      attributes: credentialAttributes,
+    }
+
+    await Credentials.autoIssueCredential(
+      newCredential.connectionID,
+      undefined,
+      undefined,
+      newCredential.schemaID,
+      newCredential.schemaVersion,
+      newCredential.schemaName,
+      newCredential.schemaIssuerDID,
+      newCredential.comment,
+      newCredential.attributes,
+    )
+
+    const response = {success: 'Trusted Traveler issued'}
+    res.status(200).send(response)
+  } catch (error) {
+    console.error(error)
+    res.json({
+      error:
+        "Unexpected error occurred, couldn't issue Trusted Traveler Credential",
     })
   }
 })

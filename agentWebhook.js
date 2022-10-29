@@ -12,6 +12,7 @@ const BasicMessages = require('./agentLogic/basicMessages')
 const Governance = require('./agentLogic/governance')
 const Presentations = require('./agentLogic/presentations')
 const QuestionAnswer = require('./agentLogic/questionAnswer')
+const Verifications = require('./agentLogic/verifications')
 
 router.post('/topic/connections', async (req, res, next) => {
   console.log('Aries Cloud Agent Webhook Message----Connection------')
@@ -60,25 +61,26 @@ router.post('/topic/connections', async (req, res, next) => {
   res.status(200).send('Ok')
 
   // (eldersonar) Send a proof request to the established connection
-  if (connectionMessage.state === 'active') {
-    await AdminAPI.Connections.sendBasicMessage(
-      connectionMessage.connection_id,
-      {
-        content: 'Thank you for connecting to the Aruba Health Department',
-      },
-    )
-    QuestionAnswer.askQuestion(
-      connectionMessage.connection_id,
-      'How would you like to share your health status?',
-      'Please select a credential option below:',
-      [{text: 'Vaccination'}, {text: 'Lab Result'}],
-      // answers
-    )
+  // if (connectionMessage.state === 'active') {
+  // await AdminAPI.Connections.sendBasicMessage(
+  //   connectionMessage.connection_id,
+  //   {
+  //     content: 'Thank you for connecting to the Aruba Health Department',
+  //   },
+  // )
+  // QuestionAnswer.askQuestion(
+  //   connectionMessage.connection_id,
+  //   'How would you like to share your health status?',
+  //   'Please select a credential option below:',
+  //   [{text: 'Vaccination'}, {text: 'Lab Result'}],
+  //   // answers
+  // )
 
-    answerOptions = []
-    answers = []
-  }
+  // answerOptions = []
+  // answers = []
+  // }
 
+  await Verifications.handleConnection(connectionMessage)
   await Contacts.adminMessage(connectionMessage)
 })
 
@@ -112,7 +114,10 @@ router.post('/topic/present_proof', async (req, res, next) => {
   }
 
   res.status(200).send('Ok')
-  await Presentations.adminMessage(presMessage)
+
+  if (!(await Verifications.handlePresentation(presMessage))) {
+    await Presentations.adminMessage(presMessage)
+  }
 })
 
 router.post('/topic/basicmessages', async (req, res, next) => {

@@ -9,7 +9,7 @@ exports.Contact = Contact
 Contact.init(
   {
     contact_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.TEXT,
       primaryKey: true,
       // allowNull: false,
     },
@@ -36,15 +36,12 @@ Contact.init(
 
 // const {Connection} = require('./connections.js')
 
-const createContact = async function (
-  // contact_id, // Auto-issued
-  label,
-  meta_data,
-) {
+const createContact = async function (contact_id, label, meta_data) {
   try {
     const timestamp = Date.now()
 
     const contact = await Contact.create({
+      contact_id,
       label: label,
       meta_data: meta_data,
       created_at: timestamp,
