@@ -69,6 +69,9 @@ const requestPresentationBySchemaId = async (
       restrictions: [{schema_id: schemaID}],
     }
 
+    const schemaParts = schemaID.split(':')
+    const schemaName = schemaParts[2].replace('_', ' ')
+
     const presentationRequest = {
       trace: trace,
       comment: comment,
@@ -76,7 +79,7 @@ const requestPresentationBySchemaId = async (
         nonce: nonce,
         requested_predicates: {},
         requested_attributes: requestedAttributes,
-        name: 'Proof request',
+        name: schemaName,
         version: '1.0',
       },
       connection_id: connectionID,
