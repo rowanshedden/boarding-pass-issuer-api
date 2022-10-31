@@ -1,4 +1,6 @@
 const crypto = require('crypto')
+const {v4: uuid} = require('uuid')
+
 const sendAdminMessage = require('./transport')
 const Governance = require('../agentLogic/governance')
 
@@ -44,7 +46,6 @@ const requestPresentation = async (
   }
 }
 
-//DTC workflow
 const requestPresentationBySchemaId = async (
   connectionID,
   attributes = [],
@@ -59,11 +60,13 @@ const requestPresentationBySchemaId = async (
     console.log(nonce)
 
     let requestedAttributes = {}
-    for (var i = 0; i < attributes.length; i++) {
-      requestedAttributes[attributes[i]] = {
-        name: attributes[i],
-        restrictions: [{schema_id: schemaID}],
-      }
+
+    //(AmmonBurgi) Create unique referent Key
+    const uid = uuid()
+
+    requestedAttributes[uid] = {
+      names: attributes,
+      restrictions: [{schema_id: schemaID}],
     }
 
     const presentationRequest = {
@@ -78,8 +81,6 @@ const requestPresentationBySchemaId = async (
       },
       connection_id: connectionID,
     }
-
-    console.log(presentationRequest)
 
     const response = await sendAdminMessage(
       'post',
