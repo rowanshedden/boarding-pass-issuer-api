@@ -709,15 +709,26 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
       },
       {
         name: 'boarding_date_time',
-        value: Math.round(DateTime.fromISO(credentialData['boarding_date_time']).ts / 1000).toString() || '',
+        value:
+          Math.round(
+            DateTime.fromISO(credentialData['boarding_date_time']).ts / 1000,
+          ).toString() || '',
       },
       {
         name: 'boarding_departure_date_time',
-        value: Math.round(DateTime.fromISO(credentialData['boarding_departure_date_time']).ts / 1000).toString() || '',
+        value:
+          Math.round(
+            DateTime.fromISO(credentialData['boarding_departure_date_time'])
+              .ts / 1000,
+          ).toString() || '',
       },
       {
         name: 'boarding_arrival_date_time',
-        value: Math.round(DateTime.fromISO(credentialData['boarding_arrival_date_time']).ts / 1000).toString() || '',
+        value:
+          Math.round(
+            DateTime.fromISO(credentialData['boarding_arrival_date_time']).ts /
+              1000,
+          ).toString() || '',
       },
       {
         name: 'frequent_flyer_number',
@@ -737,7 +748,10 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
       },
       {
         name: 'standby_boarding_date',
-        value: Math.round(DateTime.fromISO(credentialData['standby_boarding_date']).ts / 1000).toString() || '',
+        value:
+          Math.round(
+            DateTime.fromISO(credentialData['standby_boarding_date']).ts / 1000,
+          ).toString() || '',
       },
       {
         name: 'standby_priority',

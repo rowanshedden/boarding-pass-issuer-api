@@ -39,11 +39,7 @@ const getSMTP = async () => {
 
 const setSMTP = async (data = {}) => {
   try {
-    if (
-      !data.auth.email ||
-      !data.auth.mailUsername ||
-      !data.host
-    ) {
+    if (!data.auth.email || !data.auth.mailUsername || !data.host) {
       return false
     } else {
       const oldSMTP = await getSMTP()

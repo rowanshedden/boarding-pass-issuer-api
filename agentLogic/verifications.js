@@ -121,14 +121,16 @@ const handlePresentation = async (presMessage) => {
   })
 
   if (presMessage.state === 'verified') {
-    const {revealed_attrs} = presMessage.presentation.requested_proof
+    const {revealed_attr_groups} = presMessage.presentation.requested_proof
 
     var result_data = []
 
-    Object.keys(revealed_attrs).forEach((key) => {
-      result_data.push({
-        name: key,
-        value: revealed_attrs[key].raw,
+    Object.keys(revealed_attr_groups).forEach((key) => {
+      Object.keys(revealed_attr_groups[key].values).forEach((valueKey) => {
+        result_data.push({
+          name: valueKey,
+          value: revealed_attr_groups[key].values[valueKey].raw,
+        })
       })
     })
 
