@@ -128,15 +128,6 @@ const adminMessage = async (connectionMessage) => {
         connectionMessage.inbound_connection_id,
         connectionMessage.error_msg,
       )
-
-      const pendingConnections = await Connections.getAllPendingConnections({
-        sort: [['updated_at', 'DESC']],
-        pageSize: '10',
-      })
-
-      Websockets.sendMessageToAll('CONNECTIONS', 'PENDING_CONNECTIONS', {
-        pendingConnections,
-      })
     } else {
       console.log('State - After Response (e.g. active)')
       // (mikekebert) Only when we have an active connection can we create a new contact
@@ -183,18 +174,6 @@ const adminMessage = async (connectionMessage) => {
         connectionMessage.error_msg,
         contact_id,
       )
-
-      contact = await ContactsCompiled.readContact(contact_id, [
-        'Traveler',
-        'Passport',
-      ])
-      // const contacts = await ContactsCompiled.readContacts(
-      //   {sort: [['updated_at', 'DESC']], pageSize: '10'},
-      //   ['Traveler', 'Passport'],
-      // )
-
-      //(AmmonBurgi) Send contact/connection only on active connection state
-      Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: contact})
     }
   } catch (error) {
     console.error('Error Storing Connection Message')

@@ -53,6 +53,13 @@ Presentations.init(
       type: DataTypes.JSON,
     },
 
+    contact_label: {
+      type: DataTypes.TEXT,
+    },
+    contact_id: {
+      type: DataTypes.TEXT,
+    },
+
     created_at: {
       type: DataTypes.DATE,
     },
@@ -82,6 +89,8 @@ const createPresentationReports = async (
   thread_id,
   auto_present,
   presentation,
+  contact_label,
+  contact_id,
 ) => {
   const timestamp = Date.now()
 
@@ -100,6 +109,8 @@ const createPresentationReports = async (
       thread_id: thread_id,
       auto_present: auto_present,
       presentation: presentation,
+      contact_label: contact_label,
+      contact_id: contact_id,
 
       created_at: timestamp,
       updated_at: timestamp,
@@ -127,26 +138,37 @@ const updatePresentationReports = async (
   thread_id,
   auto_present,
   presentation,
+  contact_label,
+  contact_id,
 ) => {
   const timestamp = Date.now()
-
   try {
+    let argumentsObj = {
+      presentation_exchange_id: presentation_exchange_id,
+      trace: trace,
+      connection_id: connection_id,
+      role: role,
+      presentation_created_at: presentation_created_at,
+      presentation_updated_at: presentation_updated_at,
+      presentation_request_dict: presentation_request_dict,
+      initiator: initiator,
+      presentation_request: presentation_request,
+      state: state,
+      thread_id: thread_id,
+      auto_present: auto_present,
+      presentation: presentation,
+      contact_label: contact_label,
+      contact_id: contact_id,
+    }
+
+    // (AmmonBurgi) Removes arguments with undefined values. This allows for selective updating.
+    Object.keys(argumentsObj).forEach(
+      (arg) => argumentsObj[arg] === undefined && delete argumentsObj[arg],
+    )
+
     const presentationReport = await Presentations.update(
       {
-        presentation_exchange_id: presentation_exchange_id,
-        trace: trace,
-        connection_id: connection_id,
-        role: role,
-        presentation_created_at: presentation_created_at,
-        presentation_updated_at: presentation_updated_at,
-        presentation_request_dict: presentation_request_dict,
-        initiator: initiator,
-        presentation_request: presentation_request,
-        state: state,
-        thread_id: thread_id,
-        auto_present: auto_present,
-        presentation: presentation,
-
+        ...argumentsObj,
         updated_at: timestamp,
       },
       {

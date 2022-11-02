@@ -302,7 +302,7 @@ const readPendingConnections = async function (params = {}) {
     const rawConnections = await Connection.findAndCountAll({
       where: {
         state: {
-          [Op.notIn]: ['active', 'completed'],
+          [Op.notIn]: ['active', 'completed', 'invitation'],
         },
       },
       order: sort,

@@ -453,7 +453,7 @@ const messageHandler = async (ws, context, type, data = {}) => {
               data.contact_id,
               data.additional_tables,
             )
-            sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts: contact})
+            sendMessage(ws, 'CONTACTS', 'CONTACT', {contact})
             break
 
           default:
@@ -553,6 +553,13 @@ const messageHandler = async (ws, context, type, data = {}) => {
                 data.departure_destination_port_code,
                 data.departure_destination_country_code,
               )
+
+              const contact = await Contacts.getContact(data.contact_id, [
+                'Traveler',
+                'Passport',
+              ])
+
+              sendMessage(ws, 'CONTACTS', 'CONTACT', {contact})
             } else {
               sendMessage(ws, 'TRAVELERS', 'TRAVELERS_ERROR', {
                 error:
@@ -588,6 +595,14 @@ const messageHandler = async (ws, context, type, data = {}) => {
               data.passport_created_date,
               // data.photo,
             )
+
+            const contact = await Contacts.getContact(data.contact_id, [
+              'Traveler',
+              'Passport',
+            ])
+
+            sendMessage(ws, 'CONTACTS', 'CONTACT', {contact})
+
             break
 
           default:

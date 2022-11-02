@@ -11,7 +11,6 @@ const Credentials = require('./credentials')
 const Governance = require('./governance')
 const Travelers = require('./travelers')
 const Presentations = require('../orm/presentations')
-const sendAdminMessage = require('../adminAPI/transport')
 
 const {getOrganization} = require('./settings')
 
@@ -3436,6 +3435,10 @@ const adminMessage = async (message) => {
 
 const createPresentationReports = async (presentation) => {
   try {
+    const contact = await Contacts.getContactByConnection(
+      presentation.connection_id,
+    )
+
     const presentationReport = await Presentations.createPresentationReports(
       presentation.presentation_exchange_id,
       presentation.trace,
@@ -3450,6 +3453,8 @@ const createPresentationReports = async (presentation) => {
       presentation.thread_id,
       presentation.auto_present,
       JSON.stringify(presentation.presentation),
+      contact ? contact.label : '',
+      contact ? contact.contact_id : '',
     )
 
     // Broadcast the message to all connections
@@ -3471,6 +3476,10 @@ const updatePresentationReports = async (presentation) => {
       requestedPresentation = undefined
     }
 
+    const contact = await Contacts.getContactByConnection(
+      presentation.connection_id,
+    )
+
     const presentationReport = await Presentations.updatePresentationReports(
       presentation.presentation_exchange_id,
       presentation.trace,
@@ -3485,6 +3494,8 @@ const updatePresentationReports = async (presentation) => {
       presentation.thread_id,
       presentation.auto_present,
       JSON.stringify(requestedPresentation),
+      contact.label,
+      contact.contact_id,
     )
 
     // Broadcast the message to all connections

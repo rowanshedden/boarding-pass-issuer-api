@@ -1,6 +1,6 @@
 {
-	"short_name": "Aruba Government",
-	"name": "Aruba Government Enterprise Agent",
+	"short_name": "SITA",
+	"name": "SITA Government",
 	"icons": [
 		{
 			"src": "favicon.ico",
@@ -20,6 +20,6 @@
 	],
 	"start_url": ".",
 	"display": "standalone",
-	"theme_color": "#555555",
-	"background_color": "#ffffff"
+	"theme_color": "#5555",
+	"background_color": "#ffff"
 }
