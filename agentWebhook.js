@@ -201,4 +201,18 @@ router.post('/topic/questionanswer', async (req, res, next) => {
   }
 })
 
+router.post('/topic/mediation/', async (req, res, next) => {
+  console.log('Aries Cloud Agent Webhook Message----Mediation------')
+  console.log('Message Details:', req.body)
+
+  res.status(200).send('Ok')
+})
+
+router.post('/topic/out_of_band/', async (req, res, next) => {
+  console.log('Aries Cloud Agent Webhook Message----Out of Band------')
+  console.log(req.body)
+
+  res.status(200).send('Ok')
+})
+
 module.exports = router
