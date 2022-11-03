@@ -130,7 +130,7 @@ const handlePresentation = async (presMessage) => {
     presMessage.presentation_exchange_id,
   )
 
-  if (verification === null) {
+  if (!verification) {
     return false
   }
 

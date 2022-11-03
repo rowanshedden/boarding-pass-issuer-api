@@ -29,9 +29,11 @@ exports.up = function (db) {
 }
 
 exports.down = function (db) {
-  return db.removeColumn('presentation_reports', 'contact_label').then(function () {
-    return db.removeColumn('presentation_reports', 'contact_id')
-  })
+  return db
+    .removeColumn('presentation_reports', 'contact_label')
+    .then(function () {
+      return db.removeColumn('presentation_reports', 'contact_id')
+    })
 }
 
 exports._meta = {
