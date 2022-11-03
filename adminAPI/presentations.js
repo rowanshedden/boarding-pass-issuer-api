@@ -1,4 +1,6 @@
 const crypto = require('crypto')
+const {v4: uuid} = require('uuid')
+
 const sendAdminMessage = require('./transport')
 const Governance = require('../agentLogic/governance')
 
@@ -59,12 +61,16 @@ const requestPresentationBySchemaId = async (
     console.log(nonce)
 
     let requestedAttributes = {}
-    for (var i = 0; i < attributes.length; i++) {
-      requestedAttributes[attributes[i]] = {
-        name: attributes[i],
-        restrictions: [{schema_id: schemaID}],
-      }
+    //(AmmonBurgi) Create unique referent Key
+    const uid = uuid()
+
+    requestedAttributes[uid] = {
+      names: attributes,
+      restrictions: [{schema_id: schemaID}],
     }
+
+    const schemaParts = schemaID.split(':')
+    const schemaName = schemaParts[2].replace('_', ' ')
 
     const presentationRequest = {
       trace: trace,
@@ -73,13 +79,11 @@ const requestPresentationBySchemaId = async (
         nonce: nonce,
         requested_predicates: {},
         requested_attributes: requestedAttributes,
-        name: 'Proof request',
+        name: schemaName,
         version: '1.0',
       },
       connection_id: connectionID,
     }
-
-    console.log(presentationRequest)
 
     const response = await sendAdminMessage(
       'post',
