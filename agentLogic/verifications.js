@@ -1,22 +1,16 @@
 // Invitation request API
 const Invitations = require('./invitations')
-// const Contacts = require('./contacts')
 const Presentations = require('./presentations')
+const Contacts = require('./contacts')
 
-const Connections = require('../orm/connections')
 const Verifications = require('../orm/verifications')
 const AdminAPI = require('../adminAPI')
 
 var deferred = require('deferred')
-const {NIL} = require('uuid')
-const {Invitation} = require('../orm/invitations')
-const {Contact} = require('../orm/contacts')
 
 var pending_verifications = {}
 
-const startRule = async (verification) => {
-  console.log('======================Start Rule================')
-
+const startRule = async (id, verificationList) => {
   // we call this here to get the presentation id before getting webhook notifications
   /*
     TODO this workflow doesn't work right now. By not having the 
@@ -48,37 +42,30 @@ const startRule = async (verification) => {
     )
 */
 
-  let invitation = await Invitations.getInvitation(verification.invitation_id)
-
-  console.log('=============request presentation==========')
   // TODO This workflow may contain a race condition
-  // TODO: move lookup for connections by invitation or contact here.
-  const result = await Presentations.requestSchemaPresentation(
-    invitation.connection_id,
-    [
-      'created-date',
-      'document-type',
-      'issue-date',
-      'document-number',
-      'issuing-state',
-      'gender',
-      'date-of-birth',
-      'chip-photo',
-      'family-name',
-      'given-names',
-      'dtc',
-      'upk',
-      'expiry-date',
-      'issuing-authority',
-      'nationality',
-    ],
-    process.env.SCHEMA_DTC_TYPE1_IDENTITY,
-  )
+  let invitation = await Invitations.getInvitation(id)
 
-  await verification.update({
-    presentation_exchange_id: result.presentation_exchange_id,
-    proof_state: result.state,
-  })
+  let iteration = 0
+  const requestPresentationByVerification = async () => {
+    const result = await Presentations.requestSchemaPresentation(
+      invitation.connection_id,
+      verificationList[iteration].schema_attributes,
+      verificationList[iteration].schema_id,
+    )
+
+    if (result) {
+      await verificationList[iteration].update({
+        presentation_exchange_id: result.presentation_exchange_id,
+        proof_state: result.state,
+      })
+    }
+    if (iteration !== verificationList.length - 1) {
+      iteration++
+      requestPresentationByVerification()
+    }
+  }
+
+  await requestPresentationByVerification()
 }
 
 const handleConnection = async (connectionMessage) => {
@@ -89,31 +76,32 @@ const handleConnection = async (connectionMessage) => {
   )
 
   if (!invitation) {
-    // TODO: Use a contact_id instead of a invitation_id to find the verification record
-    console.log(
-      'There is no invitation record found... end of verification flow',
-    )
+    console.log('No Invitation could be found for verification workflow.')
     return
   }
 
-  let verification = await Verifications.readVerificationsByInvitationId(
+  let verifications = await Verifications.readVerificationsByInvitationId(
     invitation.invitation_id,
   )
 
-  if (!verification) {
+  if (!verifications || verifications.length === 0) {
     console.log(
       'There is no verification record found... end of verification flow',
     )
     return
   }
 
-  await verification.update({
-    connection_state: connectionMessage.state,
-  })
+  await Promise.all(
+    verifications.map(async (verRecord) => {
+      await verRecord.update({
+        connection_state: connectionMessage.state,
+      })
+    }),
+  )
 
   if (connectionMessage.state === 'active') {
     console.log('STARTING THE RULE')
-    startRule(verification)
+    startRule(invitation.invitation_id, verifications)
   } else {
     console.log('NOT STARTING THE RULE')
     console.log(connectionMessage['state'])
@@ -174,8 +162,6 @@ const handlePresentation = async (presMessage) => {
         result_data: null,
         connection_id: presMessage.connection_id,
       })
-
-      console.log('Updated virifiaction: ', verification)
     }
   }
 
@@ -183,30 +169,33 @@ const handlePresentation = async (presMessage) => {
 }
 
 const verify = async (data) => {
-  console.log('test verification')
-
   try {
-    let verification = null
     let connection = null
 
-    let verification_request = {
-      connection_id: null,
-      contact_id: data.contact_id ? data.contact_id : null,
-      invitation_id: data.invitation_id ? data.invitation_id : null,
-      schema_id: data.schema_id,
-      schema_attributes: data.attributes,
-      timeout: data.timeout,
-      rule: data.rule,
-      meta_data: data.meta_data,
-      complete: false,
-      result: false,
-      result_string: null,
-      result_data: null,
-      error: '',
-    }
+    let verificationList = []
 
-    verification = await Verifications.createOrUpdateVerificationRecord(
-      verification_request,
+    await Promise.all(
+      data.schemas.map(async (schema) => {
+        let newVerificationRecord = await Verifications.createVerificationRecord(
+          {
+            connection_id: null,
+            contact_id: data.contact_id ? data.contact_id : null,
+            invitation_id: data.invitation_id ? data.invitation_id : null,
+            schema_id: schema.schema_id,
+            schema_attributes: schema.schema_attributes,
+            timeout: data.timeout,
+            rule: data.rule,
+            meta_data: data.meta_data,
+            complete: false,
+            result: false,
+            result_string: null,
+            result_data: null,
+            error: '',
+          },
+        )
+
+        verificationList.push(newVerificationRecord)
+      }),
     )
 
     if (data.contact_id || data.invitation_id) {
@@ -263,37 +252,56 @@ const verify = async (data) => {
         setTimeout(resolve, timeout, true)
       })
 
-      let def = deferred()
+      let deferredArray = []
 
-      console.log('Verification record is: ', verification)
+      if (verificationList) {
+        verificationList.forEach((verRecord) => {
+          const def = deferred()
+          deferredArray.push(def)
 
-      if (verification) {
-        pending_verifications[verification.verification_id] = def
+          pending_verifications[verRecord.verification_id] = def
+        })
 
         console.log('Connection record is: ', connection)
 
         if (connection && connection.state === 'active') {
           // we already have an active connection, so send presentation request
-          await startRule(verification)
+          await startRule(data.invitation_id, verificationList)
         }
 
         // we need to wait for the presentation
         // we also need to consider the timeout...
         // so we wait for which everone finishes first
-        value = await Promise.race([TimeDelay, def.promise])
 
-        // remove deferred object from webhook handling
-        delete pending_verifications[verification.verification_id]
+        //Wait for all promises
+        await Promise.all(
+          deferredArray.map(async (def) => {
+            await Promise.race([TimeDelay, def.promise])
+          }),
+        )
 
-        // get latest verification state
-        // TODO: use the agent logic function instead
-        verification = await Verifications.Verification.findOne({
-          where: {
-            verification_id: verification.verification_id,
-          },
+        verificationList.forEach((verRecord) => {
+          delete pending_verifications[verRecord.verification_id]
         })
 
-        return verification
+        // remove deferred object from webhook handling
+        // get latest verification state
+        // TODO: use the agent logic function instead
+        let verifiedList = []
+
+        await Promise.all(
+          verificationList.map(async (verRecord) => {
+            let verificationRecord = await Verifications.Verification.findOne({
+              where: {
+                verification_id: verRecord.verification_id,
+              },
+            })
+
+            verifiedList.push(verificationRecord)
+          }),
+        )
+
+        return verifiedList
       } else {
         console.log('No verification record found. Return...')
         return
@@ -313,6 +321,8 @@ const retrieve = async (verification_id) => {
         verification_id: verification_id,
       },
     })
+
+    // console.log('Retrieved verification record: ', verification)
 
     return verification
   } catch (e) {
