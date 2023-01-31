@@ -390,6 +390,9 @@ app.get('/api/renew-session', verifySession, async (req, res) => {
 })
 
 const checkApiKey = function (req, res, next) {
+  console.log('=======header=======')
+  console.log(req.header('x-api-key'))
+  console.log('=======header=======')
   if (req.header('x-api-key') != process.env.APIKEY) {
     res.sendStatus(401)
   } else {
@@ -401,6 +404,7 @@ const checkApiKey = function (req, res, next) {
 app.post('/api/invitations', checkApiKey, async (req, res) => {
   console.log(req.body)
   const data = req.body
+  console.log('=========================invitation=======================')
   try {
     if (data.invitation_type === 'OOB') {
       console.log('OOB invitation workflow')
@@ -468,12 +472,9 @@ app.post('/api/verifications', checkApiKey, async (req, res) => {
     const data = req.body
 
     if (!data.invitation_id && !data.contact_id) {
-      res
-        .status(400)
-        .send({
-          message:
-            'No invitation_id or contact_id was provided on the request.',
-        })
+      res.status(400).send({
+        message: 'No invitation_id or contact_id was provided on the request.',
+      })
     }
 
     const verification = await Verifications.verify(data)
@@ -501,22 +502,17 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
     const data = req.body
 
     if (!data.invitation_id && !data.contact_id) {
-      res
-        .status(400)
-        .send({
-          message:
-            'No invitation_id or contact_id was provided on the request.',
-        })
+      res.status(400).send({
+        message: 'No invitation_id or contact_id was provided on the request.',
+      })
     }
 
     const invitation = await Invitations.getInvitation(data.invitation_id)
 
     if (!invitation) {
-      res
-        .status(400)
-        .send({
-          message: `The invitation (${data.invitation_id}) could not be found.`,
-        })
+      res.status(400).send({
+        message: `The invitation (${data.invitation_id}) could not be found.`,
+      })
     }
 
     const schemaParts = data.schema_id.split(':')

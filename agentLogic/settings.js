@@ -132,9 +132,6 @@ const setManifest = async (short_name, name, theme_color, bg_color) => {
 
 const getSchemas = async () => {
   return {
-    SCHEMA_LAB_RESULT: process.env.SCHEMA_LAB_RESULT,
-    SCHEMA_VACCINATION: process.env.SCHEMA_VACCINATION,
-    SCHEMA_VACCINE_EXEMPTION: process.env.SCHEMA_VACCINE_EXEMPTION,
     SCHEMA_TRUSTED_TRAVELER: process.env.SCHEMA_TRUSTED_TRAVELER,
   }
 }

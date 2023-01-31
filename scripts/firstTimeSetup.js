@@ -127,6 +127,9 @@ const ledgerWrites = async () => {
         process.env.SCHEMA_DTC_TYPE1_IDENTITY,
       ),
     )
+    credDefIDs.push(
+      await CredDefs.createCredDef('default', process.env.SCHEMA_BOARDING_PASS),
+    )
 
     const rlCred = readline.createInterface({
       input: process.stdin,
