@@ -80,8 +80,6 @@ const adminMessage = async (credentialIssuanceMessage) => {
         credentialIssuanceMessage.auto_remove,
         credentialIssuanceMessage.error_msg,
         credentialIssuanceMessage.trace,
-        credentialIssuanceMessage.created_at,
-        credentialIssuanceMessage.updated_at,
       )
     } else {
       credentialRecord = await Credentials.updateCredential(
@@ -109,8 +107,6 @@ const adminMessage = async (credentialIssuanceMessage) => {
         credentialIssuanceMessage.auto_remove,
         credentialIssuanceMessage.error_msg,
         credentialIssuanceMessage.trace,
-        credentialIssuanceMessage.created_at,
-        credentialIssuanceMessage.updated_at,
       )
     }
     console.log(credentialIssuanceMessage.state)

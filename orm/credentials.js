@@ -135,11 +135,10 @@ const createCredential = async function (
 
   error_msg,
   trace,
-
-  created_at,
-  updated_at,
 ) {
   try {
+    const timestamp = Date.now()
+
     const credentialRecord = await Credential.upsert({
       credential_exchange_id: credential_exchange_id,
       credential_id: credential_id,
@@ -172,8 +171,8 @@ const createCredential = async function (
       error_msg: error_msg,
       trace: trace,
 
-      created_at: created_at,
-      updated_at: updated_at,
+      created_at: timestamp,
+      updated_at: timestamp,
     })
 
     console.log('Credential saved successfully.')
@@ -238,11 +237,10 @@ const updateCredential = async function (
 
   error_msg,
   trace,
-
-  created_at,
-  updated_at,
 ) {
   try {
+    const timestamp = Date.now()
+
     const credentialRecord = await Credential.update(
       {
         credential_exchange_id: credential_exchange_id,
@@ -276,8 +274,7 @@ const updateCredential = async function (
         error_msg: error_msg,
         trace: trace,
 
-        created_at: created_at,
-        updated_at: updated_at,
+        updated_at: timestamp,
       },
       {
         where: {
