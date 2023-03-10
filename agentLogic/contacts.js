@@ -109,7 +109,7 @@ const adminMessage = async (connectionMessage) => {
     ) {
       console.log('State - Request or Response')
 
-      await Connections.updateExistingConnection(
+      await Connections.updateOrCreateConnection(
         connectionMessage.connection_id,
         connectionMessage.state,
         connectionMessage.my_did,
