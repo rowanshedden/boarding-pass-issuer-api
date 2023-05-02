@@ -86,7 +86,7 @@ const updatePresentationReports = async (presentation) => {
     let requestedPresentation = presentation.presentation
 
     // (AmmonBurgi) If our environment variable is equal to false, assign presentation to undefined so we don't store PHI attributes. Assigning it to undefined will prevent UI from breaking.
-    if (process.env.ALLOW_PHI_ATTRIBUTES === 'false') {
+    if (process.env.STORE_PRESENTATION_ATTRIBUTES === 'false') {
       requestedPresentation = undefined
     }
 
