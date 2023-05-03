@@ -390,9 +390,6 @@ app.get('/api/renew-session', verifySession, async (req, res) => {
 })
 
 const checkApiKey = function (req, res, next) {
-  console.log('=======header=======')
-  console.log(req.header('x-api-key'))
-  console.log('=======header=======')
   if (req.header('x-api-key') != process.env.APIKEY) {
     res.sendStatus(401)
   } else {
@@ -404,7 +401,6 @@ const checkApiKey = function (req, res, next) {
 app.post('/api/invitations', checkApiKey, async (req, res) => {
   console.log(req.body)
   const data = req.body
-  console.log('=========================invitation=======================')
   try {
     if (data.invitation_type === 'OOB') {
       console.log('OOB invitation workflow')
