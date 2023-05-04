@@ -1,7 +1,8 @@
 const AdminAPI = require('../adminAPI')
 const Websockets = require('../websockets.js')
 
-let Connections = require('../orm/connections.js')
+const Connections = require('../agentLogic/connections')
+
 let Contacts = require('../orm/contacts.js')
 let ContactsCompiled = require('../orm/contactsCompiled.js')
 
@@ -54,9 +55,12 @@ const getContactByConnection = async (connectionID, additionalTables) => {
   }
 }
 
-const getAll = async (additionalTables) => {
+const getAll = async (params, additionalTables) => {
   try {
-    const contacts = await ContactsCompiled.readContacts(additionalTables)
+    const contacts = await ContactsCompiled.readContacts(
+      params,
+      additionalTables,
+    )
 
     console.log('Got All Contacts')
 
@@ -74,7 +78,7 @@ const adminMessage = async (connectionMessage) => {
     if (connectionMessage.state === 'invitation') {
       console.log('State - Invitation')
 
-      await Connections.createOrUpdateConnection(
+      await Connections.updateOrCreateConnection(
         connectionMessage.connection_id,
         connectionMessage.state,
         connectionMessage.my_did,
@@ -97,7 +101,7 @@ const adminMessage = async (connectionMessage) => {
       return
     }
 
-    var contact
+    let contact
 
     if (
       connectionMessage.state === 'request' ||
@@ -105,7 +109,7 @@ const adminMessage = async (connectionMessage) => {
     ) {
       console.log('State - Request or Response')
 
-      await Connections.updateConnection(
+      await Connections.updateOrCreateConnection(
         connectionMessage.connection_id,
         connectionMessage.state,
         connectionMessage.my_did,
@@ -127,7 +131,7 @@ const adminMessage = async (connectionMessage) => {
     } else {
       console.log('State - After Response (e.g. active)')
       // (mikekebert) Only when we have an active connection can we create a new contact
-      let connection = await Connections.readConnection(
+      let connection = await Connections.getConnection(
         connectionMessage.connection_id,
       )
 
@@ -150,7 +154,7 @@ const adminMessage = async (connectionMessage) => {
         console.log('Provided contact_id: ', contact_id)
       }
 
-      await Connections.updateConnection(
+      await Connections.updateExistingConnection(
         connectionMessage.connection_id,
         connectionMessage.state,
         connectionMessage.my_did,
@@ -171,13 +175,6 @@ const adminMessage = async (connectionMessage) => {
         contact_id,
       )
     }
-
-    contact = await ContactsCompiled.readContactByConnection(
-      connectionMessage.connection_id,
-      ['Traveler', 'Passport'],
-    )
-
-    Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: [contact]})
   } catch (error) {
     console.error('Error Storing Connection Message')
     throw error

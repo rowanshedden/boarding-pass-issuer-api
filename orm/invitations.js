@@ -1,11 +1,10 @@
 const {Sequelize, DataTypes, Model} = require('sequelize')
+const uuid = require('uuid')
 
 const {findOffset} = require('./pagination')
 
 const init = require('./init.js')
 sequelize = init.connect()
-
-// const {v4: uuid} = require('uuid')
 
 class Invitation extends Model {}
 exports.Invitation = Invitation
@@ -111,7 +110,6 @@ const createInvitation = async function (
 }
 
 const readInvitationByInvitationId = async function (invitation_id) {
-  console.log('readInvitationByInvitationId')
   try {
     const invitation = await Invitation.findAll({
       where: {
@@ -134,6 +132,12 @@ const readInvitationByOOBId = async function (oob_id) {
         oob_id,
       },
     })
+
+    // console.log(
+    //   'Requested OOB invitation:',
+    //   JSON.stringify(invitation[0], null, 2),
+    // )
+
     return invitation[0]
   } catch (error) {
     console.error('Could not find invitation by id in the database: ', error)
@@ -147,6 +151,12 @@ const readInvitationByConnectionId = async function (connection_id) {
         connection_id,
       },
     })
+
+    // console.log(
+    //   'Requested OOB invitation:',
+    //   JSON.stringify(invitation[0], null, 2),
+    // )
+
     return invitation[0]
   } catch (error) {
     console.error(

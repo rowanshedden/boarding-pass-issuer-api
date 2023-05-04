@@ -6,10 +6,12 @@ const router = express.Router()
 const AdminAPI = require('./adminAPI')
 
 const Contacts = require('./agentLogic/contacts')
+const Connections = require('./agentLogic/connections')
 const Credentials = require('./agentLogic/credentials')
 const Passports = require('./agentLogic/passports')
 const BasicMessages = require('./agentLogic/basicMessages')
 const Governance = require('./agentLogic/governance')
+const Invitations = require('./agentLogic/invitations')
 const Presentations = require('./agentLogic/presentations')
 const QuestionAnswer = require('./agentLogic/questionAnswer')
 const Verifications = require('./agentLogic/verifications')
@@ -145,45 +147,6 @@ router.post('/topic/data-transfer', async (req, res, next) => {
 //   console.log(
 //     'Aries Cloud Agent Webhook Message----Data Transfer goalCode------',
 //   )
-
-//   console.log('Message Details:', req.params.goalCode)
-//   if (req.params.goalCode === 'transfer.demographicdata') {
-//     let connection_id = req.body.connection_id
-//     let data = req.body.data[0].data.json
-
-//     let contact = await Contacts.getContactByConnection(connection_id, [])
-
-//     Demographics.updateOrCreateDemographic(
-//       contact.contact_id,
-//       data.email,
-//       data.phone,
-//       data.address,
-//     )
-//   } else if (req.params.goalCode === 'transfer.passportdata') {
-//     let connection_id = req.body.connection_id
-//     let data = req.body.data[0].data.json
-
-//     let contact = await Contacts.getContactByConnection(connection_id, [])
-
-//     Passports.updateOrCreatePassport(
-//       contact.contact_id,
-//       data.passport_number,
-//       data.surname,
-//       data.given_names,
-//       data.sex,
-//       data.date_of_birth,
-//       data.place_of_birth,
-//       data.nationality,
-//       data.date_of_issue,
-//       data.date_of_expiration,
-//       data.type,
-//       data.code,
-//       data.authority,
-//       data.photo,
-//     )
-//   } else {
-//   }
-
 //   res.status(200).send('Ok')
 // })
 
@@ -201,6 +164,26 @@ router.post('/topic/questionanswer', async (req, res, next) => {
   }
 })
 
+router.post('/topic/connection_reuse', async (req, res, next) => {
+  console.log('Aries Cloud Agent Webhook Message----Connection Reuse------')
+
+  console.log(req.body)
+  Connections.handleConnectionReuse(req.body)
+
+  res.status(200).send('Ok')
+})
+
+router.post('/topic/connection_reuse_accepted', async (req, res, next) => {
+  console.log(
+    'Aries Cloud Agent Webhook Message----Connection Reuse Accepted------',
+  )
+
+  console.log(req.body)
+  Connections.handleConnectionReuse(req.body)
+
+  res.status(200).send('Ok')
+})
+
 router.post('/topic/mediation/', async (req, res, next) => {
   console.log('Aries Cloud Agent Webhook Message----Mediation------')
   console.log('Message Details:', req.body)
@@ -210,6 +193,15 @@ router.post('/topic/mediation/', async (req, res, next) => {
 
 router.post('/topic/out_of_band/', async (req, res, next) => {
   console.log('Aries Cloud Agent Webhook Message----Out of Band------')
+  console.log(req.body)
+
+  Invitations.updateAvailableOOBInvitation(req.body)
+
+  res.status(200).send('Ok')
+})
+
+router.post('/topic/keylist', async (req, res, next) => {
+  console.log('Aries Cloud Agent Webhook Message----Key List------')
   console.log(req.body)
 
   res.status(200).send('Ok')

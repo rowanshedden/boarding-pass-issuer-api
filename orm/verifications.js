@@ -74,28 +74,23 @@ Verification.init(
 
 const createVerificationRecord = async function (data, created_at, updated_at) {
   try {
-    const verificationRecord = await Verification.upsert(
-      {
-        connection_id: data.connection_id,
-        contact_id: data.contact_id,
-        invitation_id: data.invitation_id,
-        schema_id: data.schema_id,
-        schema_attributes: data.schema_attributes,
-        timeout: data.timeout,
-        rule: data.rule,
-        meta_data: data.meta_data,
-        complete: data.complete,
-        result: data.result,
-        result_string: data.result_string,
-        result_data: data.result_data,
-        error: data.error,
-        created_at: created_at,
-        updated_at: updated_at,
-      },
-      {
-        returning: true,
-      },
-    )
+    const verificationRecord = await Verification.create({
+      connection_id: data.connection_id,
+      contact_id: data.contact_id,
+      invitation_id: data.invitation_id,
+      schema_id: data.schema_id,
+      schema_attributes: data.schema_attributes,
+      timeout: data.timeout,
+      rule: data.rule,
+      meta_data: data.meta_data,
+      complete: data.complete,
+      result: data.result,
+      result_string: data.result_string,
+      result_data: data.result_data,
+      error: data.error,
+      created_at: created_at,
+      updated_at: updated_at,
+    })
 
     console.log('Verification saved successfully.')
     return verificationRecord

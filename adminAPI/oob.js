@@ -2,7 +2,6 @@ const sendAdminMessage = require('./transport')
 
 //Send an out-of-band message
 const createOOBInvitation = async (
-  // TODO: create a config that supports the array of protocols with first being used by default
   protocol = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/didexchange/1.0',
   alias = 'OOB Invitation',
   multiUse = false,
@@ -44,6 +43,7 @@ const acceptOOBInvitation = async (invitation) => {
       'post',
       `/out-of-band/receive-invitation`,
       {
+        use_existing_connection: true,
         auto_accept: true,
       },
       parsedInvitation,

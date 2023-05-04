@@ -21,8 +21,8 @@ exports.up = function (db) {
     [
       'manifest',
       JSON.stringify({
-        short_name: 'Aruba Government',
-        name: 'Aruba Government Enterprise Agent',
+        short_name: 'Boarding Pass Issuer',
+        name: 'Boarding Pass Issuer Enterprise Agent',
         icons: [
           {
             src: 'favicon.ico',

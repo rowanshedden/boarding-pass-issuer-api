@@ -34,7 +34,7 @@ exports.up = function (db) {
     })
     .then(function () {
       return db.addColumn('passports', 'passport_created_date', {
-        type: 'string',
+        type: 'timestamptz',
         null: true,
       })
     })

@@ -33,25 +33,18 @@ const updateOrCreateTraveler = async function (
       traveler_country_of_origin,
       arrival_airline,
       arrival_flight_number,
-      arrivalDate,
+      arrivalDate ? arrivalDate : null,
       arrival_destination_port_code,
       arrival_destination_country_code,
       departure_airline,
       departure_flight_number,
-      departureDate,
+      departureDate ? departureDate : null,
       departure_destination_port_code,
       departure_destination_country_code,
       verification_status,
     )
 
-    const contact = await ContactsCompiled.readContact(contact_id, [
-      'Traveler',
-      'Passport',
-    ])
-
-    Websockets.sendMessageToAll('CONTACTS', 'CONTACTS', {contacts: [contact]})
-
-    return contact
+    return true
   } catch (error) {
     console.error('Error Fetching Contacts')
     throw error

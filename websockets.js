@@ -346,19 +346,46 @@ const messageHandler = async (ws, context, type, data = {}) => {
 
       case 'INVITATIONS':
         switch (type) {
-          case 'CREATE_SINGLE_USE':
-            if (check(rules, userRoles, 'invitations:create')) {
-              let invitation
-              if (data.workflow) {
-                invitation = await Invitations.createPersistentSingleUseInvitation(
-                  data.workflow,
-                )
-              } else {
-                invitation = await Invitations.createSingleUseInvitation()
-              }
-              sendMessage(ws, 'INVITATIONS', 'INVITATION', {
-                invitation_record: invitation,
+          case 'GET_ALL':
+            const invitationRecords = await Invitations.getAll(data.params)
+            sendMessage(ws, 'INVITATIONS', 'INVITATIONS', invitationRecords)
+            break
+
+          case 'GET':
+            if (check(rules, userRoles, 'invitations:read')) {
+              const invitationRecords = await Invitations.readInvitationByInvitationId(
+                data.invitation_id,
+              )
+              sendMessage(ws, 'INVITATIONS', 'INVITATIONS', {
+                invitationRecords: [invitationRecords],
               })
+            }
+            break
+
+          case 'CREATE':
+            if (check(rules, userRoles, 'invitations:create')) {
+              const invitation = await Invitations.createInvitation(
+                null,
+                data.alias,
+                data.invitationMode,
+                data.accept,
+                data.public,
+                data.invitationRole,
+                data.invitationLabel,
+                data.invitationStatus,
+                data.invitationDescription,
+                data.invitationActiveStartingAt,
+                data.invitationActiveEndingAt,
+                data.usesAllowed,
+              )
+
+              sendMessage(
+                ws,
+                'INVITATIONS',
+                'INVITATIONS',
+                invitation.invitation_record,
+              )
+              sendMessage(ws, 'INVITATIONS', 'INVITATION', invitation.newInv)
             } else {
               sendMessage(ws, 'INVITATIONS', 'INVITATIONS_ERROR', {
                 error: 'ERROR: You are not authorized to create invitations.',
@@ -376,6 +403,28 @@ const messageHandler = async (ws, context, type, data = {}) => {
             }
             break
 
+          case 'DELETE':
+            if (check(rules, userRoles, 'invitations:delete')) {
+              const deletedInvitation = await Invitations.deleteInvitation(data)
+              if (deletedInvitation === true) {
+                sendMessage(
+                  ws,
+                  'INVITATIONS',
+                  'INVITATIONS_SUCCESS',
+                  'Invitation was successfully deleted!',
+                )
+              } else
+                sendMessage(ws, 'INVITATIONS', 'INVITATION_ERROR', {
+                  error:
+                    "ERROR: The invitation couldn't be deleted. Please try again.",
+                })
+            } else {
+              sendMessage(ws, 'INVITATIONS', 'INVITATION_ERROR', {
+                error: 'ERROR: You are not authorized to delete invitations.',
+              })
+            }
+            break
+
           default:
             console.error(`Unrecognized Message Type: ${type}`)
             sendErrorMessage(ws, 1, 'Unrecognized Message Type')
@@ -387,7 +436,10 @@ const messageHandler = async (ws, context, type, data = {}) => {
         switch (type) {
           case 'GET_ALL':
             if (check(rules, userRoles, 'contacts:read')) {
-              const contacts = await Contacts.getAll(data.additional_tables)
+              const contacts = await Contacts.getAll(
+                data.params,
+                data.additional_tables,
+              )
               sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts})
             } else {
               sendMessage(ws, 'CONTACTS', 'CONTACTS_ERROR', {
@@ -401,7 +453,25 @@ const messageHandler = async (ws, context, type, data = {}) => {
               data.contact_id,
               data.additional_tables,
             )
-            sendMessage(ws, 'CONTACTS', 'CONTACTS', {contacts: [contact]})
+            sendMessage(ws, 'CONTACTS', 'CONTACT', {contact})
+            break
+
+          default:
+            console.error(`Unrecognized Message Type: ${type}`)
+            sendErrorMessage(ws, 1, 'Unrecognized Message Type')
+            break
+        }
+        break
+
+      case 'CONNECTIONS':
+        switch (type) {
+          case 'PENDING_CONNECTIONS':
+            const pendingConnections = await Connections.getAllPendingConnections(
+              data.params,
+            )
+            sendMessage(ws, 'CONNECTIONS', 'PENDING_CONNECTIONS', {
+              pendingConnections,
+            })
             break
 
           default:
@@ -415,11 +485,29 @@ const messageHandler = async (ws, context, type, data = {}) => {
         switch (type) {
           case 'CREATE_INVITATION':
             if (check(rules, userRoles, 'invitations:create')) {
-              let invitation = await Invitations.createOutOfBandInvitation()
+              const invitation = await Invitations.createOutOfBandInvitation(
+                null,
+                data.handshakeProtocol,
+                data.alias,
+                data.invitationMode,
+                data.accept,
+                data.public,
+                data.invitationRole,
+                data.invitationLabel,
+                data.invitationStatus,
+                data.invitationDescription,
+                data.invitationActiveStartingAt,
+                data.invitationActiveEndingAt,
+                data.usesAllowed,
+              )
 
-              sendMessage(ws, 'OUT_OF_BAND', 'INVITATION', {
-                invitation_record: invitation,
-              })
+              sendMessage(
+                ws,
+                'INVITATIONS',
+                'INVITATIONS',
+                invitation.invitation_record,
+              )
+              sendMessage(ws, 'OUT_OF_BAND', 'INVITATION', invitation.oobInv)
             } else {
               sendMessage(ws, 'OUT_OF_BAND', 'INVITATIONS_ERROR', {
                 error: 'ERROR: You are not authorized to create invitations.',
@@ -435,76 +523,6 @@ const messageHandler = async (ws, context, type, data = {}) => {
                 error: 'ERROR: You are not authorized to accept invitations.',
               })
             }
-            break
-
-          default:
-            console.error(`Unrecognized Message Type: ${type}`)
-            sendErrorMessage(ws, 1, 'Unrecognized Message Type')
-            break
-        }
-        break
-
-      case 'TRAVELERS':
-        switch (type) {
-          case 'UPDATE_OR_CREATE':
-            if (
-              check(
-                rules,
-                userRoles,
-                'demographics:create, demographics:update',
-              )
-            ) {
-              await Travelers.updateOrCreateTraveler(
-                data.contact_id,
-                data.traveler_email,
-                data.traveler_phone,
-                data.traveler_country,
-                data.traveler_country_of_origin,
-                data.arrival_airline,
-                data.arrival_flight_number,
-                data.arrival_date,
-                data.arrival_destination_port_code,
-                data.arrival_destination_country_code,
-                data.departure_airline,
-                data.departure_flight_number,
-                data.departure_date,
-                data.departure_destination_port_code,
-                data.departure_destination_country_code,
-              )
-            } else {
-              sendMessage(ws, 'TRAVELERS', 'TRAVELERS_ERROR', {
-                error:
-                  'ERROR: You are not authorized to create or update travelers.',
-              })
-            }
-            break
-
-          default:
-            console.error(`Unrecognized Message Type: ${type}`)
-            sendErrorMessage(ws, 1, 'Unrecognized Message Type')
-            break
-        }
-        break
-
-      case 'PASSPORTS':
-        switch (type) {
-          case 'UPDATE_OR_CREATE':
-            await Passports.updateOrCreatePassport(
-              data.contact_id,
-              data.passport_number,
-              data.passport_surnames,
-              data.passport_given_names,
-              data.passport_gender_legal,
-              data.passport_date_of_birth,
-              data.passport_place_of_birth,
-              data.passport_nationality,
-              data.passport_date_of_issue,
-              data.passport_date_of_expiration,
-              data.passport_type,
-              data.passport_code,
-              data.passport_authority,
-              // data.photo,
-            )
             break
 
           default:
@@ -1053,6 +1071,7 @@ const Invitations = require('./agentLogic/invitations')
 const Travelers = require('./agentLogic/travelers')
 const Passports = require('./agentLogic/passports')
 const Contacts = require('./agentLogic/contacts')
+const Connections = require('./agentLogic/connections')
 const Credentials = require('./agentLogic/credentials')
 const Images = require('./agentLogic/images')
 const Governance = require('./agentLogic/governance')

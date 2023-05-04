@@ -1,9 +1,10 @@
-const {Sequelize, DataTypes, Model} = require('sequelize')
+const {Sequelize, DataTypes, Model, Op} = require('sequelize')
 
 const init = require('./init.js')
 sequelize = init.connect()
 
 const {Contact} = require('./contacts.js')
+const {findOffset} = require('./pagination.js')
 
 class Connection extends Model {}
 
@@ -223,6 +224,7 @@ const createOrUpdateConnection = async function (
               where: {
                 connection_id: connection_id,
               },
+              returning: true,
             },
           )
         }
@@ -289,6 +291,48 @@ const readConnections = async function () {
   }
 }
 
+const readPendingConnections = async function (params = {}) {
+  try {
+    const sort = params.sort ? params.sort : [['updated_at', 'ASC']]
+    const pageSize = params.pageSize ? params.pageSize : 2
+    const currentPage = params.currentPage ? params.currentPage : 1
+    const pageCount = params.pageCount ? params.pageCount : 1
+    const itemCount = params.itemCount ? params.itemCount : undefined
+
+    const rawConnections = await Connection.findAndCountAll({
+      where: {
+        state: {
+          [Op.notIn]: ['active', 'completed', 'invitation'],
+        },
+      },
+      order: sort,
+      offset: await findOffset(pageSize, currentPage, itemCount),
+      limit: pageSize,
+    })
+
+    let newPageCount = Math.ceil(rawConnections.count / pageSize)
+    if (newPageCount === 0) newPageCount = 1
+
+    // (mikekebert) We send back the data, the new item count (in case it has changed), and the new calculated page count (in case it has changed)
+    // We also send back the original parameters that were used to retrieve this data so that the client can understand how the data was derived
+    const connections = {
+      params: {
+        sort: sort,
+        pageSize: pageSize,
+        currentPage: currentPage,
+        pageCount: newPageCount,
+        itemCount: rawConnections.count,
+      },
+      rows: rawConnections.rows,
+      count: rawConnections.count,
+    }
+
+    return connections
+  } catch (error) {
+    console.error('Could not find connections in the database: ', error)
+  }
+}
+
 const readInvitations = async function (connection_id) {
   try {
     const invitations = await Connection.findAll({
@@ -338,6 +382,7 @@ const updateConnection = async function (
   routing_state,
   inbound_connection_id,
   error_msg,
+  contact_id,
 ) {
   try {
     const timestamp = Date.now()
@@ -361,12 +406,14 @@ const updateConnection = async function (
         routing_state: routing_state,
         inbound_connection_id: inbound_connection_id,
         error_msg: error_msg,
+        contact_id: contact_id,
         updated_at: timestamp,
       },
       {
         where: {
           connection_id: connection_id,
         },
+        returning: true,
       },
     )
 
@@ -398,6 +445,7 @@ module.exports = {
   readConnection,
   readConnectionWithContact,
   readConnections,
+  readPendingConnections,
   readInvitationByAlias,
   readInvitations,
   updateConnection,

@@ -27,10 +27,6 @@ module.exports.server = server
 let Websocket = require('./websockets.js')
 
 const Credentials = require('./agentLogic/credentials')
-const Contacts = require('./orm/contacts')
-const ContactsCompiled = require('./orm/contactsCompiled')
-const ConnectionsAPI = require('./adminAPI/connections')
-const Governance = require('./agentLogic/governance')
 const Images = require('./agentLogic/images')
 const Settings = require('./agentLogic/settings')
 const {getOrganization} = require('./agentLogic/settings')
@@ -55,7 +51,6 @@ server.listen(process.env.CONTROLLERPORT || 3100, () =>
 )
 
 const agentWebhookRouter = require('./agentWebhook')
-const {connect} = require('http2')
 
 // Send all cloud agent webhooks posting to the agent webhook router
 app.use('/api/controller-webhook', agentWebhookRouter)
@@ -503,11 +498,16 @@ app.post('/api/invitations', checkApiKey, async (req, res) => {
 })
 
 app.post('/api/verifications', checkApiKey, async (req, res) => {
-  const data = req.body
-
   try {
-    const verification = await Verifications.verify(data)
+    const data = req.body
 
+    if (!data.invitation_id && !data.contact_id) {
+      res.status(400).send({
+        message: 'No invitation_id or contact_id was provided on the request.',
+      })
+    }
+
+    const verification = await Verifications.verify(data)
     res.status(200).send(verification)
   } catch (error) {
     console.error(error)
@@ -526,358 +526,34 @@ app.get('/api/verifications/:id', checkApiKey, async (req, res) => {
   }
 })
 
-// Get verification status by connection_id
-app.get('/api/verifications/:id', async (req, res) => {
-  try {
-    console.log(req.params.id)
-
-    // use this code to check connection id
-    const contact = await ContactsCompiled.readContactByConnection(
-      req.params.id,
-      ['Traveler'],
-    )
-
-    if (!contact) {
-      res.json({error: "Couldn't find contact by connection id"})
-    }
-
-    let complete = null
-    let result = contact.Traveler.dataValues.verification_status
-    let result_string = null
-    let error = null
-
-    // Set complete status, error and result string
-    if (result === false || result === true) {
-      complete = true
-
-      if (result) {
-        result_string = 'Traveler was approved.'
-      } else {
-        result_string = 'Traveler was not approved.'
-      }
-    } else {
-      complete = false
-
-      if (contact.Connections[0].error_msg)
-        error = contact.Connections[0].error_msg
-    }
-
-    const response = {
-      id: contact.Traveler.dataValues.contact_id,
-      schema_id: process.env.SCHEMA_TRUSTED_TRAVELER,
-      complete,
-      result,
-      result_string,
-      data: {},
-      connection_status: contact.Connections[0].state,
-      connection_id: contact.Connections[0].connection_id,
-      proof_status: contact.Traveler.dataValues.proof_status,
-      rule: '',
-      error,
-    }
-
-    if (result === true) {
-      await ConnectionsAPI.sendBasicMessage(
-        contact.Connections[0].connection_id,
-        {
-          content:
-            'Congratulations, your Health Credential meets our current requirements for Happy Travel!',
-        },
-      )
-      await ConnectionsAPI.sendBasicMessage(
-        contact.Connections[0].connection_id,
-        {
-          content:
-            'In a moment, you will receive an email with your approval, in case you need it, and your Happy Traveler Credential to hold in your digital wallet.',
-        },
-      )
-      await ConnectionsAPI.sendBasicMessage(
-        contact.Connections[0].connection_id,
-        {
-          content:
-            'Use the wallet to share your Happy Traveler Credential with airlines, health authorities, hospitality and tourism vendors throughout Aruba. The Happy Traveler Credential is a way of showing your clearance without revealing ANY PERSONAL OR HEALTH INFORMATION.',
-        },
-      )
-    } else if (result === false) {
-      await ConnectionsAPI.sendBasicMessage(
-        contact.Connections[0].connection_id,
-        {
-          content:
-            'Unfortunately, the health information you provided does not meet our current requirements for travel to Aruba, please contact us at __________ (email or phone or website) to find alternatives for healthy and safe travel to our Happy island.',
-        },
-      )
-    }
-    res.status(200).send(response)
-  } catch (err) {
-    console.error(err)
-    res.json({error: "Passenger couldn't be verified"})
-  }
-})
-
-// // Credential request API
+// Credential request API
 app.post('/api/credentials', checkApiKey, async (req, res) => {
   try {
-    const {credentialData, connectionId} = req.body
+    const data = req.body
 
-    // // (mikekebert) Load the governance
-    // const governance = await Governance.getGovernance()
-
-    let credentialAttributes = [
-      {
-        name: 'passenger_given_names',
-        value: credentialData['passenger_given_names'] || '', //DTC cred
-      },
-      {
-        name: 'passenger_family_names',
-        value: credentialData['passenger_family_names'] || '', //DTC cred
-      },
-      {
-        name: 'passenger_image',
-        value: credentialData['passenger_image'] || '', //DTC cred
-      },
-      {
-        name: 'airline_alliance',
-        value: credentialData['airline_alliance'] || '',
-      },
-      {
-        name: 'passenger_tsa_precheck',
-        value: credentialData['passenger_tsa_precheck'] || '',
-      },
-      {
-        name: 'pnr',
-        value: credentialData['pnr'] || '',
-      },
-      {
-        name: 'ticket_eticket_number',
-        value: credentialData['ticket_eticket_number'] || '',
-      },
-      {
-        name: 'ticket_designated_carrier',
-        value: credentialData['ticket_designated_carrier'] || '',
-      },
-      {
-        name: 'ticket_operating_carrier',
-        value: credentialData['ticket_operating_carrier'] || '',
-      },
-      {
-        name: 'ticket_flight_number',
-        value: credentialData['ticket_flight_number'] || '',
-      },
-      {
-        name: 'ticket_class',
-        value: credentialData['ticket_class'] || '',
-      },
-      {
-        name: 'ticket_seat_number',
-        value: credentialData['ticket_seat_number'] || '',
-      },
-      {
-        name: 'ticket_exit_row',
-        value: credentialData['ticket_exit_row'] || '',
-      },
-      {
-        name: 'ticket_origin',
-        value: credentialData['ticket_origin'] || '',
-      },
-      {
-        name: 'ticket_destination',
-        value: credentialData['ticket_destination'] || '',
-      },
-      {
-        name: 'ticket_luggage',
-        value: credentialData['ticket_luggage'] || '',
-      },
-      {
-        name: 'ticket_special_service_request',
-        value: credentialData['ticket_special_service_request'] || '',
-      },
-      {
-        name: 'ticket_with_infant',
-        value: credentialData['ticket_with_infant'] || '',
-      },
-      {
-        name: 'boarding_gate',
-        value: credentialData['boarding_gate'] || '',
-      },
-      {
-        name: 'boarding_zone_group',
-        value: credentialData['boarding_zone_group'] || '',
-      },
-      {
-        name: 'boarding_secondary_screening',
-        value: credentialData['boarding_secondary_screening'] || '',
-      },
-      {
-        name: 'boarding_date_time',
-        value:
-          Math.round(
-            DateTime.fromISO(credentialData['boarding_date_time']).ts / 1000,
-          ).toString() || '',
-      },
-      {
-        name: 'boarding_departure_date_time',
-        value:
-          Math.round(
-            DateTime.fromISO(credentialData['boarding_departure_date_time'])
-              .ts / 1000,
-          ).toString() || '',
-      },
-      {
-        name: 'boarding_arrival_date_time',
-        value:
-          Math.round(
-            DateTime.fromISO(credentialData['boarding_arrival_date_time']).ts /
-              1000,
-          ).toString() || '',
-      },
-      {
-        name: 'frequent_flyer_number',
-        value: credentialData['frequent_flyer_number'] || '',
-      },
-      {
-        name: 'frequent_flyer_airline',
-        value: credentialData['frequent_flyer_airline'] || '',
-      },
-      {
-        name: 'frequent_flyer_status',
-        value: credentialData['frequent_flyer_status'] || '',
-      },
-      {
-        name: 'standby_status',
-        value: credentialData['standby_status'] || '',
-      },
-      {
-        name: 'standby_boarding_date',
-        value:
-          Math.round(
-            DateTime.fromISO(credentialData['standby_boarding_date']).ts / 1000,
-          ).toString() || '',
-      },
-      {
-        name: 'standby_priority',
-        value: credentialData['standby_priority'] || '',
-      },
-      {
-        name: 'sequence_number',
-        value: credentialData['sequence_number'] || '',
-      },
-    ]
-
-    // (mikekebert) Get schema id for trusted traveler
-    const schema_id = process.env.SCHEMA_BOARDING_PASS
-
-    // (mikekebert) Issue the trusted_traveler to this contact
-    let newCredential = {
-      connectionID: connectionId,
-      schemaID: schema_id,
-      schemaVersion: schema_id.split(':')[3],
-      schemaName: schema_id.split(':')[2],
-      schemaIssuerDID: schema_id.split(':')[0],
-      comment: '',
-      attributes: credentialAttributes,
+    if (!data.invitation_id && !data.contact_id) {
+      res.status(400).send({
+        message: 'No invitation_id or contact_id was provided on the request.',
+      })
     }
 
-    // (mikekebert) Request issuance of the trusted_traveler credential
-    await Credentials.autoIssueCredential(
-      newCredential.connectionID,
-      undefined,
-      undefined,
-      newCredential.schemaID,
-      newCredential.schemaVersion,
-      newCredential.schemaName,
-      newCredential.schemaIssuerDID,
-      newCredential.comment,
-      newCredential.attributes,
-    )
+    const invitation = await Invitations.getInvitation(data.invitation_id)
 
-    response = {success: 'Trusted Traveler successfully offered'}
-    res.status(200).send(response)
-  } catch (error) {
-    console.error(error)
-    res.json({
-      error: "Unexpected error occurred, couldn't issue Trusted Traveler",
-    })
-  }
-})
+    if (!invitation) {
+      res.status(400).send({
+        message: `The invitation (${data.invitation_id}) could not be found.`,
+      })
+    }
 
-app.post('/api/dtc-credentials', checkApiKey, async (req, res) => {
-  console.log(req.body)
-  const data = req.body
-
-  try {
-    let credentialAttributes = [
-      {
-        name: 'created-date',
-        value: data.attributes.created_date || '',
-      },
-      {
-        name: 'document-type',
-        value: data.attributes.document_type || '',
-      },
-      {
-        name: 'issue-date',
-        value: data.attributes.issue_date || '',
-      },
-      {
-        name: 'document-number',
-        value: data.attributes.document_number || '',
-      },
-      {
-        name: 'issuing-state',
-        value: data.attributes.issuing_state || '',
-      },
-      {
-        name: 'gender',
-        value: data.attributes.gender || '',
-      },
-      {
-        name: 'date-of-birth',
-        value: data.attributes.date_of_birth || '',
-      },
-      {
-        name: 'chip-photo',
-        value: data.attributes.chip_photo || '',
-      },
-      {
-        name: 'family-name',
-        value: data.attributes.family_name || '',
-      },
-      {
-        name: 'given-names',
-        value: data.attributes.given_names || '',
-      },
-      {
-        name: 'dtc',
-        value: data.attributes.dtc || '',
-      },
-      {
-        name: 'upk',
-        value: data.attributes.upk || '',
-      },
-      {
-        name: 'expiry-date',
-        value: data.attributes.expiry_date || '',
-      },
-      {
-        name: 'issuing-authority',
-        value: data.attributes.issuing_authority || '',
-      },
-      {
-        name: 'nationality',
-        value: data.attributes.nationality || '',
-      },
-    ]
-
-    const schema_id = process.env.SCHEMA_DTC_TYPE1_IDENTITY
-
-    let newCredential = {
-      connectionID: data.connection_id,
-      schemaID: schema_id,
-      schemaVersion: schema_id.split(':')[3],
-      schemaName: schema_id.split(':')[2],
-      schemaIssuerDID: schema_id.split(':')[0],
+    const schemaParts = data.schema_id.split(':')
+    const newCredential = {
+      connectionID: invitation.connection_id,
+      schemaID: data.schema_id,
+      schemaVersion: schemaParts[3],
+      schemaName: schemaParts[2],
+      schemaIssuerDID: schemaParts[0],
       comment: '',
-      attributes: credentialAttributes,
+      attributes: data.attributes,
     }
 
     await Credentials.autoIssueCredential(
@@ -892,12 +568,11 @@ app.post('/api/dtc-credentials', checkApiKey, async (req, res) => {
       newCredential.attributes,
     )
 
-    const response = {success: 'DTC issued'}
-    res.status(200).send(response)
+    res.status(200).send({success: 'Credential successfully offered.'})
   } catch (error) {
     console.error(error)
     res.json({
-      error: "Unexpected error occurred, couldn't issue DTC Credential",
+      error: "Unexpected error occurred, couldn't issue credential",
     })
   }
 })

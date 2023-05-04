@@ -53,7 +53,7 @@ Passport.init(
       type: DataTypes.TEXT,
     },
     passport_created_date: {
-      type: DataTypes.TEXT,
+      type: DataTypes.DATE,
     },
     created_at: {
       type: DataTypes.DATE,

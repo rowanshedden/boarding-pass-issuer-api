@@ -1,6 +1,7 @@
 // Invitation request API
 const Invitations = require('./invitations')
 const Presentations = require('./presentations')
+const Contacts = require('./contacts')
 
 const Verifications = require('../orm/verifications')
 const AdminAPI = require('../adminAPI')
@@ -74,6 +75,11 @@ const handleConnection = async (connectionMessage) => {
     connectionMessage.connection_id,
   )
 
+  if (!invitation) {
+    console.log('No Invitation could be found for verification workflow.')
+    return
+  }
+
   let verifications = await Verifications.readVerificationsByInvitationId(
     invitation.invitation_id,
   )
@@ -112,7 +118,7 @@ const handlePresentation = async (presMessage) => {
     presMessage.presentation_exchange_id,
   )
 
-  if (verification === null) {
+  if (!verification) {
     return false
   }
 
@@ -166,14 +172,13 @@ const handlePresentation = async (presMessage) => {
 
 const verify = async (data) => {
   try {
-    // let verification = null
     let connection = null
 
     let verificationList = []
 
     await Promise.all(
       data.schemas.map(async (schema) => {
-        let newVerificationRecord = await Verifications.createOrUpdateVerificationRecord(
+        let newVerificationRecord = await Verifications.createVerificationRecord(
           {
             connection_id: null,
             contact_id: data.contact_id ? data.contact_id : null,
@@ -318,6 +323,8 @@ const retrieve = async (verification_id) => {
         verification_id: verification_id,
       },
     })
+
+    // console.log('Retrieved verification record: ', verification)
 
     return verification
   } catch (e) {
