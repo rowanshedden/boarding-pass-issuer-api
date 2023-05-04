@@ -1,7 +1,4 @@
 const {Sequelize, DataTypes, Model} = require('sequelize')
-
-const Util = require('../util')
-
 const init = require('./init.js')
 sequelize = init.connect()
 
@@ -45,6 +42,19 @@ const readImagesByType = async function (type) {
   }
 }
 
+const readImageByName = async function (name) {
+  try {
+    const image = await Image.findAll({
+      where: {
+        name,
+      },
+    })
+    return image
+  } catch (error) {
+    console.error('Could not find image in the database: ', error)
+  }
+}
+
 const readImages = async function () {
   try {
     const images = await Image.findAll()
@@ -65,7 +75,8 @@ const updateImage = async function (name, type, image) {
       },
       {
         where: {
-          type: 'logo',
+          type: type,
+          name: name,
         },
       },
     )
@@ -93,6 +104,7 @@ const deleteImage = async function (image_id) {
 module.exports = {
   Image,
   readImagesByType,
+  readImageByName,
   readImages,
   updateImage,
   deleteImage,

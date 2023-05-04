@@ -151,6 +151,8 @@ const handlePresentation = async (presMessage) => {
       })
 
       try {
+        console.log(pending_verifications[verification.verification_id])
+
         pending_verifications[verification.verification_id].resolve(true)
       } catch (e) {} // we may attempted notifying a record that no longer exists.
     } else {

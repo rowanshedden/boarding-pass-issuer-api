@@ -1,6 +1,6 @@
 {
 	"short_name": "SITA",
-	"name": "SITA Government",
+	"name": "SITA Boarding Pass",
 	"icons": [
 		{
 			"src": "favicon.ico",
@@ -20,6 +20,6 @@
 	],
 	"start_url": ".",
 	"display": "standalone",
-	"theme_color": "#5555",
-	"background_color": "#ffff"
+	"theme_color": "#555555",
+	"background_color": "#ffffff"
 }

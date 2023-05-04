@@ -28,6 +28,7 @@ let Websocket = require('./websockets.js')
 
 const Credentials = require('./agentLogic/credentials')
 const Images = require('./agentLogic/images')
+const Settings = require('./agentLogic/settings')
 const {getOrganization} = require('./agentLogic/settings')
 const Passenger = require('./agentLogic/passenger')
 const Presentations = require('./agentLogic/presentations')
@@ -64,6 +65,39 @@ app.use(
   '/api/governance-framework',
   express.static('governance-framework.json'),
 )
+
+app.use('/favicon.ico', async (req, res) => {
+  console.log('Favicon route')
+  const favicon = await Images.getImageByName('favicon.ico')
+  const base64Image = Util.decodeBase64(favicon[0].dataValues.image)
+  const buffer = Buffer.from(base64Image.split(',')[1], 'base64')
+  res.contentType('image/x-icon')
+  res.status(200).send(buffer)
+})
+
+app.use('/icon192.png', async (req, res) => {
+  console.log('Icon192 route')
+  const icon192 = await Images.getImageByName('icon192.png')
+  const base64Image = Util.decodeBase64(icon192[0].dataValues.image)
+  const buffer = Buffer.from(base64Image.split(',')[1], 'base64')
+  res.contentType('image/png')
+  res.status(200).send(buffer)
+})
+
+app.use('/icon512.png', async (req, res) => {
+  console.log('Icon512 route')
+  const icon512 = await Images.getImageByName('icon512.png')
+  const base64Image = Util.decodeBase64(icon512[0].dataValues.image)
+  const buffer = Buffer.from(base64Image.split(',')[1], 'base64')
+  res.contentType('image/png')
+  res.status(200).send(buffer)
+})
+
+app.use('/manifest.json', async (req, res) => {
+  console.log('Manifest route')
+  const manifest = await Settings.getManifest()
+  res.status(200).send(manifest)
+})
 
 // Invitation request API
 const Invitations = require('./agentLogic/invitations')
@@ -390,10 +424,10 @@ app.get('/api/renew-session', verifySession, async (req, res) => {
 })
 
 const checkApiKey = function (req, res, next) {
-  if (req.header('x-api-key') != process.env.APIKEY) {
-    res.sendStatus(401)
-  } else {
+  if (req.header('x-api-key') === process.env.APIKEY) {
     next()
+  } else {
+    res.sendStatus(401)
   }
 }
 
@@ -539,6 +573,100 @@ app.post('/api/credentials', checkApiKey, async (req, res) => {
     console.error(error)
     res.json({
       error: "Unexpected error occurred, couldn't issue credential",
+    })
+  }
+})
+app.post('/api/trusted-traveler', checkApiKey, async (req, res) => {
+  console.log(req.body)
+  const data = req.body
+
+  try {
+    let credentialAttributes = [
+      {
+        name: 'traveler_email',
+        value: data.attributes.traveler_email || '',
+      },
+      {
+        name: 'credential_issue_date',
+        value: data.attributes.credential_issue_date || '',
+      },
+      {
+        name: 'credential_issuer_name',
+        value: data.attributes.credential_issuer_name || '',
+      },
+      {
+        name: 'traveler_date_of_birth',
+        value: data.attributes.traveler_date_of_birth || '',
+      },
+      {
+        name: 'traveler_gender_legal',
+        value: data.attributes.traveler_gender_legal || '',
+      },
+      {
+        name: 'governance_applied',
+        value: data.attributes.governance_applied || '',
+      },
+      {
+        name: 'trusted_traveler_issue_date_time',
+        value: data.attributes.trusted_traveler_issue_date_time || '',
+      },
+      {
+        name: 'traveler_origin_country',
+        value: data.attributes.traveler_origin_country || '',
+      },
+      {
+        name: 'traveler_given_names',
+        value: data.attributes.traveler_given_names || '',
+      },
+      {
+        name: 'trusted_traveler_expiration_date_time',
+        value: data.attributes.trusted_traveler_expiration_date_time || '',
+      },
+      {
+        name: 'traveler_surnames',
+        value: data.attributes.traveler_surnames || '',
+      },
+      {
+        name: 'traveler_country',
+        value: data.attributes.traveler_country || '',
+      },
+      {
+        name: 'trusted_traveler_id',
+        value: data.attributes.trusted_traveler_id || '',
+      },
+    ]
+
+    const schema_id = process.env.SCHEMA_TRUSTED_TRAVELER
+
+    let newCredential = {
+      connectionID: data.connection_id,
+      schemaID: schema_id,
+      schemaVersion: schema_id.split(':')[3],
+      schemaName: schema_id.split(':')[2],
+      schemaIssuerDID: schema_id.split(':')[0],
+      comment: '',
+      attributes: credentialAttributes,
+    }
+
+    await Credentials.autoIssueCredential(
+      newCredential.connectionID,
+      undefined,
+      undefined,
+      newCredential.schemaID,
+      newCredential.schemaVersion,
+      newCredential.schemaName,
+      newCredential.schemaIssuerDID,
+      newCredential.comment,
+      newCredential.attributes,
+    )
+
+    const response = {success: 'Trusted Traveler issued'}
+    res.status(200).send(response)
+  } catch (error) {
+    console.error(error)
+    res.json({
+      error:
+        "Unexpected error occurred, couldn't issue Trusted Traveler Credential",
     })
   }
 })

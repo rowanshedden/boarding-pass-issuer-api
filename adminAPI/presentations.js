@@ -46,7 +46,6 @@ const requestPresentation = async (
   }
 }
 
-//DTC workflow
 const requestPresentationBySchemaId = async (
   connectionID,
   attributes = [],
@@ -61,6 +60,7 @@ const requestPresentationBySchemaId = async (
     console.log(nonce)
 
     let requestedAttributes = {}
+
     //(AmmonBurgi) Create unique referent Key
     const uid = uuid()
 

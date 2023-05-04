@@ -1,6 +1,5 @@
 const crypto = require('crypto')
 const Settings = require('../orm/settings')
-const fs = require('fs')
 const Util = require('../util')
 
 // Perform Agent Business Logic
@@ -40,24 +39,32 @@ const getSMTP = async () => {
 
 const setSMTP = async (data = {}) => {
   try {
-    if (
-      !data.auth.email ||
-      !data.auth.pass ||
-      !data.auth.mailUsername ||
-      !data.host
-    ) {
+    if (!data.auth.email || !data.auth.mailUsername || !data.host) {
       return false
+    } else {
+      const oldSMTP = await getSMTP()
+      const IV = crypto.randomBytes(8).toString('hex')
+
+      // If no password was provided in the form but there is already password in our database
+      if (
+        (!data.auth.pass || data.auth.pass === '************') &&
+        oldSMTP.value &&
+        oldSMTP.value.auth.pass
+      ) {
+        console.log('No password was provided')
+        data.auth.pass = oldSMTP.value.auth.pass
+        data.IV = oldSMTP.value.IV
+      } else {
+        console.log('Password was provided')
+        const encryptedPassword = Util.encrypt(data.auth.pass, IV)
+        data.IV = IV
+        data.auth.pass = encryptedPassword
+      }
+
+      await Settings.updateSMTP(data)
+      const updatedSMTP = await Settings.readSMTP()
+      return updatedSMTP
     }
-
-    const IV = crypto.randomBytes(8).toString('hex')
-    const encryptedPassword = Util.encrypt(data.auth.pass, IV)
-
-    data.IV = IV
-    data.auth.pass = encryptedPassword
-
-    await Settings.updateSMTP(data)
-    const updatedSMTP = await Settings.readSMTP()
-    return updatedSMTP
   } catch (error) {
     console.error('Error updating SMTP')
     throw error
@@ -98,12 +105,12 @@ const setManifest = async (short_name, name, theme_color, bg_color) => {
           type: 'image/x-icon',
         },
         {
-          src: 'logo192.png',
+          src: 'icon192.png',
           type: 'image/png',
           sizes: '192x192',
         },
         {
-          src: 'logo512.png',
+          src: 'icon512.png',
           type: 'image/png',
           sizes: '512x512',
         },
@@ -114,18 +121,21 @@ const setManifest = async (short_name, name, theme_color, bg_color) => {
       background_color: bg_color,
     }
 
-    fs.writeFile(
-      'web/manifest.json',
-      JSON.stringify(manifest, 'utf8', '\t'),
-      function (err) {
-        if (err) throw err
-        console.log('complete')
-      },
-    )
+    await Settings.updateManifest(manifest)
 
     return 'success'
   } catch (error) {
     console.error('Error updating manifest.json')
+    throw error
+  }
+}
+
+const getManifest = async () => {
+  try {
+    const manifest = await Settings.readManifest()
+    return manifest
+  } catch (error) {
+    console.error('Error getting Manifest')
     throw error
   }
 }
@@ -143,6 +153,7 @@ module.exports = {
   setSMTP,
   getOrganization,
   setOrganization,
+  getManifest,
   setManifest,
   getSchemas,
 }
