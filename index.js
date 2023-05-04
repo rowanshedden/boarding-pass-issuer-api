@@ -36,7 +36,7 @@ const Users = require('./agentLogic/users')
 const Verifications = require('./agentLogic/verifications')
 
 app.use(bodyParser.urlencoded({extended: false}))
-app.use(bodyParser.json())
+app.use(process.env.API_REQUEST_LIMIT ? bodyParser.json({limit: process.env.API_REQUEST_LIMIT}) : bodyParser.json());
 
 app.use(passport.initialize())
 require('./passport-config')(passport)
