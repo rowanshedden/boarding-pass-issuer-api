@@ -694,7 +694,7 @@ app.get('/api/connections/:id', checkApiKey, async (req, res) => {
     if (!connection) {
       return res
         .status(200)
-        .send({warning: 'No invitation record found by id.'})
+        .send({warning: 'No connection record found by id.'})
     }
 
     res.status(200).send({connection})
