@@ -26,17 +26,20 @@ module.exports.server = server
 // Websockets required to make APIs work and avoid circular dependency
 let Websocket = require('./websockets.js')
 
+const Connections = require('./agentLogic/connections')
 const Credentials = require('./agentLogic/credentials')
+const Invitations = require('./agentLogic/invitations')
 const Images = require('./agentLogic/images')
 const Settings = require('./agentLogic/settings')
-const {getOrganization} = require('./agentLogic/settings')
-const Passenger = require('./agentLogic/passenger')
-const Presentations = require('./agentLogic/presentations')
 const Users = require('./agentLogic/users')
 const Verifications = require('./agentLogic/verifications')
 
 app.use(bodyParser.urlencoded({extended: false}))
-app.use(process.env.API_REQUEST_LIMIT ? bodyParser.json({limit: process.env.API_REQUEST_LIMIT}) : bodyParser.json());
+app.use(
+  process.env.API_REQUEST_LIMIT
+    ? bodyParser.json({limit: process.env.API_REQUEST_LIMIT})
+    : bodyParser.json(),
+)
 
 app.use(passport.initialize())
 require('./passport-config')(passport)
@@ -98,11 +101,6 @@ app.use('/manifest.json', async (req, res) => {
   const manifest = await Settings.getManifest()
   res.status(200).send(manifest)
 })
-
-// Invitation request API
-const Invitations = require('./agentLogic/invitations')
-const Connections = require('./orm/connections')
-const {Verification} = require('./orm/verifications')
 
 app.use(
   '/api/presentation-exchange',
@@ -431,7 +429,24 @@ const checkApiKey = function (req, res, next) {
   }
 }
 
-// Invitation request API
+app.get('/api/invitations/:id', checkApiKey, async (req, res) => {
+  console.log('Get invitation by id')
+  console.log(req.params.id)
+  try {
+    const invitation = await Invitations.getInvitation(req.params.id)
+
+    if (invitation) {
+      res.status(200).json({invitation})
+    } else {
+      console.log('No invitation record found by id')
+      res.status(200).json({warning: 'No invitation record found by id.'})
+    }
+  } catch (error) {
+    console.error(error)
+    res.json({error})
+  }
+})
+
 app.post('/api/invitations', checkApiKey, async (req, res) => {
   console.log(req.body)
   const data = req.body
@@ -668,6 +683,24 @@ app.post('/api/trusted-traveler', checkApiKey, async (req, res) => {
       error:
         "Unexpected error occurred, couldn't issue Trusted Traveler Credential",
     })
+  }
+})
+
+app.get('/api/connections/:id', checkApiKey, async (req, res) => {
+  try {
+    const connectionId = req.params.id
+    const connection = await Connections.getConnection(connectionId)
+
+    if (!connection) {
+      return res
+        .status(200)
+        .send({warning: 'No connection record found by id.'})
+    }
+
+    res.status(200).send({connection})
+  } catch (error) {
+    console.error(error)
+    res.status(500).send({error: 'There was a problem retrieving a connection'})
   }
 })
 
