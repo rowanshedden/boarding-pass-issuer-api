@@ -28,7 +28,7 @@ Setting.init(
 )
 
 // Theme
-readTheme = async function () {
+const readTheme = async function () {
   try {
     const settings = await Setting.findAll({
       where: {
@@ -41,7 +41,7 @@ readTheme = async function () {
   }
 }
 
-updateTheme = async function (value) {
+const updateTheme = async function (value) {
   try {
     await Setting.update(
       {value},
@@ -58,7 +58,7 @@ updateTheme = async function (value) {
 }
 
 // SMTP
-readSMTP = async function () {
+const readSMTP = async function () {
   try {
     const smtp = await Setting.findAll({
       where: {
@@ -71,7 +71,7 @@ readSMTP = async function () {
   }
 }
 
-updateSMTP = async function (value) {
+const updateSMTP = async function (value) {
   try {
     await Setting.update(
       {value},
@@ -88,7 +88,7 @@ updateSMTP = async function (value) {
 }
 
 // Organization
-readOrganization = async function () {
+const readOrganization = async function () {
   try {
     const organization = await Setting.findAll({
       where: {
@@ -101,7 +101,7 @@ readOrganization = async function () {
   }
 }
 
-updateOrganization = async function (value) {
+const updateOrganization = async function (value) {
   try {
     await Setting.update(
       {value},
@@ -118,7 +118,7 @@ updateOrganization = async function (value) {
 }
 
 // Manifest
-readManifest = async function () {
+const readManifest = async function () {
   try {
     const manifest = await Setting.findAll({
       where: {
@@ -131,7 +131,7 @@ readManifest = async function () {
   }
 }
 
-updateManifest = async function (value) {
+const updateManifest = async function (value) {
   try {
     await Setting.update(
       {value},
