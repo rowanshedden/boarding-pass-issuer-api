@@ -70,7 +70,9 @@ const requestPresentationBySchemaId = async (
     }
 
     const schemaParts = schemaID.split(':')
-    const schemaName = schemaParts[2].replace('_', ' ')
+    let schemaName = schemaParts[2]
+    if (schemaName === 'dtc_type1_identity') schemaName = 'DTC Type-1 Identity'
+    else schemaName = schemaName.replace('_', ' ')
 
     const presentationRequest = {
       trace: trace,
