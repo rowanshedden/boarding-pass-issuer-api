@@ -401,8 +401,40 @@ app.post('/api/user/update', async (req, res) => {
 app.get('/api/logo', async (req, res) => {
   try {
     const logo = await Images.getImagesByType('logo')
-    if (!logo) res.json({error: 'The logo was not found.'})
+    if (!logo) {
+      console.log('Could not retrieve logo!')
+      return res.json({error: 'The logo was not found.'})
+    }
+
     res.send(logo)
+  } catch (err) {
+    console.error(err)
+  }
+})
+
+app.get('/api/site-title', async (req, res) => {
+  try {
+    const organization = await Settings.getOrganization()
+    if (!organization && !organization.value) {
+      console.log('Could not retrieve site title!')
+      return res.json({error: 'The site title was not found.'})
+    }
+
+    res.send({title: organization.value.title})
+  } catch (err) {
+    console.error(err)
+  }
+})
+
+app.get('/api/theme', async (req, res) => {
+  try {
+    const theme = await Settings.getTheme()
+    if (!theme) {
+      console.log('Could not retrieve theme!')
+      return res.json({error: 'The theme was not found.'})
+    }
+
+    res.send({theme})
   } catch (err) {
     console.error(err)
   }
