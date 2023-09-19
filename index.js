@@ -30,6 +30,7 @@ const Connections = require('./agentLogic/connections')
 const Credentials = require('./agentLogic/credentials')
 const Invitations = require('./agentLogic/invitations')
 const Images = require('./agentLogic/images')
+const IssuanceRequests = require('./agentLogic/issuanceRequests')
 const Settings = require('./agentLogic/settings')
 const Users = require('./agentLogic/users')
 const Verifications = require('./agentLogic/verifications')
@@ -573,151 +574,6 @@ app.get('/api/verifications/:id', checkApiKey, async (req, res) => {
   }
 })
 
-// Credential request API
-app.post('/api/credentials', checkApiKey, async (req, res) => {
-  try {
-    const data = req.body
-
-    if (!data.invitation_id && !data.contact_id) {
-      res.status(400).send({
-        message: 'No invitation_id or contact_id was provided on the request.',
-      })
-    }
-
-    const invitation = await Invitations.getInvitation(data.invitation_id)
-
-    if (!invitation) {
-      res.status(400).send({
-        message: `The invitation (${data.invitation_id}) could not be found.`,
-      })
-    }
-
-    const schemaParts = data.schema_id.split(':')
-    const newCredential = {
-      connectionID: invitation.connection_id,
-      schemaID: data.schema_id,
-      schemaVersion: schemaParts[3],
-      schemaName: schemaParts[2],
-      schemaIssuerDID: schemaParts[0],
-      comment: '',
-      attributes: data.attributes,
-    }
-
-    await Credentials.autoIssueCredential(
-      newCredential.connectionID,
-      undefined,
-      undefined,
-      newCredential.schemaID,
-      newCredential.schemaVersion,
-      newCredential.schemaName,
-      newCredential.schemaIssuerDID,
-      newCredential.comment,
-      newCredential.attributes,
-    )
-
-    res.status(200).send({success: 'Credential successfully offered.'})
-  } catch (error) {
-    console.error(error)
-    res.json({
-      error: "Unexpected error occurred, couldn't issue credential",
-    })
-  }
-})
-app.post('/api/trusted-traveler', checkApiKey, async (req, res) => {
-  console.log(req.body)
-  const data = req.body
-
-  try {
-    let credentialAttributes = [
-      {
-        name: 'traveler_email',
-        value: data.attributes.traveler_email || '',
-      },
-      {
-        name: 'credential_issue_date',
-        value: data.attributes.credential_issue_date || '',
-      },
-      {
-        name: 'credential_issuer_name',
-        value: data.attributes.credential_issuer_name || '',
-      },
-      {
-        name: 'traveler_date_of_birth',
-        value: data.attributes.traveler_date_of_birth || '',
-      },
-      {
-        name: 'traveler_gender_legal',
-        value: data.attributes.traveler_gender_legal || '',
-      },
-      {
-        name: 'governance_applied',
-        value: data.attributes.governance_applied || '',
-      },
-      {
-        name: 'trusted_traveler_issue_date_time',
-        value: data.attributes.trusted_traveler_issue_date_time || '',
-      },
-      {
-        name: 'traveler_origin_country',
-        value: data.attributes.traveler_origin_country || '',
-      },
-      {
-        name: 'traveler_given_names',
-        value: data.attributes.traveler_given_names || '',
-      },
-      {
-        name: 'trusted_traveler_expiration_date_time',
-        value: data.attributes.trusted_traveler_expiration_date_time || '',
-      },
-      {
-        name: 'traveler_surnames',
-        value: data.attributes.traveler_surnames || '',
-      },
-      {
-        name: 'traveler_country',
-        value: data.attributes.traveler_country || '',
-      },
-      {
-        name: 'trusted_traveler_id',
-        value: data.attributes.trusted_traveler_id || '',
-      },
-    ]
-
-    const schema_id = process.env.SCHEMA_TRUSTED_TRAVELER
-
-    let newCredential = {
-      connectionID: data.connection_id,
-      schemaID: schema_id,
-      schemaVersion: schema_id.split(':')[3],
-      schemaName: schema_id.split(':')[2],
-      schemaIssuerDID: schema_id.split(':')[0],
-      comment: '',
-      attributes: credentialAttributes,
-    }
-
-    await Credentials.autoIssueCredential(
-      newCredential.connectionID,
-      undefined,
-      undefined,
-      newCredential.schemaID,
-      newCredential.schemaVersion,
-      newCredential.schemaName,
-      newCredential.schemaIssuerDID,
-      newCredential.comment,
-      newCredential.attributes,
-    )
-
-    const response = {success: 'Trusted Traveler issued'}
-    res.status(200).send(response)
-  } catch (error) {
-    console.error(error)
-    res.json({
-      error:
-        "Unexpected error occurred, couldn't issue Trusted Traveler Credential",
-    })
-  }
-})
-
 app.get('/api/connections/:id', checkApiKey, async (req, res) => {
   try {
     const connectionId = req.params.id
@@ -735,6 +591,136 @@ app.get('/api/connections/:id', checkApiKey, async (req, res) => {
     res.status(500).send({error: 'There was a problem retrieving a connection'})
   }
 })
+
+//============================Credentials V1============================
+
+// Issue credential
+app.post('/api/credentials', checkApiKey, async (req, res) => {
+  console.log(req.body)
+  const data = req.body
+
+  try {
+    const invitationId = data.invitation_id || null
+    const contactId = data.contact_id || ''
+
+    // (eldersonar) Make sure that the invitation id is either a number or a string
+    if (typeof invitationId === 'number' || invitationId === null) {
+      // (eldersonar) Make sure that the invitation id is either a number or a string
+      if (typeof contactId !== 'string') {
+        throw {error: 'Contact id must be type of string'}
+      } else {
+        if (invitationId === null && contactId === '') {
+          throw 'MISSING_IDENTIFIER'
+        }
+
+        const schemaId = data.schema_id
+        const attributes = data.attributes
+
+        console.log('')
+        console.log(
+          '_____________Credential flow triggered - add request_____________',
+        )
+        console.log('')
+
+        let result = null
+
+        result = await IssuanceRequests.addRequest(
+          contactId,
+          invitationId,
+          schemaId,
+          attributes,
+        )
+
+        if (result && result.error) {
+          throw result
+        }
+
+        // (mikekebert) After we record a new issuance request, we need to check to see if there is an active connection
+        // for either this invitationId and/or this contactId (whichever was provided);
+        // If there is, we can issue the credential right away
+        console.log('')
+        console.log(
+          '_____________Credential flow triggered - process requests_____________',
+        )
+        console.log('')
+        result = await IssuanceRequests.processRequests(contactId, invitationId)
+
+        if (result && result.error) {
+          throw result
+        }
+        if (result && result.warning) {
+          res.status(200).json({warning: result.warning})
+        } else {
+          res.status(200).json({success: 'Credential was offered'})
+        }
+      }
+    } else {
+      throw {error: 'Invitation id must be type of integer or null'}
+    }
+  } catch (error) {
+    // TODO: replace with the custom extended message provided by Mike Ebert
+    console.error(error)
+    if (error === 'MISSING_IDENTIFIER') {
+      res.json({error: "contact_id and invitation_id can't both be null"})
+    } else if (error) {
+      // (eledersonar) TODO: find the best code for default in case we need one
+      let errorStatus = 500
+      if (!error.code || error.code < 100) {
+        // Add a custom error code
+        errorStatus = 500
+      } else {
+        // Handle error code coming from a broken adminAPI call
+        errorStatus = error.code
+        delete error.code
+      }
+      res.status(errorStatus).json(error)
+    } else {
+      res.json({
+        error:
+          'The credential could not be issued. Please, check your inputs and DID.',
+      })
+    }
+  }
+})
+
+// Get all credentials
+app.get('/api/credentials', checkApiKey, async (req, res) => {
+  console.log('Get all credentials')
+  try {
+    const credentials = await Credentials.getAll()
+
+    if (credentials) {
+      res.status(200).json({credentials: credentials})
+    } else {
+      console.log('No credentials records')
+      res.status(200).json({warning: 'No credentials records.'})
+    }
+  } catch (error) {
+    console.error(error)
+    res.json({error})
+  }
+})
+
+// Get credential by credential exchange id
+app.get('/api/credentials/:id', checkApiKey, async (req, res) => {
+  console.log('Get credential by id')
+  console.log(req.params.id)
+  try {
+    const credential = await Credentials.getCredential(req.params.id)
+
+    if (credential) {
+      res.status(200).json({credential})
+    } else {
+      console.log('No credential record found by id')
+      res.status(200).json({warning: 'No credential record found by id.'})
+    }
+  } catch (error) {
+    console.error(error)
+    res.json({error})
+  }
+})
+
+//============================Credentials V1============================
 
 app.use('/', (req, res) => {
   console.log('Request outside of normal paths', req.url)

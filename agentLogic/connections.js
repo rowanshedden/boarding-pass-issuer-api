@@ -22,6 +22,16 @@ const getConnections = async () => {
   }
 }
 
+const getConnectionsByContactId = async (contact_id) => {
+  try {
+    const connections = await Connections.readConnectionsByContactId(contact_id)
+
+    return connections
+  } catch (error) {
+    console.log('Error getting connections: ', error)
+  }
+}
+
 const getAllPendingConnections = async (params = {}) => {
   try {
     const connections = await Connections.readPendingConnections(params)
@@ -146,6 +156,7 @@ const handleConnectionReuse = async (message) => {
 module.exports = {
   getConnection,
   getConnections,
+  getConnectionsByContactId,
   getAllPendingConnections,
   updateOrCreateConnection,
   updateExistingConnection,
