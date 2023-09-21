@@ -222,9 +222,15 @@ const autoIssueCredential = async (
       false,
       false,
     )
+
+    if (response.error) {
+      throw response.error
+    } else {
+      return response
+    }
   } catch (error) {
     console.error('Error Issuing Credential')
-    throw error
+    return {error}
   }
 }
 

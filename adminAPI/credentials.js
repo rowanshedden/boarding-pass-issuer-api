@@ -45,7 +45,12 @@ const autoIssueCred = async (
     return response
   } catch (error) {
     console.error('Credential Issuance Error')
-    throw error
+    return {
+      error: {
+        message: error.response.statusText,
+        code: error.response.status,
+      },
+    }
   }
 }
 

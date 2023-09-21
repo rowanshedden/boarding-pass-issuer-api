@@ -254,6 +254,27 @@ const readConnection = async function (connection_id) {
   }
 }
 
+const readConnectionsByContactId = async function (contact_id) {
+  try {
+    const connections = await Connection.findAll({
+      where: {
+        contact_id,
+      },
+    })
+
+    console.log(
+      'All connections with contactId: ' + contact_id,
+      JSON.stringify(connections, null, 2),
+    )
+    return connections
+  } catch (error) {
+    console.error(
+      'Could not find connection by contact_id in the database: ',
+      error,
+    )
+  }
+}
+
 const readConnectionWithContact = async function (connection_id) {
   try {
     const connection = await Connection.findAll({
@@ -443,6 +464,7 @@ module.exports = {
   createConnection,
   createOrUpdateConnection,
   readConnection,
+  readConnectionsByContactId,
   readConnectionWithContact,
   readConnections,
   readPendingConnections,

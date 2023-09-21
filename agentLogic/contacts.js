@@ -2,9 +2,10 @@ const AdminAPI = require('../adminAPI')
 const Websockets = require('../websockets.js')
 
 const Connections = require('../agentLogic/connections')
+const IssuanceRequests = require('../agentLogic/issuanceRequests')
 
-let Contacts = require('../orm/contacts.js')
-let ContactsCompiled = require('../orm/contactsCompiled.js')
+const Contacts = require('../orm/contacts.js')
+const ContactsCompiled = require('../orm/contactsCompiled.js')
 
 const {v4: uuid} = require('uuid')
 
@@ -148,8 +149,19 @@ const adminMessage = async (connectionMessage) => {
           {}, // meta_data
         )
       } else {
-        console.log('Reusing existing contact id')
-        // (mikekebert) If we have a contact_id already, we should use it
+        console.log('Contact id is provided')
+        const existingContact = await Contacts.readBaseContact(
+          connection.contact_id,
+        )
+
+        if (!existingContact) {
+          await Contacts.createContact(
+            connection.contact_id,
+            connectionMessage.their_label, // label
+            {}, // meta_data
+          )
+        }
+
         contact_id = connection.contact_id
         console.log('Provided contact_id: ', contact_id)
       }
@@ -174,6 +186,28 @@ const adminMessage = async (connectionMessage) => {
         connectionMessage.error_msg,
         contact_id,
       )
+
+      const invitation = await Invitations.getInvitationByConnectionId(
+        connectionMessage.connection_id,
+      )
+
+      if (invitation) {
+        //TODO: Handle verification requests with both contact_id and invitation_id. Current implementation is triggered in agentWebhook.js
+        // console.log('')
+        // console.log(
+        //   '_____________Verification flow triggered - process pending requests_____________',
+        // )
+        // await Verifications.startRule(contact_id, invitation.invitation_id)
+
+        console.log('')
+        console.log(
+          '_____________Credential flow triggered - process pending requests_____________',
+        )
+        await IssuanceRequests.processRequests(
+          contact_id,
+          invitation.invitation_id,
+        )
+      }
     }
   } catch (error) {
     console.error('Error Storing Connection Message')
@@ -188,3 +222,5 @@ module.exports = {
   getAll,
   getContactByConnection,
 }
+
+const Invitations = require('./invitations')

@@ -265,6 +265,21 @@ const getInvitation = async (invitation_id) => {
   }
 }
 
+const getInvitationsByContactId = async (contact_id) => {
+  try {
+    const invitationRecords = await Invitations.readInvitationsByContactId(
+      contact_id,
+    )
+
+    console.log('Invitation Record:', invitationRecords)
+
+    return invitationRecords
+  } catch (error) {
+    console.error('Error Fetching Invitation Record by contact id')
+    throw error
+  }
+}
+
 const getInvitationByOOBId = async (oob_id) => {
   try {
     const invitationRecord = await Invitations.readInvitationByOOBId(oob_id)
@@ -405,6 +420,7 @@ module.exports = {
   deleteInvitation,
   getAll,
   getInvitation,
+  getInvitationsByContactId,
   getInvitationByOOBId,
   getInvitationByConnectionId,
   updateOOBInvRecord,
